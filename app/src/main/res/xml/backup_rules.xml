@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <include domain="database" path="daeri_ledger.db" />
+    <include domain="sharedpref" path="daeri_settings.xml" />
+</full-backup-content>

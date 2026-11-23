@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 달력 칸 안의 작은 '휴무' 표 / 배경 -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/off_day_dim" />
+    <corners android:radius="100dp" />
+</shape>

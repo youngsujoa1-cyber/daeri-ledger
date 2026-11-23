@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 라이트 모드 팔레트 (기본은 다크: values-night/colors.xml) -->
+<resources>
+    <color name="bg">#F3F6FA</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_alt">#FFFFFF</color>
+    <color name="surface_high">#E9EFF6</color>
+    <color name="outline">#D6DFE9</color>
+    <color name="text_primary">#111A24</color>
+    <color name="text_secondary">#5A6A7B</color>
+    <color name="text_tertiary">#8695A5</color>
+    <color name="accent">#B87400</color>
+    <color name="accent_dim">#FFF0D2</color>
+    <color name="on_accent">#FFFFFF</color>
+    <color name="profit">#0E8A4F</color>
+    <color name="profit_dim">#E1F6EB</color>
+    <color name="loss">#C93A3A</color>
+    <color name="loss_dim">#FDE8E8</color>
+    <color name="unpaid">#A05F00</color>
+    <color name="unpaid_dim">#FFF1D6</color>
+    <color name="chart_bar">#2E6BC4</color>
+    <color name="chart_bar_dim">#E3EDFA</color>
+    <color name="nav_selected">#B87400</color>
+    <color name="nav_unselected">#7C8B9B</color>
+    <!-- 휴무일 표시 — 눈에 덜 튀는 슬레이트 블루그레이 -->
+    <color name="off_day">#7D8A99</color>
+    <color name="off_day_dim">#E7EDF3</color>
+    <color name="divider">#E7EDF4</color>
+    <color name="scrim">#66000000</color>
+    <color name="ic_launcher_background">#0F141B</color>
+</resources>

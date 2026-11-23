@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 다크 모드 팔레트 — 야간 운행 기본값. 눈부심 적은 딥 네이비 + 앰버 포인트 -->
+<resources>
+    <color name="bg">#0F141B</color>
+    <color name="surface">#161D26</color>
+    <color name="surface_alt">#1B2430</color>
+    <color name="surface_high">#232E3B</color>
+    <color name="outline">#2C3846</color>
+    <color name="text_primary">#F2F6FA</color>
+    <color name="text_secondary">#9AA9BA</color>
+    <color name="text_tertiary">#6B7A8B</color>
+    <color name="accent">#FFC24B</color>
+    <color name="accent_dim">#4A3A12</color>
+    <color name="on_accent">#241A00</color>
+    <color name="profit">#46D98A</color>
+    <color name="profit_dim">#123525</color>
+    <color name="loss">#FF6B6B</color>
+    <color name="loss_dim">#3A1A1A</color>
+    <color name="unpaid">#FFB020</color>
+    <color name="unpaid_dim">#3A2A08</color>
+    <color name="chart_bar">#4C8DF0</color>
+    <color name="chart_bar_dim">#1C2C42</color>
+    <color name="nav_selected">#FFC24B</color>
+    <color name="nav_unselected">#7D8B9B</color>
+    <!-- 휴무일 표시 — 눈에 덜 튀는 슬레이트 블루그레이 -->
+    <color name="off_day">#9AA8B6</color>
+    <color name="off_day_dim">#26313E</color>
+    <color name="divider">#222C38</color>
+    <color name="scrim">#99000000</color>
+    <color name="ic_launcher_background">#0F141B</color>
+</resources>
