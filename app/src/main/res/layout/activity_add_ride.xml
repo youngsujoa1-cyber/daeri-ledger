@@ -191,6 +191,58 @@
                 app:chipSpacingHorizontal="7dp"
                 app:singleSelection="true" />
 
+            <!-- 출발 · 도착 (항상 보임) — 금액보다 위에, 크게 -->
+            <TextView
+                style="@style/Text.Daeri.Section"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:layout_marginBottom="8dp"
+                android:text="출발지 · 도착지" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <EditText
+                    android:id="@+id/fromInput"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_amount_field"
+                    android:hint="출발지"
+                    android:imeOptions="actionNext"
+                    android:importantForAutofill="no"
+                    android:inputType="text"
+                    android:maxLength="40"
+                    android:minHeight="56dp"
+                    android:paddingHorizontal="14dp"
+                    android:paddingVertical="14dp"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_tertiary"
+                    android:textSize="17sp" />
+
+                <EditText
+                    android:id="@+id/toInput"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_amount_field"
+                    android:hint="도착지"
+                    android:imeOptions="actionNext"
+                    android:importantForAutofill="no"
+                    android:inputType="text"
+                    android:maxLength="40"
+                    android:minHeight="56dp"
+                    android:paddingHorizontal="14dp"
+                    android:paddingVertical="14dp"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_tertiary"
+                    android:textSize="17sp" />
+            </LinearLayout>
+
             <!-- 금액 -->
             <TextView
                 android:id="@+id/amountSectionLabel"
@@ -247,47 +299,6 @@
                 android:layout_marginTop="8dp"
                 app:chipSpacingHorizontal="7dp"
                 app:chipSpacingVertical="4dp" />
-
-            <!-- 출발 · 도착 (항상 보임) -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
-                android:orientation="horizontal">
-
-                <EditText
-                    android:id="@+id/fromInput"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_amount_field"
-                    android:hint="출발지"
-                    android:imeOptions="actionNext"
-                    android:importantForAutofill="no"
-                    android:inputType="text"
-                    android:maxLength="40"
-                    android:paddingHorizontal="12dp"
-                    android:textColor="@color/text_primary"
-                    android:textColorHint="@color/text_tertiary"
-                    android:textSize="14sp" />
-
-                <EditText
-                    android:id="@+id/toInput"
-                    android:layout_width="0dp"
-                    android:layout_height="48dp"
-                    android:layout_marginStart="8dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_amount_field"
-                    android:hint="도착지"
-                    android:imeOptions="actionNext"
-                    android:importantForAutofill="no"
-                    android:inputType="text"
-                    android:maxLength="40"
-                    android:paddingHorizontal="12dp"
-                    android:textColor="@color/text_primary"
-                    android:textColorHint="@color/text_tertiary"
-                    android:textSize="14sp" />
-            </LinearLayout>
 
             <!-- 팁·경유비 -->
             <LinearLayout

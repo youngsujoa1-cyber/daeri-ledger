@@ -38,10 +38,20 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
 
     private var cityFilter: String? = null
     private var searchQuery: String = ""
+
+    private companion object {
+        /** 한 번에 그리는 카드 수 — 318곳을 한꺼번에 inflate 하지 않기 위한 값 */
+        const val PAGE_SIZE = 40
+        const val SEARCH_PAGE_SIZE = 60
+    }
     private var userLocation: Location? = null
     private var locating = false
     private var savedSpots: List<MySpot> = emptyList()
     private var spotStats: List<SpotStat> = emptyList()
+
+    /** 화면에 그린 목록 상태 — 300곳이 넘어 한 번에 다 만들지 않고 40곳씩 늘린다 */
+    private var renderedList: List<Hotspot> = emptyList()
+    private var renderedCount = 0
 
     init {
         binding.locationAction.setOnClickListener { onLocationAction() }
@@ -55,6 +65,13 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
             }
         }
         binding.spotSearchClear.setOnClickListener { binding.spotSearch.setText("") }
+        binding.moreSpotsButton.setOnClickListener {
+            val list = renderedList
+            if (list.isEmpty()) return@setOnClickListener
+            val next = (renderedCount + PAGE_SIZE).coerceAtMost(list.size)
+            appendRows(list, renderedCount, next)
+            updateMoreButton(list)
+        }
         binding.spotSearch.setOnEditorActionListener { field, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH || actionId == EditorInfo.IME_ACTION_DONE) {
                 field.hideKeyboard()
@@ -211,6 +228,9 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         binding.nearbyColumn.removeAllViews()
         val list = filteredHotspots
         val query = searchQuery.trim()
+        renderedList = list
+        renderedCount = 0
+
         binding.nearbyCountText.text = "${list.size}곳"
         binding.spotsSubtitle.text = when {
             query.isNotEmpty() -> "‘$query’ 검색 결과 · 주요 콜밭 참고 정보"
@@ -219,6 +239,7 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         }
 
         if (list.isEmpty()) {
+            binding.moreSpotsButton.visibility = View.GONE
             val empty = ItemEmptyBinding.inflate(LayoutInflater.from(activity), binding.nearbyColumn, false)
             empty.emptyTitle.text = "검색 결과가 없어요"
             empty.emptyMessage.text = "다른 지역·역 이름으로 찾아보거나 지역 칩에서 ‘전체’를 눌러보세요"
@@ -226,8 +247,20 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
             return
         }
 
-        list.forEach { hotspot ->
-            val b = ItemHotspotBinding.inflate(LayoutInflater.from(activity), binding.nearbyColumn, false)
+        // 검색 결과는 조금 더 넉넉히(60곳), 평소 목록은 40곳까지 먼저 그린다.
+        val firstPage = if (query.isNotEmpty()) SEARCH_PAGE_SIZE else PAGE_SIZE
+        val first = firstPage.coerceAtMost(list.size)
+        appendRows(list, 0, first)
+        updateMoreButton(list)
+    }
+
+    /** [from, to) 구간만 새로 만들어 목록 아래에 붙인다 (전체를 다시 그리지 않음) */
+    private fun appendRows(list: List<Hotspot>, from: Int, to: Int) {
+        if (to <= from) return
+        val inflater = LayoutInflater.from(activity)
+        for (index in from until to) {
+            val hotspot = list[index]
+            val b = ItemHotspotBinding.inflate(inflater, binding.nearbyColumn, false)
             b.spotName.text = hotspot.name
             b.spotArea.text = hotspot.area
             b.spotPeak.text = "피크 ${hotspot.peak}"
@@ -252,6 +285,17 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
             b.navigateButton.setOnClickListener { navigate(hotspot.name, hotspot.lat, hotspot.lng) }
             b.root.setOnClickListener { navigate(hotspot.name, hotspot.lat, hotspot.lng) }
             binding.nearbyColumn.addView(b.root)
+        }
+        renderedCount = to
+    }
+
+    private fun updateMoreButton(list: List<Hotspot>) {
+        val remaining = list.size - renderedCount
+        if (remaining > 0) {
+            binding.moreSpotsButton.visibility = View.VISIBLE
+            binding.moreSpotsButton.text = "나머지 ${remaining}곳 더 보기"
+        } else {
+            binding.moreSpotsButton.visibility = View.GONE
         }
     }
 

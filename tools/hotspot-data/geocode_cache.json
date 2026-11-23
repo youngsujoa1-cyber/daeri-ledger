@@ -1,0 +1,1547 @@
+{
+ "한남오거리, 서울 용산구": {
+  "lat": 37.5333727,
+  "lng": 127.0076342,
+  "address": "Seoul, 한남오거리"
+ },
+ "유엔빌리지, 서울 용산구": {
+  "lat": 37.5347133,
+  "lng": 127.0119083,
+  "address": "UN village-gil, Yongsan District, Seoul, South Korea"
+ },
+ "순천향대학교병원, 서울 용산구": {
+  "lat": 37.5339355,
+  "lng": 127.0043336,
+  "address": "59 Daesagwan-ro, Yongsan District, Seoul, South Korea"
+ },
+ "이태원역, 서울 용산구": {
+  "lat": 37.534542,
+  "lng": 126.994596,
+  "address": "Itaewon, 16 Noksapyeong-daero 46-gil, 이태원제1동 Yongsan District, Seoul, South Korea"
+ },
+ "경리단길, 서울 용산구": {
+  "lat": 37.538432,
+  "lng": 126.9875466,
+  "address": "210-65 Itaewon-dong, Yongsan District, Seoul, South Korea"
+ },
+ "해방촌, 서울 용산구": {
+  "lat": 37.5402259,
+  "lng": 126.9867064,
+  "address": "yongsan-dong 2(i)-ga, Yongsan District, Seoul, South Korea"
+ },
+ "용산역, 서울 용산구": {
+  "lat": 37.5299439,
+  "lng": 126.9647728,
+  "address": "Yongsan, Hangang-daero 23-gil, Yongsan District, Seoul, South Korea"
+ },
+ "신용산역, 서울 용산구": {
+  "lat": 37.529187,
+  "lng": 126.967886,
+  "address": "South Korea, Seoul, 신용산역"
+ },
+ "삼각지역, 서울 용산구": {
+  "lat": 37.5350315,
+  "lng": 126.9734515,
+  "address": "South Korea, Seoul, 삼각지역"
+ },
+ "숙명여자대학교, 서울 용산구": {
+  "lat": 37.546475,
+  "lng": 126.9646916,
+  "address": "100 Cheongpa-ro 47-gil, Yongsan District, Seoul, South Korea"
+ },
+ "명동, 서울 중구": {
+  "lat": 37.55998,
+  "lng": 126.9858296,
+  "address": "Myeong-dong, Jung District, Seoul, South Korea"
+ },
+ "을지로입구역, 서울 중구": {
+  "lat": 37.566065,
+  "lng": 126.982679,
+  "address": "Euljiro 1(il)-ga, 42 을지로동 Jung District, 서울특별시 South Korea"
+ },
+ "을지로3가역, 서울 중구": {
+  "lat": 37.566288,
+  "lng": 126.991051,
+  "address": "Euljiro 3(sam)ga, Seoul, South Korea"
+ },
+ "충무로역, 서울 중구": {
+  "lat": 37.5648394,
+  "lng": 126.9927416,
+  "address": "Chungmu-ro, Jung District, Seoul, South Korea"
+ },
+ "시청역, 서울 중구": {
+  "lat": 37.5657037,
+  "lng": 126.9768616,
+  "address": "City Hall, 101 지하 Jung District, Seoul, South Korea"
+ },
+ "동대문역사문화공원, 서울 중구": {
+  "lat": 37.565682,
+  "lng": 127.008953,
+  "address": "Dongdaemun History & Culture Park, Seoul, South Korea"
+ },
+ "신당역, 서울 중구": {
+  "lat": 37.565669,
+  "lng": 127.019452,
+  "address": "Sindang, 431-1 퇴계로 지하 Jung District, Seoul, South Korea"
+ },
+ "약수역, 서울 중구": {
+  "lat": 37.5513128,
+  "lng": 127.0109839,
+  "address": "South Korea, 서울특별시 중구 약수동"
+ },
+ "청구역, 서울 중구": {
+  "lat": 37.5591145,
+  "lng": 127.0131005,
+  "address": "Cheonggu station, Seoul, South Korea"
+ },
+ "광화문, 서울 종로구": {
+  "lat": 37.5760111,
+  "lng": 126.9768611,
+  "address": "161 Sajik-ro, Jongno District, Seoul, South Korea"
+ },
+ "종각역, 서울 종로구": {
+  "lat": 37.570176,
+  "lng": 126.983197,
+  "address": "Jonggak, Jongno 1(il)-ga, Seoul, South Korea"
+ },
+ "종로3가역, 서울 종로구": {
+  "lat": 37.570436,
+  "lng": 126.992148,
+  "address": "Jongno 3-ga, Jongno 3(sam)-ga, Seoul, South Korea"
+ },
+ "강남역, 서울 강남구": {
+  "lat": 37.497952,
+  "lng": 127.027619,
+  "address": "South Korea, Seoul, Yeoksam-dong, 강남"
+ },
+ "신논현역, 서울 강남구": {
+  "lat": 37.504724,
+  "lng": 127.02538,
+  "address": "South Korea, Seoul, 신논현역"
+ },
+ "논현역, 서울 강남구": {
+  "lat": 37.5106484,
+  "lng": 127.0218283,
+  "address": "Nonhyeon-Yeog, 280번지 Nonhyeon-dong, Gangnam District, Seoul, South Korea"
+ },
+ "학동사거리, 서울 강남구": {
+  "lat": 37.5230968,
+  "lng": 127.0391037,
+  "address": "Seoul, 학동사거리"
+ },
+ "신사역, 서울 강남구": {
+  "lat": 37.5235332,
+  "lng": 127.0230659,
+  "address": "Sinsa-dong, Gangnam District, Seoul, South Korea"
+ },
+ "압구정역, 서울 강남구": {
+  "lat": 37.52633,
+  "lng": 127.028513,
+  "address": "Abgujeong, 신사동 Seoul, South Korea"
+ },
+ "압구정로데오, 서울 강남구": {
+  "lat": 37.527394,
+  "lng": 127.040572,
+  "address": "Apgujeong Rodeo, Seoul, South Korea"
+ },
+ "청담사거리, 서울 강남구": {
+  "lat": 37.5241801,
+  "lng": 127.0473251,
+  "address": "Seoul, 청담사거리"
+ },
+ "청담역, 서울 강남구": {
+  "lat": 37.51912,
+  "lng": 127.051937,
+  "address": "Cheongdam Station, Seoul, South Korea"
+ },
+ "삼성역, 서울 강남구": {
+  "lat": 37.513975,
+  "lng": 127.0561274,
+  "address": "Samseong-dong, Gangnam District, Seoul, South Korea"
+ },
+ "봉은사역, 서울 강남구": {
+  "lat": 37.514221,
+  "lng": 127.060266,
+  "address": "Bongeunsa, Seoul, South Korea"
+ },
+ "선릉역, 서울 강남구": {
+  "lat": 37.504487,
+  "lng": 127.048957,
+  "address": "Seonleung, Yeoksam-dong, Seoul, South Korea"
+ },
+ "역삼역, 서울 강남구": {
+  "lat": 37.5000776,
+  "lng": 127.0385419,
+  "address": "Yeoksam-dong, Gangnam District, Seoul, South Korea"
+ },
+ "언주역, 서울 강남구": {
+  "lat": 37.507323,
+  "lng": 127.033903,
+  "address": "South Korea, Seoul, 역삼1동 언주"
+ },
+ "한티역, 서울 강남구": {
+  "lat": 37.496208,
+  "lng": 127.052883,
+  "address": "Hanti Station, Seoul, South Korea"
+ },
+ "매봉역, 서울 강남구": {
+  "lat": 37.487035,
+  "lng": 127.046918,
+  "address": "Maebong station, Seoul, South Korea"
+ },
+ "양재역, 서울 강남구": {
+  "lat": 37.4719823,
+  "lng": 127.0374623,
+  "address": "Yangjae-dong, Seocho District, Seoul, South Korea"
+ },
+ "양재시민의숲, 서울 서초구": {
+  "lat": 37.469913,
+  "lng": 127.038396,
+  "address": "Yangjae Citizen Forest, Seoul, South Korea"
+ },
+ "수서역, 서울 강남구": {
+  "lat": 37.4874685,
+  "lng": 127.1013245,
+  "address": "Suseo Station, Seoul, South Korea"
+ },
+ "교대역, 서울 서초구": {
+  "lat": 37.4934705,
+  "lng": 127.0142285,
+  "address": "Seoul National University of Education Station, Seoul, South Korea"
+ },
+ "서초역, 서울 서초구": {
+  "lat": 37.4883869,
+  "lng": 127.0167954,
+  "address": "Seocho-dong, Seocho District, Seoul, South Korea"
+ },
+ "남부터미널, 서울 서초구": {
+  "lat": 37.484918,
+  "lng": 127.01629,
+  "address": "Nambu Bus Terminal, Seocho-dong, Seoul, South Korea"
+ },
+ "방배역, 서울 서초구": {
+  "lat": 37.4794939,
+  "lng": 126.9931207,
+  "address": "Bangbae-dong, Seocho District, Seoul, South Korea"
+ },
+ "서래마을, 서울 서초구": {
+  "lat": 37.4972659,
+  "lng": 126.9984417,
+  "address": "서울특별시 서래마을"
+ },
+ "고속터미널역, 서울 서초구": {
+  "lat": 37.5049142,
+  "lng": 127.0049151,
+  "address": "Express Bus Terminal, 반포1동 Seocho District, Seoul, South Korea"
+ },
+ "잠원역, 서울 서초구": {
+  "lat": 37.51296,
+  "lng": 127.011611,
+  "address": "Jamwon station, Seoul, South Korea"
+ },
+ "잠실역, 서울 송파구": {
+  "lat": 37.5132612,
+  "lng": 127.1001336,
+  "address": "Jamsil, 잠실6동 Seoul, South Korea"
+ },
+ "잠실새내역, 서울 송파구": {
+  "lat": 37.511624,
+  "lng": 127.085585,
+  "address": "Jamsilsaenae station, Seoul, South Korea"
+ },
+ "방이동 먹자골목, 서울 송파구": {
+  "lat": 37.514765,
+  "lng": 127.1092093,
+  "address": "Ogeum-ro 11-gil, Songpa District, Seoul, South Korea"
+ },
+ "석촌역, 서울 송파구": {
+  "lat": 37.5057138,
+  "lng": 127.1070689,
+  "address": "Seogchon, Seoul, South Korea"
+ },
+ "문정역, 서울 송파구": {
+  "lat": 37.4855846,
+  "lng": 127.1225635,
+  "address": "Munjeong-dong, Songpa District, Seoul, South Korea"
+ },
+ "가락시장역, 서울 송파구": {
+  "lat": 37.4923175,
+  "lng": 127.118104,
+  "address": "South Korea, Seoul, 가락시장역"
+ },
+ "장지역, 서울 송파구": {
+  "lat": 37.477699,
+  "lng": 127.126274,
+  "address": "Jangji Station, Seoul, South Korea"
+ },
+ "천호역, 서울 강동구": {
+  "lat": 37.538486,
+  "lng": 127.123905,
+  "address": "Cheonho Station, 성내제2동 Seoul, South Korea"
+ },
+ "길동사거리, 서울 강동구": {
+  "lat": 37.5339306,
+  "lng": 127.1385659,
+  "address": "Seoul, 길동사거리"
+ },
+ "암사역, 서울 강동구": {
+  "lat": 37.5578058,
+  "lng": 127.1310675,
+  "address": "Amsa-dong, Gangdong-gu, Seoul, South Korea"
+ },
+ "강동역, 서울 강동구": {
+  "lat": 37.53594,
+  "lng": 127.132187,
+  "address": "Gangdong Station, Seoul, South Korea"
+ },
+ "둔촌동역, 서울 강동구": {
+  "lat": 37.527657,
+  "lng": 127.136231,
+  "address": "South Korea, Seoul, 둔촌동역"
+ },
+ "성수역, 서울 성동구": {
+  "lat": 37.5406846,
+  "lng": 127.0566319,
+  "address": "Seongsu-dong 2(i)-ga, Seongdong-gu, Seoul, South Korea"
+ },
+ "서울숲, 서울 성동구": {
+  "lat": 37.5443878,
+  "lng": 127.0374424,
+  "address": "Seoul Forest Park, 273 Ttukseom-ro, Seongdong-gu, Seoul, South Korea"
+ },
+ "왕십리역, 서울 성동구": {
+  "lat": 37.5616887,
+  "lng": 127.0279152,
+  "address": "South Korea, 서울특별시 성동구 왕십리제2동"
+ },
+ "상왕십리역, 서울 성동구": {
+  "lat": 37.5645,
+  "lng": 127.028872,
+  "address": "South Korea, Seoul, 상왕십리역"
+ },
+ "한양대학교, 서울 성동구": {
+  "lat": 37.5582392,
+  "lng": 127.0389744,
+  "address": "Seongdong-gu, Seoul, South Korea"
+ },
+ "건대입구역, 서울 광진구": {
+  "lat": 37.540372,
+  "lng": 127.069276,
+  "address": "Konkuk Univ. Station, 화양동 Seoul, South Korea"
+ },
+ "구의역, 서울 광진구": {
+  "lat": 37.5444007,
+  "lng": 127.092844,
+  "address": "Guui-dong, Gwangjin District, Seoul, South Korea"
+ },
+ "군자역, 서울 광진구": {
+  "lat": 37.5530337,
+  "lng": 127.073673,
+  "address": "Gunja-dong, Gwangjin District, Seoul, South Korea"
+ },
+ "장한평역, 서울 동대문구": {
+  "lat": 37.561472,
+  "lng": 127.064657,
+  "address": "South Korea, Seoul, 장한평역"
+ },
+ "청량리역, 서울 동대문구": {
+  "lat": 37.581381,
+  "lng": 127.048958,
+  "address": "South Korea, Seoul, 청량리역"
+ },
+ "회기역, 서울 동대문구": {
+  "lat": 37.5920886,
+  "lng": 127.0516746,
+  "address": "Hoegi-dong, Dongdaemun District, Seoul, South Korea"
+ },
+ "답십리역, 서울 동대문구": {
+  "lat": 37.567072,
+  "lng": 127.052382,
+  "address": "South Korea, Seoul, 답십리역"
+ },
+ "상봉역, 서울 중랑구": {
+  "lat": 37.5964077,
+  "lng": 127.0858246,
+  "address": "Sangbong, Seoul, South Korea"
+ },
+ "사가정역, 서울 중랑구": {
+  "lat": 37.580966,
+  "lng": 127.088503,
+  "address": "South Korea, Seoul, 사가정역"
+ },
+ "홍대입구역, 서울 마포구": {
+  "lat": 37.557527,
+  "lng": 126.9244669,
+  "address": "Hongik University Station, Seoul, South Korea"
+ },
+ "연남동, 서울 마포구": {
+  "lat": 37.5627439,
+  "lng": 126.9214088,
+  "address": "Yeonnam-dong, Mapo-gu, Seoul, South Korea"
+ },
+ "합정역, 서울 마포구": {
+  "lat": 37.5483014,
+  "lng": 126.9111751,
+  "address": "Hapjeong-dong, Mapo-gu, Seoul, South Korea"
+ },
+ "상수역, 서울 마포구": {
+  "lat": 37.5466701,
+  "lng": 126.9244874,
+  "address": "Sangsu-dong, Mapo-gu, Seoul, South Korea"
+ },
+ "망원역, 서울 마포구": {
+  "lat": 37.5554884,
+  "lng": 126.8998606,
+  "address": "Mangwon-dong, Mapo-gu, Seoul, South Korea"
+ },
+ "공덕역, 서울 마포구": {
+  "lat": 37.5481125,
+  "lng": 126.9549965,
+  "address": "Gongdeok-dong, Mapo-gu, Seoul, South Korea"
+ },
+ "마포역, 서울 마포구": {
+  "lat": 37.5400397,
+  "lng": 126.9454707,
+  "address": "South Korea, Seoul, Mapo-gu, 상가 역 2 번출구 지하 KR 서울특별시 마포구 서울시 마포구 마포대로 33 Mapo station"
+ },
+ "신촌역, 서울 서대문구": {
+  "lat": 37.559771,
+  "lng": 126.942367,
+  "address": "Sinchon, 신촌동 Seoul, South Korea"
+ },
+ "이대역, 서울 서대문구": {
+  "lat": 37.556761,
+  "lng": 126.945857,
+  "address": "Ewha Womans University station, Seoul, South Korea"
+ },
+ "충정로역, 서울 서대문구": {
+  "lat": 37.562683,
+  "lng": 126.9645745,
+  "address": "Chungjeong-ro, Seodaemun-gu, Seoul, South Korea"
+ },
+ "디지털미디어시티역, 서울 마포구": {
+  "lat": 37.5779636,
+  "lng": 126.9004205,
+  "address": "South Korea, Seoul, 디지털미디어시티역"
+ },
+ "연신내역, 서울 은평구": {
+  "lat": 37.618812,
+  "lng": 126.920842,
+  "address": "South Korea, Seoul, 연신내역"
+ },
+ "불광역, 서울 은평구": {
+  "lat": 37.6191594,
+  "lng": 126.9355669,
+  "address": "Bulgwang-dong, Eunpyeong District, Seoul, South Korea"
+ },
+ "응암역, 서울 은평구": {
+  "lat": 37.598472,
+  "lng": 126.915592,
+  "address": "Eungam station, Seoul, South Korea"
+ },
+ "여의도역, 서울 영등포구": {
+  "lat": 37.5215695,
+  "lng": 126.9243115,
+  "address": "South Korea, Seoul, 여의도역"
+ },
+ "국회의사당역, 서울 영등포구": {
+  "lat": 37.528128,
+  "lng": 126.917853,
+  "address": "South Korea, Seoul, 국회의사당역"
+ },
+ "영등포역, 서울 영등포구": {
+  "lat": 37.5154133,
+  "lng": 126.9071288,
+  "address": "South Korea, Seoul, 영등포역"
+ },
+ "당산역, 서울 영등포구": {
+  "lat": 37.5340278,
+  "lng": 126.9019901,
+  "address": "Dangsan station, Seoul, South Korea"
+ },
+ "문래동, 서울 영등포구": {
+  "lat": 37.516637,
+  "lng": 126.891505,
+  "address": "Mullae-dong, Yeongdeungpo District, Seoul, South Korea"
+ },
+ "대림역, 서울 영등포구": {
+  "lat": 37.4954266,
+  "lng": 126.9001326,
+  "address": "Daerim-dong, Yeongdeungpo District, Seoul, South Korea"
+ },
+ "사당역, 서울 동작구": {
+  "lat": 37.476559,
+  "lng": 126.981633,
+  "address": "Sadang Station, Seoul, South Korea"
+ },
+ "이수역, 서울 동작구": {
+  "lat": 37.486491,
+  "lng": 126.981876,
+  "address": "Isu Station, Seoul, South Korea"
+ },
+ "노량진역, 서울 동작구": {
+  "lat": 37.514082,
+  "lng": 126.941687,
+  "address": "Noryangjin, Seoul, South Korea"
+ },
+ "장승배기역, 서울 동작구": {
+  "lat": 37.504905,
+  "lng": 126.939191,
+  "address": "South Korea, Seoul, 장승배기역"
+ },
+ "서울대입구역, 서울 관악구": {
+  "lat": 37.48121,
+  "lng": 126.952712,
+  "address": "South Korea, Seoul, 서울대입구역"
+ },
+ "신림역, 서울 관악구": {
+  "lat": 37.4631968,
+  "lng": 126.9358124,
+  "address": "Sillim-dong, Gwanak-gu, Seoul, South Korea"
+ },
+ "낙성대역, 서울 관악구": {
+  "lat": 37.477117,
+  "lng": 126.963418,
+  "address": "South Korea, Seoul, 낙성대역"
+ },
+ "신도림역, 서울 구로구": {
+  "lat": 37.5092011,
+  "lng": 126.8825748,
+  "address": "South Korea, 서울특별시 구로구 신도림동"
+ },
+ "구로디지털단지역, 서울 구로구": {
+  "lat": 37.485215,
+  "lng": 126.901594,
+  "address": "Guro Digital Complex, Seoul, South Korea"
+ },
+ "개봉역, 서울 구로구": {
+  "lat": 37.494698,
+  "lng": 126.858504,
+  "address": "Gaebong station, Seoul, South Korea"
+ },
+ "가산디지털단지역, 서울 금천구": {
+  "lat": 37.48089,
+  "lng": 126.8825735,
+  "address": "South Korea, Seoul, 가산디지털단지역"
+ },
+ "목동역, 서울 양천구": {
+  "lat": 37.526072,
+  "lng": 126.864301,
+  "address": "Mok-dong station, Seoul, South Korea"
+ },
+ "오목교역, 서울 양천구": {
+  "lat": 37.524553,
+  "lng": 126.87505,
+  "address": "South Korea, Seoul, 오목교역"
+ },
+ "화곡역, 서울 강서구": {
+  "lat": 37.5406979,
+  "lng": 126.8472722,
+  "address": "Hwagok-dong, Gangseo-gu, Seoul, South Korea"
+ },
+ "발산역, 서울 강서구": {
+  "lat": 37.558683,
+  "lng": 126.837595,
+  "address": "Balsan station, Seoul, South Korea"
+ },
+ "김포공항역, 서울 강서구": {
+  "lat": 37.56224,
+  "lng": 126.801396,
+  "address": "Gimpo Int'l Airport, 방화제2동 Seoul, South Korea"
+ },
+ "안암역, 서울 성북구": {
+  "lat": 37.586296,
+  "lng": 127.029137,
+  "address": "Anam station, Seoul, South Korea"
+ },
+ "성신여대입구역, 서울 성북구": {
+  "lat": 37.59272,
+  "lng": 127.016544,
+  "address": "Sungshin Women's University station, Seoul, South Korea"
+ },
+ "길음역, 서울 성북구": {
+  "lat": 37.6085948,
+  "lng": 127.0220461,
+  "address": "Gireum-dong, Seongbuk District, Seoul, South Korea"
+ },
+ "수유역, 서울 강북구": {
+  "lat": 37.6371095,
+  "lng": 127.0247325,
+  "address": "Suyu station, Seoul, South Korea"
+ },
+ "미아사거리역, 서울 강북구": {
+  "lat": 37.613251,
+  "lng": 127.030084,
+  "address": "South Korea, Seoul, 미아사거리역"
+ },
+ "창동역, 서울 도봉구": {
+  "lat": 37.6525701,
+  "lng": 127.0480164,
+  "address": "Chang-dong, 135번지 Chang-dong, Seoul, South Korea"
+ },
+ "쌍문역, 서울 도봉구": {
+  "lat": 37.6533557,
+  "lng": 127.0271003,
+  "address": "Ssangmun-dong, Dobong-gu, Seoul, South Korea"
+ },
+ "노원역, 서울 노원구": {
+  "lat": 37.654527,
+  "lng": 127.060551,
+  "address": "Nowon Station, Seoul, South Korea"
+ },
+ "중계역, 서울 노원구": {
+  "lat": 37.6510125,
+  "lng": 127.0799977,
+  "address": "Junggye-dong, Nowon-gu, Seoul, South Korea"
+ },
+ "태릉입구역, 서울 노원구": {
+  "lat": 37.6179085,
+  "lng": 127.0750345,
+  "address": "South Korea, Seoul, 태릉입구역"
+ },
+ "판교역, 성남시 분당구": {
+  "lat": 37.394776,
+  "lng": 127.11116,
+  "address": "Pangyo Station, 160 Pangyoyeok-ro, 삼평동 Bundang-gu, Seongnam-si, Gyeonggi-do, South Korea"
+ },
+ "백현동 카페거리, 성남시 분당구": {
+  "lat": 37.3846932,
+  "lng": 127.1112318,
+  "address": "265-5 Baekhyeon-dong, Bundang-gu, Seongnam-si, Gyeonggi-do, South Korea"
+ },
+ "서현역, 성남시 분당구": {
+  "lat": 37.3822656,
+  "lng": 127.1344396,
+  "address": "Seohyeon-dong, Bundang-gu, Seongnam-si, Gyeonggi-do, South Korea"
+ },
+ "수내역, 성남시 분당구": {
+  "lat": 37.378442,
+  "lng": 127.11423,
+  "address": "Sunae, 수내1동 Seongnam-si, South Korea"
+ },
+ "정자역, 성남시 분당구": {
+  "lat": 37.3644088,
+  "lng": 127.1154987,
+  "address": "Jeongja-dong, Bundang-gu, Seongnam-si, Gyeonggi-do, South Korea"
+ },
+ "미금역, 성남시 분당구": {
+  "lat": 37.350078,
+  "lng": 127.108952,
+  "address": "Migeum station, Seongnam-si, South Korea"
+ },
+ "오리역, 성남시 분당구": {
+  "lat": 37.339832,
+  "lng": 127.108985,
+  "address": "Ori station, Seongnam-si, South Korea"
+ },
+ "야탑역, 성남시 분당구": {
+  "lat": 37.4062703,
+  "lng": 127.144621,
+  "address": "Yatap-dong, Bundang-gu, Seongnam-si, Gyeonggi-do, South Korea"
+ },
+ "이매역, 성남시 분당구": {
+  "lat": 37.3959818,
+  "lng": 127.1314337,
+  "address": "Imae-dong, Bundang-gu, Seongnam-si, Gyeonggi-do, South Korea"
+ },
+ "모란역, 성남시 중원구": {
+  "lat": 37.432124,
+  "lng": 127.129064,
+  "address": "Moran station, Seongnam-si, South Korea"
+ },
+ "태평역, 성남시 수정구": {
+  "lat": 37.439854,
+  "lng": 127.128035,
+  "address": "Taepyeong station, Seongnam-si, South Korea"
+ },
+ "위례중앙광장, 하남시": {
+  "lat": 37.4727853,
+  "lng": 127.1418984,
+  "address": "506 Changgok-dong, Sujeong-gu, Seongnam-si, Gyeonggi-do, South Korea"
+ },
+ "수지구청역, 용인시": {
+  "lat": 37.32238,
+  "lng": 127.094447,
+  "address": "South Korea, Yongin-si, 수지구청역"
+ },
+ "성복역, 용인시 수지구": {
+  "lat": 37.313557,
+  "lng": 127.080341,
+  "address": "Seongbok, Suji-gu, Yongin-si, Gyeonggi-do, South Korea"
+ },
+ "상현역, 용인시 수지구": {
+  "lat": 37.2968125,
+  "lng": 127.0689805,
+  "address": "Sanghyeon station, Yongin-si, South Korea"
+ },
+ "죽전역, 용인시 수지구": {
+  "lat": 37.3295528,
+  "lng": 127.1234646,
+  "address": "Jukjeon-dong, Suji-gu, Yongin-si, Gyeonggi-do, South Korea"
+ },
+ "보정동 카페거리, 용인시 기흥구": {
+  "lat": 37.3216002,
+  "lng": 127.1101031,
+  "address": "12 Jukjeon-ro 15beon-gil, 보정동 Giheung-gu, Yongin-si, Gyeonggi-do, South Korea"
+ },
+ "동천역, 용인시 수지구": {
+  "lat": 37.337788,
+  "lng": 127.102832,
+  "address": "Dongcheon station, Yongin-si, South Korea"
+ },
+ "기흥구청, 용인시 기흥구": {
+  "lat": 37.2804055,
+  "lng": 127.1146587,
+  "address": "95 Gwangok-ro, Giheung-gu, Yongin-si, Gyeonggi-do, South Korea"
+ },
+ "동백역, 용인시 기흥구": {
+  "lat": 37.2690175,
+  "lng": 127.1528365,
+  "address": "Dongbaek station, Yongin-si, South Korea"
+ },
+ "역북동, 용인시 처인구": {
+  "lat": 37.2379527,
+  "lng": 127.1874131,
+  "address": "South Korea, 경기도 용인시 처인구 역북동"
+ },
+ "구성역, 용인시 기흥구": {
+  "lat": 37.299013,
+  "lng": 127.105664,
+  "address": "Guseong station, Yongin-si, South Korea"
+ },
+ "신갈동, 용인시 기흥구": {
+  "lat": 37.282795,
+  "lng": 127.1035705,
+  "address": "Singal-dong, Giheung-gu, Yongin-si, Gyeonggi-do, South Korea"
+ },
+ "인계동 나혜석거리, 수원시": {
+  "lat": 37.2642294,
+  "lng": 127.0332792,
+  "address": "South Korea, Gyeonggi-do, Suwon, Paldal-gu, 인계동 1119"
+ },
+ "수원역, 수원시": {
+  "lat": 37.2664398,
+  "lng": 126.9994077,
+  "address": "Suwon Station, Suwon, South Korea"
+ },
+ "광교중앙역, 수원시": {
+  "lat": 37.3018197,
+  "lng": 127.046213,
+  "address": "Gwanggyo (Kyonggi Univ.), ５５ Daehak-ro, Yeongtong-gu, Suwon, Gyeonggi-do, South Korea"
+ },
+ "아브뉴프랑, 수원시 영통구": {
+  "lat": 37.290414,
+  "lng": 127.050727,
+  "address": "85 Central town-ro, Yeongtong-gu, Suwon, Gyeonggi-do, South Korea"
+ },
+ "아주대학교, 수원시": {
+  "lat": 37.2820187,
+  "lng": 127.0463409,
+  "address": "206 World cup-ro, Yeongtong-gu, Suwon, Gyeonggi-do, South Korea"
+ },
+ "영통역, 수원시": {
+  "lat": 37.251521,
+  "lng": 127.07134,
+  "address": "Yeongtong station, Suwon, South Korea"
+ },
+ "망포역, 수원시": {
+  "lat": 37.245807,
+  "lng": 127.057375,
+  "address": "Mangpo, 1520 Deogyeong-daero, 지하 Yeongtong-gu, Suwon, Gyeonggi-do, South Korea"
+ },
+ "매탄동, 수원시": {
+  "lat": 37.2617247,
+  "lng": 127.0489392,
+  "address": "Maetan-dong, Yeongtong-gu, Suwon-si, Gyeonggi-do, South Korea"
+ },
+ "화서역, 수원시": {
+  "lat": 37.2830848,
+  "lng": 126.9942341,
+  "address": "Hwaseo-dong, Paldal-gu, Suwon-si, Gyeonggi-do, South Korea"
+ },
+ "호매실, 수원시": {
+  "lat": 37.2624934,
+  "lng": 126.9530358,
+  "address": "Homaesil-dong, Gwonseon-gu, Suwon-si, Gyeonggi-do, South Korea"
+ },
+ "화성행궁, 수원시": {
+  "lat": 37.2871202,
+  "lng": 127.0119379,
+  "address": "320-2 Yeonghwa-dong, Jangan-gu, Suwon, Gyeonggi-do, South Korea"
+ },
+ "동탄1동 남광장, 화성시": {
+  "lat": 37.200645,
+  "lng": 127.0735317,
+  "address": "South Korea, Gyeonggi-do, Hwaseong-si, Bansong-dong, 106-5번지 유정프라자 101호"
+ },
+ "메타폴리스, 화성시": {
+  "lat": 37.205,
+  "lng": 127.068889,
+  "address": "Metapolis, Hwaseong-si"
+ },
+ "동탄역, 화성시": {
+  "lat": 37.199327,
+  "lng": 127.0970177,
+  "address": "Dongtan Station, 산20-1 Cheonggye-ri, 동탄면 Hwaseong-si, Gyeonggi-do, South Korea"
+ },
+ "청계동, 화성시": {
+  "lat": 37.1956769,
+  "lng": 127.1118926,
+  "address": "Cheonggye-dong, Hwaseong-si, Gyeonggi-do, South Korea"
+ },
+ "영천동, 화성시": {
+  "lat": 37.210601,
+  "lng": 127.1061838,
+  "address": "Yeongcheon-dong, Hwaseong-si, Gyeonggi-do, South Korea"
+ },
+ "병점역, 화성시": {
+  "lat": 37.2063162,
+  "lng": 127.0393352,
+  "address": "Byeongjeom-dong, Hwaseong-si, Gyeonggi-do, South Korea"
+ },
+ "향남읍, 화성시": {
+  "lat": 37.1145605,
+  "lng": 126.9270446,
+  "address": "Hyangnam-eup, Hwaseong-si, Gyeonggi-do, South Korea"
+ },
+ "봉담읍, 화성시": {
+  "lat": 37.2038973,
+  "lng": 126.9392221,
+  "address": "Bongdam-eup, Hwaseong-si, Gyeonggi-do, South Korea"
+ },
+ "새솔동, 화성시": {
+  "lat": 37.2856787,
+  "lng": 126.8186264,
+  "address": "Saesol-dong, Hwaseong-si, Gyeonggi-do, South Korea"
+ },
+ "오산역, 오산시": {
+  "lat": 37.14581,
+  "lng": 127.067125,
+  "address": "Osan station, Osan, South Korea"
+ },
+ "세교동, 오산시": {
+  "lat": 37.1875839,
+  "lng": 127.0398401,
+  "address": "Segyo-dong, Osan-si, Gyeonggi-do, South Korea"
+ },
+ "평택역, 평택시": {
+  "lat": 36.991145,
+  "lng": 127.084981,
+  "address": "Pyeongtaek station, Pyeongtaek, South Korea"
+ },
+ "송탄역, 평택시": {
+  "lat": 37.075533,
+  "lng": 127.054377,
+  "address": "Songtan station, Pyeongtaek, South Korea"
+ },
+ "고덕동, 평택시": {
+  "lat": 37.0439532,
+  "lng": 127.0393965,
+  "address": "Godeok-dong, Pyeongtaek-si, Gyeonggi-do, South Korea"
+ },
+ "안중읍, 평택시": {
+  "lat": 36.9908889,
+  "lng": 126.936634,
+  "address": "Anjung-eup, Pyeongtaek-si, Gyeonggi-do, South Korea"
+ },
+ "비전동, 평택시": {
+  "lat": 36.9998316,
+  "lng": 127.1044181,
+  "address": "Bijeon-dong, Pyeongtaek-si, Gyeonggi-do, South Korea"
+ },
+ "소사벌, 평택시": {
+  "lat": 36.9952458,
+  "lng": 127.1169164,
+  "address": "59 Dongbugongwon-ro, Pyeongtaek, Gyeonggi-do, South Korea"
+ },
+ "범계역, 안양시": {
+  "lat": 37.389854,
+  "lng": 126.950627,
+  "address": "Beomgye station, Anyang, South Korea"
+ },
+ "평촌역, 안양시": {
+  "lat": 37.3918783,
+  "lng": 126.9751397,
+  "address": "Pyeongchon-dong, Dongan-gu, Anyang-si, Gyeonggi-do, South Korea"
+ },
+ "안양일번가, 안양시": {
+  "lat": 37.4003558,
+  "lng": 126.922379,
+  "address": "South Korea, Gyeonggi-do, Anyang, Manan-gu, Anyang-dong, 674-10번지 1층 KR"
+ },
+ "인덕원역, 안양시": {
+  "lat": 37.400807,
+  "lng": 126.976384,
+  "address": "South Korea, Anyang, 인덕원역4번출구"
+ },
+ "정부과천청사역, 과천시": {
+  "lat": 37.4264825,
+  "lng": 126.9900215,
+  "address": "South Korea, Gwacheon-si, 정부과천청사"
+ },
+ "별양동, 과천시": {
+  "lat": 37.4278203,
+  "lng": 126.9956643,
+  "address": "Byeoryang-dong, Gwacheon-si, Gyeonggi-do, South Korea"
+ },
+ "산본역, 군포시": {
+  "lat": 37.3611337,
+  "lng": 126.9228713,
+  "address": "Sanbon-dong, Gunpo-si, Gyeonggi-do, South Korea"
+ },
+ "군포역, 군포시": {
+  "lat": 37.354006,
+  "lng": 126.948539,
+  "address": "Gunpo, 군포1동 Gunpo-si, South Korea"
+ },
+ "내손동, 의왕시": {
+  "lat": 37.3774136,
+  "lng": 126.9839196,
+  "address": "Naeson-dong, Uiwang-si, Gyeonggi-do, South Korea"
+ },
+ "부천역, 부천시": {
+  "lat": 37.484085,
+  "lng": 126.782803,
+  "address": "Bucheon, 괴 소사구 Bucheon, Gyeonggi-do, South Korea"
+ },
+ "상동역, 부천시": {
+  "lat": 37.505814,
+  "lng": 126.753163,
+  "address": "South Korea, Gyeonggi-do, Bucheon, 원미구 Jung-dong, 부천시 보건소 Sangdong"
+ },
+ "신중동역, 부천시": {
+  "lat": 37.503064,
+  "lng": 126.775977,
+  "address": "Sinjungdong, Bucheon, South Korea"
+ },
+ "송내역, 부천시": {
+  "lat": 37.487626,
+  "lng": 126.753045,
+  "address": "Songnae station, Bucheon, South Korea"
+ },
+ "원종동, 부천시": {
+  "lat": 37.5269873,
+  "lng": 126.8041181,
+  "address": "Wonjong-dong, Bucheon-si, Gyeonggi-do, South Korea"
+ },
+ "역곡역, 부천시": {
+  "lat": 37.4851398,
+  "lng": 126.8116223,
+  "address": "Yeoggog, Bucheon, South Korea"
+ },
+ "철산역, 광명시": {
+  "lat": 37.479417,
+  "lng": 126.8689233,
+  "address": "Cheolsan-dong, Gwangmyeong-si, Gyeonggi-do, South Korea"
+ },
+ "광명사거리역, 광명시": {
+  "lat": 37.4793066,
+  "lng": 126.8546747,
+  "address": "South Korea, Gwangmyeong-si, 광명사거리역"
+ },
+ "광명역, 광명시": {
+  "lat": 37.416522,
+  "lng": 126.884789,
+  "address": "Gwangmyeong station, Gwangmyeong-si, South Korea"
+ },
+ "정왕역, 시흥시": {
+  "lat": 37.3411588,
+  "lng": 126.7220994,
+  "address": "Jeongwang-dong, Siheung-si, Gyeonggi-do, South Korea"
+ },
+ "시화, 시흥시": {
+  "lat": 37.3407722,
+  "lng": 126.7559707,
+  "address": "23 Keunsol-ro 52beon-gil, Siheung-si, Gyeonggi-do, South Korea"
+ },
+ "배곧, 시흥시": {
+  "lat": 37.37015,
+  "lng": 126.7237922,
+  "address": "Baegot-dong, Siheung-si, Gyeonggi-do, South Korea"
+ },
+ "은계지구, 시흥시": {
+  "lat": 37.43897,
+  "lng": 126.803477,
+  "address": "South Korea, Gyeonggi-do, Siheung-si, 은행동 시흥은계지구"
+ },
+ "대야역, 시흥시": {
+  "lat": 37.450523,
+  "lng": 126.794389,
+  "address": "Siheung Daeya Station, Siheung-si, South Korea"
+ },
+ "안산 중앙역, 안산시": {
+  "lat": 37.316055,
+  "lng": 126.838532,
+  "address": "Jungang station, Ansan-si, South Korea"
+ },
+ "한대앞역, 안산시": {
+  "lat": 37.309685,
+  "lng": 126.853656,
+  "address": "South Korea, Ansan-si, 한대앞역"
+ },
+ "선부동, 안산시": {
+  "lat": 37.3435764,
+  "lng": 126.8060315,
+  "address": "Seonbu-dong, Danwon-gu, Ansan-si, Gyeonggi-do, South Korea"
+ },
+ "원곡동, 안산시": {
+  "lat": 37.3312836,
+  "lng": 126.793294,
+  "address": "South Korea, 경기도 안산시 단원구 원곡동"
+ },
+ "초지역, 안산시": {
+  "lat": 37.320583,
+  "lng": 126.806151,
+  "address": "Choji station, Ansan-si, South Korea"
+ },
+ "라페스타, 고양시 일산동구": {
+  "lat": 37.6607092,
+  "lng": 126.7689586,
+  "address": "1486 Janghang-dong, Ilsandong-gu, Goyang-si, Gyeonggi-do, South Korea"
+ },
+ "웨스턴돔, 고양시 일산동구": {
+  "lat": 37.6547758,
+  "lng": 126.7726419,
+  "address": "24 Jeongbalsan-ro, Ilsandong-gu, Goyang-si, Gyeonggi-do, South Korea"
+ },
+ "벨라시타, 고양시 일산동구": {
+  "lat": 37.6424426,
+  "lng": 126.7927289,
+  "address": "33 Gangsong-ro, Ilsandong-gu, Goyang-si, Gyeonggi-do, South Korea"
+ },
+ "킨텍스, 고양시 일산서구": {
+  "lat": 37.6689865,
+  "lng": 126.745887,
+  "address": "217-60 Kintex-ro, Ilsanseo-gu, Goyang-si, Gyeonggi-do, South Korea"
+ },
+ "화정역, 고양시 덕양구": {
+  "lat": 37.6373655,
+  "lng": 126.8346762,
+  "address": "Hwajeong-dong, Deogyang-gu, Goyang-si, Gyeonggi-do, South Korea"
+ },
+ "삼송역, 고양시 덕양구": {
+  "lat": 37.653096,
+  "lng": 126.895559,
+  "address": "Samsong station, Goyang-si, South Korea"
+ },
+ "원당역, 고양시 덕양구": {
+  "lat": 37.653328,
+  "lng": 126.843006,
+  "address": "Wondang station, Goyang-si, South Korea"
+ },
+ "행신역, 고양시 덕양구": {
+  "lat": 37.611846,
+  "lng": 126.834059,
+  "address": "Haengsin station, Goyang-si, South Korea"
+ },
+ "운정역, 파주시": {
+  "lat": 37.725402,
+  "lng": 126.767152,
+  "address": "Unjeong station, Paju-si, South Korea"
+ },
+ "야당역, 파주시": {
+  "lat": 37.7127491,
+  "lng": 126.7615354,
+  "address": "Yadang station, Paju-si, South Korea"
+ },
+ "금촌역, 파주시": {
+  "lat": 37.766106,
+  "lng": 126.774515,
+  "address": "Geumchon station, Paju-si, South Korea"
+ },
+ "문산읍, 파주시": {
+  "lat": 37.8742292,
+  "lng": 126.7803825,
+  "address": "Munsan-eup, Paju-si, Gyeonggi-do, South Korea"
+ },
+ "구래역, 김포시": {
+  "lat": 37.645397,
+  "lng": 126.628708,
+  "address": "Gurae Station, Gimpo-si, South Korea"
+ },
+ "라베니체, 김포시": {
+  "lat": 37.6387499,
+  "lng": 126.6781458,
+  "address": "South Korea, Gyeonggi-do, Gimpo-si, 장기동 2018-2 라베니체마치에비뉴"
+ },
+ "사우동, 김포시": {
+  "lat": 37.6191197,
+  "lng": 126.7260889,
+  "address": "Sau-dong, Gimpo-si, Gyeonggi-do, South Korea"
+ },
+ "고촌읍, 김포시": {
+  "lat": 37.6065018,
+  "lng": 126.762868,
+  "address": "Gochon-eup, Gimpo-si, Gyeonggi-do, South Korea"
+ },
+ "의정부역, 의정부시": {
+  "lat": 37.7387295,
+  "lng": 127.0458908,
+  "address": "Uijeongbu, Euijeongbu, South Korea"
+ },
+ "민락동, 의정부시": {
+  "lat": 37.7466757,
+  "lng": 127.1122399,
+  "address": "Millak-dong, Uijeongbu-si, Gyeonggi-do, South Korea"
+ },
+ "회룡역, 의정부시": {
+  "lat": 37.724522,
+  "lng": 127.0472035,
+  "address": "Hoeryong station, Euijeongbu, South Korea"
+ },
+ "구리역, 구리시": {
+  "lat": 37.6033064,
+  "lng": 127.1432928,
+  "address": "Guri, 동구동 Guri-si, South Korea"
+ },
+ "갈매역, 구리시": {
+  "lat": 37.6348265,
+  "lng": 127.1156625,
+  "address": "Galmae station, Guri-si, South Korea"
+ },
+ "다산역, 남양주시": {
+  "lat": 37.624165,
+  "lng": 127.149707,
+  "address": "Dasan, Namyangju-si, South Korea"
+ },
+ "별내역, 남양주시": {
+  "lat": 37.6419992,
+  "lng": 127.1277256,
+  "address": "Byeollae Station, Namyangju-si, South Korea"
+ },
+ "평내호평역, 남양주시": {
+  "lat": 37.653229,
+  "lng": 127.244452,
+  "address": "South Korea, Namyangju-si, 평내호평역"
+ },
+ "진접역, 남양주시": {
+  "lat": 37.719823,
+  "lng": 127.203248,
+  "address": "Jinjeob, Namyangju-si, South Korea"
+ },
+ "화도읍, 남양주시": {
+  "lat": 37.6528447,
+  "lng": 127.3159869,
+  "address": "Hwado-eup, Namyangju-si, Gyeonggi-do, South Korea"
+ },
+ "미사역, 하남시": {
+  "lat": 37.563118,
+  "lng": 127.192932,
+  "address": "Misa, Hanam-si, South Korea"
+ },
+ "하남시청역, 하남시": {
+  "lat": 37.5419669,
+  "lng": 127.2062976,
+  "address": "Hanam City Hall, Hanam-si, South Korea"
+ },
+ "감일동, 하남시": {
+  "lat": 37.5046654,
+  "lng": 127.1556051,
+  "address": "South Korea, 경기도 하남시 감일동"
+ },
+ "경안동, 광주시": {
+  "lat": 37.4104911,
+  "lng": 127.2528351,
+  "address": "Gyeongan-dong, Gwangju-si, Gyeonggi-do, South Korea"
+ },
+ "광주터미널, 경기 광주시": {
+  "lat": 37.409032,
+  "lng": 127.261596,
+  "address": "Gwangju Terminal, Gwangju-si, South Korea"
+ },
+ "곤지암읍, 광주시": {
+  "lat": 37.3639578,
+  "lng": 127.382484,
+  "address": "Gonjiam-eup, Gwangju-si, Gyeonggi-do, South Korea"
+ },
+ "이천 중앙로, 이천시": {
+  "lat": 37.2891308,
+  "lng": 127.4530256,
+  "address": "Icheon-si, Gyeonggi-do, South Korea"
+ },
+ "이천터미널, 이천시": {
+  "lat": 37.2891308,
+  "lng": 127.4530256,
+  "address": "Icheon-si, Gyeonggi-do, South Korea"
+ },
+ "부발읍, 이천시": {
+  "lat": 37.2731478,
+  "lng": 127.5070066,
+  "address": "Bubal-eup, Icheon-si, Gyeonggi-do, South Korea"
+ },
+ "여주시청, 여주시": {
+  "lat": 37.2982165,
+  "lng": 127.6371708,
+  "address": "1 Sejong-ro, 시, Yeoju-si, Gyeonggi-do, South Korea"
+ },
+ "여주역, 여주시": {
+  "lat": 37.282141,
+  "lng": 127.62858,
+  "address": "Yeoju Station, Yeoju-si, South Korea"
+ },
+ "안성시 중앙로": {
+  "lat": 37.0100962,
+  "lng": 127.2600466,
+  "address": "Jungang-ro, Anseong-si, Gyeonggi-do, South Korea"
+ },
+ "옥정동, 양주시": {
+  "lat": 37.8236363,
+  "lng": 127.0890726,
+  "address": "Okjeong-dong, Yangju-si, Gyeonggi-do, South Korea"
+ },
+ "동두천 중앙로": {
+  "lat": 37.9021541,
+  "lng": 127.058796,
+  "address": "Jungang-ro, Dongducheon-si, Gyeonggi-do, South Korea"
+ },
+ "포천시 신읍동": {
+  "lat": 37.9001965,
+  "lng": 127.1847738,
+  "address": "Sineup-dong, Pocheon-si, Gyeonggi-do, South Korea"
+ },
+ "가평읍, 가평군": {
+  "lat": 37.8288465,
+  "lng": 127.4875261,
+  "address": "Gapyeong-eup, Gapyeong-gun, Gyeonggi-do, South Korea"
+ },
+ "양평읍, 양평군": {
+  "lat": 37.4935535,
+  "lng": 127.5140714,
+  "address": "Yangpyeong-eup, Yangpyeong-gun, Gyeonggi-do, South Korea"
+ },
+ "부평역, 인천": {
+  "lat": 37.4751578,
+  "lng": 126.6312666,
+  "address": "Incheon, South Korea"
+ },
+ "부평구청역, 인천": {
+  "lat": 37.4966725,
+  "lng": 126.7212089,
+  "address": "Bupyeong District, Incheon, South Korea"
+ },
+ "삼산체육관역, 인천": {
+  "lat": 37.506483,
+  "lng": 126.742024,
+  "address": "South Korea, Incheon, 삼산체육관역"
+ },
+ "구월동 로데오거리, 인천": {
+  "lat": 37.4485943,
+  "lng": 126.7111342,
+  "address": "Guwol-dong, Namdong-gu, Incheon, South Korea"
+ },
+ "인천터미널역, 인천": {
+  "lat": 37.441328,
+  "lng": 126.701052,
+  "address": "Incheon Bus Terminal, Incheon, South Korea"
+ },
+ "만수동, 인천": {
+  "lat": 37.454941,
+  "lng": 126.7350958,
+  "address": "Mansu-dong, Namdong-gu, Incheon, South Korea"
+ },
+ "남동공단, 인천": {
+  "lat": 37.3989137,
+  "lng": 126.7073962,
+  "address": "Namdong-gu, Incheon, South Korea"
+ },
+ "논현역, 인천": {
+  "lat": 37.4046715,
+  "lng": 126.724735,
+  "address": "Nonhyeon-dong, Namdong-gu, Incheon, South Korea"
+ },
+ "송도 센트럴파크, 인천": {
+  "lat": 37.3922621,
+  "lng": 126.6396891,
+  "address": "Songdo Central Park, 160 Convensia-daero, Yeonsu-gu, Incheon, South Korea"
+ },
+ "인천대입구역, 인천": {
+  "lat": 37.386196,
+  "lng": 126.639404,
+  "address": "South Korea, Incheon, 인천대입구역"
+ },
+ "커낼워크, 인천 연수구": {
+  "lat": 37.3911823,
+  "lng": 126.6450923,
+  "address": "Yeonsu-gu, Incheon, South Korea"
+ },
+ "트리플스트리트, 인천": {
+  "lat": 37.4751578,
+  "lng": 126.6312666,
+  "address": "Incheon, South Korea"
+ },
+ "연수역, 인천": {
+  "lat": 37.3911823,
+  "lng": 126.6450923,
+  "address": "Yeonsu-gu, Incheon, South Korea"
+ },
+ "원인재역, 인천": {
+  "lat": 37.412757,
+  "lng": 126.6871295,
+  "address": "South Korea, Incheon, 원인재역"
+ },
+ "커낼웨이, 인천 청라": {
+  "lat": 37.4751578,
+  "lng": 126.6312666,
+  "address": "Incheon, South Korea"
+ },
+ "완정역, 인천": {
+  "lat": 37.4751578,
+  "lng": 126.6312666,
+  "address": "Incheon, South Korea"
+ },
+ "주안역, 인천": {
+  "lat": 37.4569758,
+  "lng": 126.6809956,
+  "address": "Juan-dong, Michuhol-gu, Incheon, South Korea"
+ },
+ "송림동, 인천": {
+  "lat": 37.4785728,
+  "lng": 126.6508903,
+  "address": "Songnim-dong, Dong-gu, Incheon, South Korea"
+ },
+ "동인천역, 인천": {
+  "lat": 37.475414,
+  "lng": 126.632598,
+  "address": "South Korea, Incheon, 동인천역"
+ },
+ "신포동, 인천": {
+  "lat": 37.4710789,
+  "lng": 126.6266826,
+  "address": "Sinpo-dong, Jung-gu, Incheon, South Korea"
+ },
+ "작전역, 인천": {
+  "lat": 37.530279,
+  "lng": 126.722516,
+  "address": "Jakjeon station, Incheon, South Korea"
+ },
+ "영종 하늘도시, 인천": {
+  "lat": 37.5000629,
+  "lng": 126.5358479,
+  "address": "Yeongjongdo, Incheon"
+ },
+ "녹사평역, 서울 용산구": {
+  "lat": 37.534945,
+  "lng": 126.9853515,
+  "address": "South Korea, Seoul, 녹사평역"
+ },
+ "Chungmuro Station, Seoul": {
+  "lat": 37.560997,
+  "lng": 126.994728,
+  "address": "Chungmuro, Seoul, South Korea"
+ },
+ "Yangjae Station, Seoul": {
+  "lat": 37.484102,
+  "lng": 127.034369,
+  "address": "Yangjae station, Seoul, South Korea"
+ },
+ "Daerim Station, Seoul": {
+  "lat": 37.4925043,
+  "lng": 126.8949615,
+  "address": "Daerim station, 351 Dorimcheon-ro, Guro District, Seoul, South Korea"
+ },
+ "이천시청": {
+  "lat": 37.2722456,
+  "lng": 127.4350445,
+  "address": "40 Buak-ro, Icheon, Gyeonggi-do, South Korea"
+ },
+ "이천종합버스터미널": {
+  "lat": 37.277744,
+  "lng": 127.446913,
+  "address": "Icheon Terminal, 중리동 Icheon, South Korea"
+ },
+ "부평역, 인천 부평구": {
+  "lat": 37.489481,
+  "lng": 126.724517,
+  "address": "Bupyeong Station, Incheon, South Korea"
+ },
+ "Canal Walk, Songdo, Incheon": {
+  "lat": 37.400869,
+  "lng": 126.63831,
+  "address": "Canal Walk, Incheon, South Korea"
+ },
+ "Triple Street, Songdo": {
+  "lat": 37.3786464,
+  "lng": 126.6627468,
+  "address": "33-3 Songdogwahak-ro 16beon-gil, Yeonsu-gu, Incheon, South Korea"
+ },
+ "Yeonsu Station, Incheon": {
+  "lat": 37.4185688,
+  "lng": 126.6796736,
+  "address": "Yeonsu Station, Incheon, South Korea"
+ },
+ "청라 커낼웨이": {
+  "lat": 37.5330159,
+  "lng": 126.6515748,
+  "address": "Cheongna Canal Way, 630 Yeonhui-dong, Seo-gu, Incheon, South Korea"
+ },
+ "완정역": {
+  "lat": 37.592865,
+  "lng": 126.67303,
+  "address": "Wanjeong, 검단4동 Incheon, South Korea"
+ },
+ "하늘도시, 인천 중구": {
+  "lat": 37.494082,
+  "lng": 126.5363667,
+  "address": "5 Unjung-ro 21beon-gil, Unnam-dong, Jung-gu, Incheon, South Korea"
+ },
+ "광화문광장, 서울": {
+  "lat": 37.572389,
+  "lng": 126.9769117,
+  "address": "172 Sejong-daero, Jongno District, Seoul, South Korea"
+ },
+ "Sinsa Station, Seoul": {
+  "lat": 37.5162873,
+  "lng": 127.0200228,
+  "address": "Sinsa station, Seoul, South Korea"
+ },
+ "Samseong Station, Seoul": {
+  "lat": 37.508861,
+  "lng": 127.063149,
+  "address": "Samseong station, Seoul, South Korea"
+ },
+ "Seocho Station, Seoul": {
+  "lat": 37.49184,
+  "lng": 127.007688,
+  "address": "Seocho station, Seoul, South Korea"
+ },
+ "Amsa Station, Seoul": {
+  "lat": 37.550148,
+  "lng": 127.127519,
+  "address": "Amsa station, Seoul, South Korea"
+ },
+ "Seongsu Station, Seoul": {
+  "lat": 37.544577,
+  "lng": 127.055991,
+  "address": "Seongsu, Seoul, South Korea"
+ },
+ "Wangsimni Station, Seoul": {
+  "lat": 37.562353,
+  "lng": 127.0384958,
+  "address": "Wangsimni Station, Haengdang-dong, Seoul, South Korea"
+ },
+ "Hanyang University, Seoul": {
+  "lat": 37.5571759,
+  "lng": 127.0454092,
+  "address": "222 Wangsimni-ro, Seongdong-gu, Seoul, South Korea"
+ },
+ "Guui Station, Seoul": {
+  "lat": 37.537153,
+  "lng": 127.086152,
+  "address": "Guui Station, 자양제2동 Seoul, South Korea"
+ },
+ "Gunja Station, Seoul": {
+  "lat": 37.5573355,
+  "lng": 127.079589,
+  "address": "Gunja station, Seoul, South Korea"
+ },
+ "Hoegi Station, Seoul": {
+  "lat": 37.589756,
+  "lng": 127.057977,
+  "address": "Hoegi Station, Seoul, South Korea"
+ },
+ "Mangwon Station, Seoul": {
+  "lat": 37.5560685,
+  "lng": 126.910091,
+  "address": "Mangwon station, Seoul, South Korea"
+ },
+ "Gongdeok Station, Seoul": {
+  "lat": 37.54322,
+  "lng": 126.951576,
+  "address": "Gongdeok station, Seoul, South Korea"
+ },
+ "Sinchon Station, Seoul": {
+  "lat": 37.559771,
+  "lng": 126.942367,
+  "address": "Sinchon, 신촌동 Seoul, South Korea"
+ },
+ "Bulgwang Station, Seoul": {
+  "lat": 37.6105025,
+  "lng": 126.9298435,
+  "address": "Bulgwang station, Seoul, South Korea"
+ },
+ "Sillim Station, Seoul": {
+  "lat": 37.484269,
+  "lng": 126.929676,
+  "address": "Sillim station, Seoul, South Korea"
+ },
+ "Sindorim Station, Seoul": {
+  "lat": 37.5088099,
+  "lng": 126.8912061,
+  "address": "Sindorim Station, 117-21 Saemal-ro, Sindorim-dong, Guro District, Seoul, South Korea"
+ },
+ "Mokdong Station, Seoul": {
+  "lat": 37.526072,
+  "lng": 126.864301,
+  "address": "Mok-dong station, Seoul, South Korea"
+ },
+ "Hwagok Station, Seoul": {
+  "lat": 37.541578,
+  "lng": 126.840436,
+  "address": "Hwagok station, Seoul, South Korea"
+ },
+ "Gireum Station, Seoul": {
+  "lat": 37.603245,
+  "lng": 127.024959,
+  "address": "Gireum, Seoul, South Korea"
+ },
+ "Ssangmun Station, Seoul": {
+  "lat": 37.6482236,
+  "lng": 127.0343875,
+  "address": "Ssangmun station, Seoul, South Korea"
+ },
+ "Sanggye Station, Seoul": {
+  "lat": 37.660566,
+  "lng": 127.073202,
+  "address": "Sanggye station, Seoul, South Korea"
+ },
+ "Seohyeon Station, Seongnam": {
+  "lat": 37.384994,
+  "lng": 127.123402,
+  "address": "Seohyeon, 지하 601 Seongnam-daero, Bundang-gu, Seongnam-si, Gyeonggi-do, South Korea"
+ },
+ "Jeongja Station, Seongnam": {
+  "lat": 37.366766,
+  "lng": 127.108265,
+  "address": "Jeongja station, Seongnam-si, South Korea"
+ },
+ "Yatap Station, Seongnam": {
+  "lat": 37.41132,
+  "lng": 127.128674,
+  "address": "Yatap, 903 Seongnam-daero, Bundang-gu, Seongnam-si, Gyeonggi-do, South Korea"
+ },
+ "Imae Station, Seongnam": {
+  "lat": 37.395846,
+  "lng": 127.128272,
+  "address": "Imae station, Seongnam-si, South Korea"
+ },
+ "Jukjeon Station, Yongin": {
+  "lat": 37.324583,
+  "lng": 127.107398,
+  "address": "Jukjeon, 536 Poeun-daero, Suji-gu, Yongin-si, Gyeonggi-do, South Korea"
+ },
+ "Gwanggyo Jungang Station": {
+  "lat": 37.288412,
+  "lng": 127.051658,
+  "address": "GwanggyoJungang(Ajou University) Station, Iui-dong, Suwon, South Korea"
+ },
+ "Byeongjeom Station, Hwaseong": {
+  "lat": 37.206821,
+  "lng": 127.033268,
+  "address": "Byeongjeom station, Hwaseong-si, South Korea"
+ },
+ "Pyeongchon Station, Anyang": {
+  "lat": 37.394758,
+  "lng": 126.964667,
+  "address": "Pyeongchon Station, Anyang, South Korea"
+ },
+ "Sanbon Station, Gunpo": {
+  "lat": 37.358019,
+  "lng": 126.932969,
+  "address": "Sanbon-Yeog, Gunpo-si, South Korea"
+ },
+ "Jeongwang Station, Siheung": {
+  "lat": 37.351816,
+  "lng": 126.742844,
+  "address": "Jeongwang station, Siheung-si, South Korea"
+ }
+}

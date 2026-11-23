@@ -25,3 +25,7 @@ tools/logic-check/out/
 *.iml
 .DS_Store
 captures/
+
+# Python
+__pycache__/
+*.pyc

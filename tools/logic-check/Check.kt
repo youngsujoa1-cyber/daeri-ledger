@@ -127,10 +127,35 @@ fun main() {
     expect("formatDistance(0.4)", Hotspots.formatDistance(0.4), "400m")
     expect("formatDistance(12.34)", Hotspots.formatDistance(12.34), "12.3km")
 
-    // 콜밭 목록 자체 점검
-    expect("콜밭 수", Hotspots.ALL.size, 35)
-    expect("콜밭 id 중복 없음", Hotspots.ALL.map { it.id }.distinct().size, Hotspots.ALL.size)
-    expect("모든 콜밭 피크 표기", Hotspots.ALL.all { it.peak.isNotBlank() }, true)
+    // 콜밭 목록 자체 점검 — v1.0.9: 수도권 세부 콜밭까지 318곳
+    val spots = Hotspots.ALL
+    expect("콜밭 수", spots.size, 318)
+    expect("콜밭 id 중복 없음", spots.map { it.id }.distinct().size, spots.size)
+    expect("콜밭 이름 중복 없음", spots.map { it.name }.distinct().size, spots.size)
+    expect("모든 콜밭 피크 표기", spots.all { it.peak.isNotBlank() }, true)
+    expect("모든 콜밭 tip 표기", spots.all { it.tip.isNotBlank() }, true)
+    expect("서울 콜밭 수", spots.count { it.city == "서울" }, 118)
+    expect("경기 콜밭 수", spots.count { it.city == "경기" }, 120)
+    expect("인천 콜밭 수", spots.count { it.city == "인천" }, 22)
+    expect("수도권 콜밭 수", spots.count { it.city in listOf("서울", "경기", "인천") }, 260)
+    expect("좌표 범위(한국)", spots.all { it.lat in 33.0..38.9 && it.lng in 124.0..132.0 }, true)
+    val hannam = Hotspots.byId("hannam-ogeori")
+    expect("한남오거리 이름", hannam?.name, "한남오거리")
+    expect("한남오거리 좌표", hannam?.let { "%.4f,%.4f".format(it.lat, it.lng) }, "37.5334,127.0076")
+    expect("한남오거리 검색", Hotspots.ALL.count { it.matches("한남오거리") }, 1)
+
+    // 300m 안에 겹치는 콜밭이 없어야 한다
+    var closestM = Double.MAX_VALUE
+    var closestPair = ""
+    for (i in spots.indices) for (j in i + 1 until spots.size) {
+        val m = Hotspots.distanceKm(spots[i].lat, spots[i].lng, spots[j].lat, spots[j].lng) * 1000
+        if (m < closestM) {
+            closestM = m
+            closestPair = "${spots[i].name} ↔ ${spots[j].name}"
+        }
+    }
+    println("INFO  가장 가까운 콜밭 = ${closestM.toInt()}m ($closestPair)")
+    expect("300m 이내 중복 없음", closestM >= 300, true)
 
     // 달력 그리드 터치 판정 (CalendarMonthView 가 쓰는 계산 — 눌린 칸 = 그려진 칸)
     val nov = YearMonth.of(2026, 11)
