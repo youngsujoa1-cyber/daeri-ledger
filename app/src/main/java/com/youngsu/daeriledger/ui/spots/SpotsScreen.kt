@@ -6,10 +6,13 @@ import android.location.Location
 import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
+import android.view.inputmethod.EditorInfo
+import androidx.core.widget.doAfterTextChanged
 import com.youngsu.daeriledger.data.Hotspot
 import com.youngsu.daeriledger.data.Hotspots
 import com.youngsu.daeriledger.data.MySpot
 import com.youngsu.daeriledger.data.SpotStat
+import com.youngsu.daeriledger.databinding.ItemEmptyBinding
 import com.youngsu.daeriledger.databinding.ItemHotspotBinding
 import com.youngsu.daeriledger.databinding.ItemMySpotBinding
 import com.youngsu.daeriledger.databinding.ScreenSpotsBinding
@@ -18,6 +21,7 @@ import com.youngsu.daeriledger.ui.MainActivity
 import com.youngsu.daeriledger.ui.Screen
 import com.youngsu.daeriledger.util.BizTime
 import com.youngsu.daeriledger.util.Dialogs
+import com.youngsu.daeriledger.util.hideKeyboard
 import com.youngsu.daeriledger.util.setChips
 import com.youngsu.daeriledger.util.toast
 import kotlin.math.roundToInt
@@ -33,6 +37,7 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
     override val view: View get() = binding.root
 
     private var cityFilter: String? = null
+    private var searchQuery: String = ""
     private var userLocation: Location? = null
     private var locating = false
     private var savedSpots: List<MySpot> = emptyList()
@@ -41,6 +46,23 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
     init {
         binding.locationAction.setOnClickListener { onLocationAction() }
         binding.locationCard.setOnClickListener { onLocationAction() }
+        binding.spotSearch.doAfterTextChanged { text ->
+            val query = text?.toString().orEmpty()
+            if (query != searchQuery) {
+                searchQuery = query
+                binding.spotSearchClear.visibility = if (query.isBlank()) View.GONE else View.VISIBLE
+                renderNearby()
+            }
+        }
+        binding.spotSearchClear.setOnClickListener { binding.spotSearch.setText("") }
+        binding.spotSearch.setOnEditorActionListener { field, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_SEARCH || actionId == EditorInfo.IME_ACTION_DONE) {
+                field.hideKeyboard()
+                true
+            } else {
+                false
+            }
+        }
     }
 
     override fun refresh() {
@@ -127,7 +149,10 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
 
     private val filteredHotspots: List<Hotspot>
         get() {
-            val list = Hotspots.ALL.filter { cityFilter == null || it.city == cityFilter }
+            val query = searchQuery.trim()
+            val list = Hotspots.ALL.filter {
+                (cityFilter == null || it.city == cityFilter) && it.matches(query)
+            }
             val loc = userLocation
             return if (loc != null) {
                 list.map { it to Hotspots.distanceKm(loc.latitude, loc.longitude, it.lat, it.lng) }
@@ -185,11 +210,20 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
     private fun renderNearby() {
         binding.nearbyColumn.removeAllViews()
         val list = filteredHotspots
+        val query = searchQuery.trim()
         binding.nearbyCountText.text = "${list.size}곳"
-        binding.spotsSubtitle.text = if (userLocation != null) {
-            "내 위치에서 가까운 순 · 주요 콜밭 참고 정보"
-        } else {
-            "주요 콜밭 · 피크 시간대 참고 정보"
+        binding.spotsSubtitle.text = when {
+            query.isNotEmpty() -> "‘$query’ 검색 결과 · 주요 콜밭 참고 정보"
+            userLocation != null -> "내 위치에서 가까운 순 · 주요 콜밭 참고 정보"
+            else -> "주요 콜밭 · 피크 시간대 참고 정보"
+        }
+
+        if (list.isEmpty()) {
+            val empty = ItemEmptyBinding.inflate(LayoutInflater.from(activity), binding.nearbyColumn, false)
+            empty.emptyTitle.text = "검색 결과가 없어요"
+            empty.emptyMessage.text = "다른 지역·역 이름으로 찾아보거나 지역 칩에서 ‘전체’를 눌러보세요"
+            binding.nearbyColumn.addView(empty.root)
+            return
         }
 
         list.forEach { hotspot ->

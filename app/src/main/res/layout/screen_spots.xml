@@ -15,6 +15,7 @@
             android:id="@+id/spotsColumn"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:focusableInTouchMode="true"
             android:orientation="vertical"
             android:paddingBottom="28dp">
 
@@ -89,6 +90,46 @@
                     android:textColor="@color/accent"
                     android:textSize="12sp"
                     android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- 콜밭 검색 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="18dp"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_amount_field"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="12dp">
+
+                <EditText
+                    android:id="@+id/spotSearch"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_weight="1"
+                    android:background="@null"
+                    android:hint="지역·역·동 검색 (예: 동탄, 수지, 강남)"
+                    android:imeOptions="actionSearch"
+                    android:importantForAutofill="no"
+                    android:inputType="text"
+                    android:maxLength="24"
+                    android:paddingVertical="0dp"
+                    android:singleLine="true"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_tertiary"
+                    android:textSize="14sp" />
+
+                <ImageView
+                    android:id="@+id/spotSearchClear"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="검색어 지우기"
+                    android:padding="6dp"
+                    android:src="@drawable/ic_close"
+                    android:visibility="gone"
+                    app:tint="@color/text_tertiary" />
             </LinearLayout>
 
             <HorizontalScrollView
@@ -169,7 +210,7 @@
                     style="@style/Text.Daeri.Label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="35곳" />
+                    android:text="153곳" />
             </LinearLayout>
 
             <LinearLayout
