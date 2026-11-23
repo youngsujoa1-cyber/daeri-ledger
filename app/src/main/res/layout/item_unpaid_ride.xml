@@ -68,17 +68,39 @@
                     android:textSize="15sp"
                     android:textStyle="bold" />
 
-                <!-- 아랫줄 = 어느 프로그램으로 잡았는지 (플랫폼 · 구분 · 시각 · 특이사항) -->
-                <TextView
-                    android:id="@+id/subText"
+                <!-- 아랫줄 = 어느 프로그램으로 잡았는지 (플랫폼 · 구분 · 시각) + 그 옆에 특이사항 -->
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="3dp"
-                    android:ellipsize="end"
-                    android:maxLines="1"
-                    android:text="카카오T · 대리 · 02:30"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="11sp" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/subText"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:text="카카오T · 대리 · 02:30"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp" />
+
+                    <!-- 특이사항 — 카드를 열지 않아도 바로 보이게 (비어 있으면 gone) -->
+                    <TextView
+                        android:id="@+id/noteText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:maxWidth="160dp"
+                        android:text="📝 그냥테스트"
+                        android:textColor="@color/note"
+                        android:textSize="11sp"
+                        android:visibility="gone" />
+                </LinearLayout>
             </LinearLayout>
 
             <LinearLayout

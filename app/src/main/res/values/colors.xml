@@ -25,6 +25,8 @@
     <!-- 휴무일 표시 — 눈에 덜 튀는 슬레이트 블루그레이 -->
     <color name="off_day">#7D8A99</color>
     <color name="off_day_dim">#E7EDF3</color>
+    <!-- 특이사항(메모) 줄 — 카드에서 은은하게 눈에 들어오는 앰버 -->
+    <color name="note">#8A6516</color>
     <color name="divider">#E7EDF4</color>
     <color name="scrim">#66000000</color>
     <color name="ic_launcher_background">#0F141B</color>

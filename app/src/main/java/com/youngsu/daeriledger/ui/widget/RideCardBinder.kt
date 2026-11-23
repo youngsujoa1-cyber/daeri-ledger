@@ -2,6 +2,7 @@ package com.youngsu.daeriledger.ui.widget
 
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import androidx.core.content.ContextCompat
 import com.youngsu.daeriledger.R
 import com.youngsu.daeriledger.data.PaymentType
@@ -24,8 +25,9 @@ object RideCardBinder {
     fun topLine(ride: Ride): String = ride.routeLabel.ifBlank { ride.platformLabel }
 
     /**
-     * 카드 아랫줄 — 플랫폼 · 구분 · (시각) · (특이사항).
+     * 카드 아랫줄 — 플랫폼 · 구분 · (시각) · (콜밭 지역).
      * 경로가 없어 첫 줄이 이미 플랫폼 이름이면 플랫폼은 빼고 쓴다.
+     * 특이사항은 이 줄에 붙이지 않고 별도 줄(noteText)로 보여 준다.
      */
     fun metaParts(ride: Ride, withTime: Boolean): List<String> = buildList {
         if (ride.routeLabel.isNotBlank()) add(ride.platformLabel)
@@ -35,6 +37,21 @@ object RideCardBinder {
     }
 
     fun metaLine(ride: Ride, withTime: Boolean): String = metaParts(ride, withTime).joinToString(" · ")
+
+    /**
+     * 특이사항 한 줄 — 카드를 열지 않아도 바로 보이게 한다.
+     * 비어 있으면 GONE 이라 카드 높이가 늘어나지 않고, 길면 두 줄에서 말줄임.
+     */
+    fun bindNote(view: TextView, ride: Ride) {
+        val note = ride.memo.trim().removePrefix("📝").trim()
+        if (note.isBlank()) {
+            view.visibility = View.GONE
+            view.text = ""
+        } else {
+            view.visibility = View.VISIBLE
+            view.text = "📝 $note"
+        }
+    }
 
     /** 오늘·달력 공통 운행 카드 */
     fun bind(b: ItemRideBinding, ride: Ride, onClick: (Ride) -> Unit) {
@@ -69,6 +86,8 @@ object RideCardBinder {
             b.spotText.text = ride.spot
         }
 
+        bindNote(b.noteText, ride)
+
         // 큰 녹색 숫자 = 총수입(총매출 + 팁·경유비), 아래 회색 줄 = 실수익(수수료·보험 뺀 금액)
         b.incomeText.text = Money.won(ride.total)
         b.incomeText.setTextColor(
@@ -83,6 +102,7 @@ object RideCardBinder {
         b.dayText.text = BizTime.dayTitle(ride.businessDay)
         b.titleText.text = topLine(ride)
         b.subText.text = metaLine(ride, withTime = true)
+        bindNote(b.noteText, ride)
         b.incomeText.text = Money.won(ride.total)
         b.netText.text = "실수익 ${Money.won(ride.net)}"
     }

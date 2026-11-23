@@ -106,6 +106,21 @@
                     android:textColor="@color/text_secondary"
                     android:textSize="10sp"
                     android:textStyle="bold" />
+
+                <!-- 특이사항 — 카카오T [대리] [카드] 배지 바로 오른쪽 남는 자리에 한 줄로 (비어 있으면 gone) -->
+                <TextView
+                    android:id="@+id/noteText"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:ellipsize="end"
+                    android:gravity="start|center_vertical"
+                    android:maxLines="1"
+                    android:text="📝 그냥테스트"
+                    android:textColor="@color/note"
+                    android:textSize="11sp"
+                    android:visibility="gone" />
             </LinearLayout>
 
             <TextView
