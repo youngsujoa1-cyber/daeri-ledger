@@ -175,6 +175,19 @@ def fingerprint(db):
     return h.hexdigest()
 
 
+def repository_column_order():
+    """LedgerRepository.insertRidesBulk 가 넣는 칸 순서 — DB 칸 순서와 같아야 한다"""
+    repo_src = (ROOT / "app/src/main/java/com/youngsu/daeriledger/data/LedgerRepository.kt").read_text(
+        encoding="utf-8")
+    db_src = DB_SOURCE.read_text(encoding="utf-8")
+    const = dict(re.findall(r'const val (C_[A-Z_]+) = "([^"]+)"', db_src))
+    block = repo_src[repo_src.index("fun insertRidesBulk"):repo_src.index("private fun rideValues")]
+    names = re.findall(r"\$\{LedgerDb\.(C_[A-Z_]+)\}", block)
+    order = [const[n] for n in names]
+    placeholders = len(re.findall(r"st\.bind", block))
+    return order, placeholders
+
+
 def source_alignment():
     """검사에 쓰는 값이 앱 소스와 같은지 — 스키마 이름·버전이 바뀌면 여기서 먼저 걸린다"""
     src = DB_SOURCE.read_text(encoding="utf-8")
@@ -234,6 +247,10 @@ def check_v2_to_v3(tmp: Path):
     expect("읽은 경유 값", row[12], "")
     expect("읽은 출발지", row[11].startswith("출발지"), True)
 
+    order, binds = repository_column_order()
+    expect("저장 칸 = DB 칸(이름 기준, 경유 포함)", set(order), set(after_cols[1:]))
+    expect("저장 칸 수 = 바인딩 수", binds, len(order))
+
     # 경유를 넣고 다시 읽기 — 새 칸이 정상 저장되는지
     db.execute("UPDATE rides SET via_place = '광교' WHERE id = ?", (row[0],))
     db.commit()
@@ -279,6 +296,39 @@ def check_v1_to_v3(tmp: Path):
     db.close()
 
 
+def fresh_rides_schema():
+    """LedgerDb.kt 의 CREATE TABLE rides 문을 그대로 꺼내 온다 (새로 설치한 경우의 스키마)"""
+    src = DB_SOURCE.read_text(encoding="utf-8")
+    const = dict(re.findall(r'const val (C_[A-Z_]+) = "([^"]+)"', src))
+    block = re.search(r"CREATE TABLE \$T_RIDES \((.*?)\n\s*\)\s*\"\"\"", src, re.S).group(1)
+    for name, value in const.items():
+        block = block.replace("${" + name + "}", value).replace("$" + name, value)
+    return "CREATE TABLE rides (" + block + ")"
+
+
+def check_fresh_v3(tmp: Path):
+    """새로 설치한 DB(v3 CREATE TABLE) — 경유 칸이 출발지와 도착지 사이에 있고 저장·읽기가 된다"""
+    schema = fresh_rides_schema()
+    expect("새 DB 스키마에 경유 칸", "via_place" in schema, True)
+    db = sqlite3.connect(tmp / "fresh.db")
+    db.execute(schema)
+    cols = column_names(db, "rides")
+    expect("새 DB 칸 순서(출발·경유·도착)", cols[11:14], ["from_place", "via_place", "to_place"])
+    order, binds = repository_column_order()
+    expect("새 DB: 저장 칸 순서 = DB 칸 순서", order, cols[1:])
+    expect("새 DB: 바인딩 수", binds, len(order))
+    placeholders = ",".join("?" * len(order))
+    db.execute(f"INSERT INTO rides ({','.join(order)}) VALUES ({placeholders})",
+               ("2026-11-24", 1_763_000_000_000, "kakao", "daeri", "card", 25_000, 20.0, 5_000,
+                0, 1_500, "정자동", "광교", "수지구청역", "", "", 1, 1))
+    db.commit()
+    expect("새 DB 읽기(경유 포함)", db.execute(
+        "SELECT from_place, via_place, to_place, payment FROM rides").fetchone(),
+        ("정자동", "광교", "수지구청역", "card"))
+    expect("새 DB 무결성", db.execute("PRAGMA integrity_check").fetchone()[0], "ok")
+    db.close()
+
+
 def check_column_guard():
     """이미 경유 칸이 있는 DB(새로 설치했거나 다시 올린 경우)에 또 ALTER 하지 않는다"""
     db = sqlite3.connect(":memory:")
@@ -299,6 +349,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         check_v2_to_v3(Path(tmp))
         check_v1_to_v3(Path(tmp))
+        check_fresh_v3(Path(tmp))
         check_column_guard()
     print("ALL CHECKS PASSED" if failures == 0 else f"{failures} CHECK(S) FAILED")
     return 0 if failures == 0 else 1

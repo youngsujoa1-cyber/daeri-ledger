@@ -15,6 +15,8 @@ python3 tools/migration-check/check_migration.py
 - v2 → v3: 운행 11,876건·지출·휴무일 건수 그대로, 기존 칸 순서 그대로, 값 지문(sha256) 동일,
   새 칸은 전부 빈 문자열, `PRAGMA integrity_check` = ok
 - 앱이 읽는 순서(`LedgerRepository.toRide`)대로 18칸을 다시 읽어 경유 칸 저장·유지 확인
+- 새로 설치한 경우(v3 `CREATE TABLE`): 경유 칸이 출발지·도착지 사이에 있고, `LedgerRepository.insertRidesBulk`가
+  넣는 칸 순서·수와 같은지, 경유를 넣고 그대로 읽히는지
 - v1 → v3: 휴무일 테이블 생성 + 경유 칸 추가, 건수·값 유지
 - 칸이 이미 있는 DB에 또 `ALTER` 하면 실패하므로 `hasColumn` 확인이 필요하다는 것
 
