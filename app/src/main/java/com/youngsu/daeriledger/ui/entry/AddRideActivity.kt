@@ -218,16 +218,20 @@ class AddRideActivity : AppCompatActivity() {
         val pctLabel = String.format(java.util.Locale.KOREA, "%.0f", pct)
         if (settings.platformNetShown(platformId)) {
             binding.amountSectionLabel.text = "금액 (수수료 떼고 받은 금액)"
+            binding.tipLabel.text = "팁 · 경유비 (받은 금액)"
             binding.platformFeeNote.text = if (pct > 0) {
                 "${platform.label}은(는) 수수료 ${pctLabel}%를 떼고 금액이 보여요. " +
                     "받은 금액을 넣으면 총매출을 역산해서 잡아요. " +
-                    "(받은 ${Money.won(20_000)} → 총매출 ${Money.won(Payout.grossFromNet(20_000, pct))})"
+                    "(받은 ${Money.won(20_000)} → 총매출 ${Money.won(Payout.grossFromNet(20_000, pct))})\n" +
+                    "팁 · 경유비도 받은 금액으로 넣으면 똑같이 역산해요. " +
+                    "(받은 ${Money.won(8_000)} → 총액 ${Money.won(Payout.grossFromNet(8_000, pct))})"
             } else {
                 "${platform.label}은(는) 앱에 수수료가 빠진 금액이 보여요. " +
                     "수수료율을 넣으면 총매출을 역산해서 잡아요."
             }
         } else {
             binding.amountSectionLabel.text = "금액 (총매출)"
+            binding.tipLabel.text = "팁 · 경유비"
             binding.platformFeeNote.text = if (pct <= 0) {
                 "${platform.label} 수수료 0% — 설정에서 실제 수수료율을 넣으면 순수익이 더 정확해져요."
             } else {
@@ -257,14 +261,17 @@ class AddRideActivity : AppCompatActivity() {
         payment = ride.payment
         binding.titleText.text = "기록 수정"
         binding.deleteButton.visibility = View.VISIBLE
-        // 카카오T·티맵·핸들은 저장된 총매출에서 수수료를 빼면 입력했던 실수령액이 된다.
-        val entered = if (settings.platformNetShown(ride.platformId)) {
-            (ride.gross - ride.feeAmount).coerceAtLeast(0)
-        } else {
-            ride.gross
-        }
-        binding.amountInput.setText(entered.toString())
-        binding.tipInput.setText(if (ride.tip > 0) ride.tip.toString() else "")
+        // 카카오T·티맵·핸들은 저장된 총매출·수수료에서 손님이 보낸(수수료 떼고 받은) 금액을 도로 찾는다.
+        // 팁·경유비도 같은 방식 — 저장된 팁은 총액 기준이므로 두 번 역산되지 않게 입력값으로 돌려 둔다.
+        val enteredInputs = Payout.inputsFrom(
+            gross = ride.gross,
+            tip = ride.tip,
+            feeAmount = ride.feeAmount,
+            feePercent = ride.feePercent,
+            netShown = settings.platformNetShown(ride.platformId)
+        )
+        binding.amountInput.setText(enteredInputs.amount.toString())
+        binding.tipInput.setText(if (enteredInputs.tip > 0) enteredInputs.tip.toString() else "")
         binding.fromInput.setText(ride.fromPlace)
         binding.viaInput.setText(ride.viaPlace)
         binding.toInput.setText(ride.toPlace)
@@ -330,27 +337,43 @@ class AddRideActivity : AppCompatActivity() {
 
     private fun updatePreview() {
         val input = inputAmount()
+        val enteredTip = tip()
+        val netShown = settings.platformNetShown(platformId)
         val feePercent = settings.effectiveFeePercent(platformId)
         val feeLabel = "플랫폼 수수료 ${String.format(java.util.Locale.KOREA, "%.0f", feePercent)}%"
-        if (input <= 0) {
+        if (input <= 0 && enteredTip <= 0) {
             binding.previewTotal.text = Money.won(0)
             binding.previewFeeLabel.text = feeLabel
             binding.previewFee.text = "-0원"
             binding.previewInsurance.text = "-0원"
             binding.previewNet.text = "0원"
             binding.previewNet.setTextColor(getColor(R.color.text_secondary))
+            binding.previewTipRow.visibility = View.GONE
             return
         }
         val result = breakdown(input)
+        val tipFee = (result.tipGross - enteredTip).coerceAtLeast(0)
 
         binding.previewTotal.text = Money.won(result.total)
-        binding.previewFeeLabel.text = feeLabel
+        binding.previewFeeLabel.text = if (tipFee > 0) "$feeLabel (팁 포함)" else feeLabel
         binding.previewFee.text = "-" + Money.won(result.fee)
         binding.previewInsurance.text = "-" + Money.won(result.insurance)
         binding.previewNet.text = Money.won(result.net)
         binding.previewNet.setTextColor(
             getColor(if (result.net < 0) R.color.loss else R.color.profit)
         )
+        // 팁·경유비 역산 내역 — 역산 플랫폼이면 받은 금액과 총액이 같이 보이게
+        if (result.tipGross > 0) {
+            binding.previewTipRow.visibility = View.VISIBLE
+            binding.previewTipLabel.text = if (netShown && tipFee > 0) {
+                "팁 · 경유비 (받은 ${Money.won(enteredTip)})"
+            } else {
+                "팁 · 경유비"
+            }
+            binding.previewTip.text = "+" + Money.won(result.tipGross)
+        } else {
+            binding.previewTipRow.visibility = View.GONE
+        }
     }
 
     // --------------------------------------------------------------- 저장
@@ -378,7 +401,8 @@ class AddRideActivity : AppCompatActivity() {
             gross = result.gross,
             feePercent = settings.effectiveFeePercent(platformId),
             feeAmount = result.fee,
-            tip = tip(),
+            // 팁·경유비도 역산 플랫폼이면 총액(수수료 떼기 전) 기준으로 저장한다.
+            tip = result.tipGross,
             insuranceAmount = result.insurance,
             fromPlace = binding.fromInput.text.toString().trim(),
             viaPlace = binding.viaInput.text.toString().trim(),

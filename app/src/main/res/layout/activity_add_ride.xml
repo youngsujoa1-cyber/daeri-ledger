@@ -191,7 +191,8 @@
                 app:chipSpacingHorizontal="7dp"
                 app:singleSelection="true" />
 
-            <!-- 출발 · 경유 · 도착 (항상 보임) — 금액보다 위에, 크게 -->
+            <!-- 출발 · 도착 · 경유 (항상 보임) — 적는 순서만 출발 → 도착 → 경유,
+                 카드·목록에서는 늘 출발 → 경유 → 도착 순서로 보여 준다 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -204,7 +205,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="출발지 · 경유 · 도착지" />
+                    android:text="출발지 · 도착지 · 경유" />
 
                 <TextView
                     style="@style/Text.Daeri.Label"
@@ -230,25 +231,7 @@
                     android:inputType="text"
                     android:maxLength="40"
                     android:minHeight="56dp"
-                    android:paddingHorizontal="10dp"
-                    android:paddingVertical="14dp"
-                    android:textColor="@color/text_primary"
-                    android:textColorHint="@color/text_tertiary"
-                    android:textSize="16sp" />
-
-                <EditText
-                    android:id="@+id/viaInput"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="6dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/bg_amount_field"
-                    android:hint="경유"
-                    android:imeOptions="actionNext"
-                    android:importantForAutofill="no"
-                    android:inputType="text"
-                    android:maxLength="40"
-                    android:minHeight="56dp"
+                    android:nextFocusForward="@id/toInput"
                     android:paddingHorizontal="10dp"
                     android:paddingVertical="14dp"
                     android:textColor="@color/text_primary"
@@ -268,6 +251,27 @@
                     android:inputType="text"
                     android:maxLength="40"
                     android:minHeight="56dp"
+                    android:nextFocusForward="@id/viaInput"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="14dp"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_tertiary"
+                    android:textSize="16sp" />
+
+                <EditText
+                    android:id="@+id/viaInput"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_amount_field"
+                    android:hint="경유"
+                    android:imeOptions="actionNext"
+                    android:importantForAutofill="no"
+                    android:inputType="text"
+                    android:maxLength="40"
+                    android:minHeight="56dp"
+                    android:nextFocusForward="@id/amountInput"
                     android:paddingHorizontal="10dp"
                     android:paddingVertical="14dp"
                     android:textColor="@color/text_primary"
@@ -341,6 +345,7 @@
                 android:orientation="horizontal">
 
                 <TextView
+                    android:id="@+id/tipLabel"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -507,6 +512,33 @@
                             android:layout_height="wrap_content"
                             android:fontFeatureSettings="tnum"
                             android:text="0원"
+                            android:textColor="@color/text_primary"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <!-- 팁·경유비 역산 내역 — 적었을 때만 보인다 -->
+                    <LinearLayout
+                        android:id="@+id/previewTipRow"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:orientation="horizontal"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:id="@+id/previewTipLabel"
+                            style="@style/Text.Daeri.Label"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="팁 · 경유비" />
+
+                        <TextView
+                            android:id="@+id/previewTip"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFeatureSettings="tnum"
+                            android:text="+0원"
                             android:textColor="@color/text_primary"
                             android:textSize="13sp" />
                     </LinearLayout>

@@ -59,10 +59,11 @@ object Platforms {
 
 /**
  * 한 건의 운행 기록.
- * gross = 총매출(수수료를 떼기 전 금액), tip = 팁·경유비(추가 수입), feeAmount = 플랫폼 수수료,
- * insuranceAmount = 건당 보험료 + 고용·산재 보험료 합계.
+ * gross = 총매출(수수료를 떼기 전 금액), tip = 팁·경유비 총액(수수료를 떼기 전 금액),
+ * feeAmount = 플랫폼 수수료(요금 수수료 + 팁 수수료), insuranceAmount = 건당 보험료 + 고용·산재 보험료 합계.
  * net = gross + tip - feeAmount - insuranceAmount
- * (카카오T·티맵·핸들처럼 수수료 차감 후 금액을 입력하는 플랫폼은 gross 를 수수료율로 역산해 저장한다)
+ * (카카오T·티맵·핸들처럼 수수료 차감 후 금액을 입력하는 플랫폼은 입력한 "받은 금액"에서 gross 와 tip 을
+ *  수수료율로 역산해 총액 기준으로 저장한다. 예: 요금 20,000 · 팁 8,000 입력 → gross 25,000 · tip 10,000 · 수수료 7,000)
  */
 data class Ride(
     val id: Long = 0L,
