@@ -49,7 +49,7 @@ class BackupManager(
         sb.append(
             listOf(
                 "종류", "영업일", "시각", "플랫폼", "구분", "결제", "총매출", "팁·경유비",
-                "수수료(%)", "수수료", "보험료", "순수익", "출발", "도착", "콜밭", "내용", "정산"
+                "수수료(%)", "수수료", "보험료", "순수익", "출발", "경유", "도착", "콜밭", "내용", "정산"
             ).joinToString(",")
         ).append(lineBreak)
 
@@ -69,6 +69,7 @@ class BackupManager(
                     r.insuranceAmount.toString(),
                     r.net.toString(),
                     r.fromPlace,
+                    r.viaPlace,
                     r.toPlace,
                     r.spot,
                     r.memo,
@@ -91,6 +92,7 @@ class BackupManager(
                     "0",
                     "0",
                     (-e.amount).toString(),
+                    "",
                     "",
                     "",
                     "",
@@ -155,6 +157,7 @@ class BackupManager(
                 put("tip", r.tip)
                 put("insuranceAmount", r.insuranceAmount)
                 put("fromPlace", r.fromPlace)
+                put("viaPlace", r.viaPlace)
                 put("toPlace", r.toPlace)
                 put("memo", r.memo)
                 put("spot", r.spot)
@@ -240,6 +243,8 @@ class BackupManager(
                 feeAmount = o.optInt("feeAmount"),
                 insuranceAmount = o.optInt("insuranceAmount"),
                 fromPlace = o.optString("fromPlace"),
+                // v1.0.11 이전 백업에는 경유 칸이 없다 — 없으면 빈 문자열로 읽힌다
+                viaPlace = o.optString("viaPlace"),
                 toPlace = o.optString("toPlace"),
                 memo = o.optString("memo"),
                 spot = o.optString("spot"),

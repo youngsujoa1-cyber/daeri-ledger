@@ -13,8 +13,11 @@ class LedgerDb(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_V
     companion object {
         const val DB_NAME = "daeri_ledger.db"
 
-        /** v2: 휴무일(off_days) 테이블 추가 — 기존 v1 데이터는 그대로 둔다. */
-        const val DB_VERSION = 2
+        /**
+         * v2: 휴무일(off_days) 테이블 추가 — 기존 v1 데이터는 그대로 둔다.
+         * v3: 운행에 경유지(via_place) 칸 추가 — 기존 기록은 빈 문자열로 남는다.
+         */
+        const val DB_VERSION = 3
 
         const val T_RIDES = "rides"
         const val T_EXPENSES = "expenses"
@@ -32,6 +35,7 @@ class LedgerDb(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_V
         const val C_TIP = "tip"
         const val C_INSURANCE = "insurance_amount"
         const val C_FROM = "from_place"
+        const val C_VIA = "via_place"
         const val C_TO = "to_place"
         const val C_MEMO = "memo"
         const val C_SPOT = "spot"
@@ -66,6 +70,7 @@ class LedgerDb(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_V
                 $C_TIP INTEGER NOT NULL DEFAULT 0,
                 $C_INSURANCE INTEGER NOT NULL DEFAULT 0,
                 $C_FROM TEXT NOT NULL DEFAULT '',
+                $C_VIA TEXT NOT NULL DEFAULT '',
                 $C_TO TEXT NOT NULL DEFAULT '',
                 $C_MEMO TEXT NOT NULL DEFAULT '',
                 $C_SPOT TEXT NOT NULL DEFAULT '',
@@ -110,7 +115,25 @@ class LedgerDb(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_V
         // v1 → v2: 휴무일 테이블만 더한다. 기존 운행·지출 기록은 건드리지 않는다.
         // (CREATE TABLE IF NOT EXISTS 라, 이미 만들어져 있어도 안전하다)
         if (oldVersion < 2) createOffDays(db)
+        // v2 → v3: 운행에 경유지 칸만 더한다. ALTER TABLE ADD COLUMN 이라 기존 행은
+        // 다시 쓰지 않고, 11,876건이 그대로 남은 채 새 칸만 빈 문자열로 채워진다.
+        if (oldVersion < 3) addViaColumn(db)
     }
+
+    /** 경유지 칸 — 이미 있으면 건너뛴다(새로 만든 DB나 다시 올린 경우에도 안전) */
+    private fun addViaColumn(db: SQLiteDatabase) {
+        if (hasColumn(db, T_RIDES, C_VIA)) return
+        db.execSQL("ALTER TABLE $T_RIDES ADD COLUMN $C_VIA TEXT NOT NULL DEFAULT ''")
+    }
+
+    private fun hasColumn(db: SQLiteDatabase, table: String, column: String): Boolean =
+        db.rawQuery("PRAGMA table_info($table)", null).use { c ->
+            val nameIndex = c.getColumnIndex("name")
+            while (c.moveToNext()) {
+                if (nameIndex >= 0 && c.getString(nameIndex) == column) return true
+            }
+            false
+        }
 
     /** 휴무일 — 하루에 한 줄. business_day 가 기본키라 두 번 표시해도 한 줄만 남는다. */
     private fun createOffDays(db: SQLiteDatabase) {

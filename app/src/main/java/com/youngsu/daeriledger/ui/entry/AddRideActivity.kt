@@ -266,6 +266,7 @@ class AddRideActivity : AppCompatActivity() {
         binding.amountInput.setText(entered.toString())
         binding.tipInput.setText(if (ride.tip > 0) ride.tip.toString() else "")
         binding.fromInput.setText(ride.fromPlace)
+        binding.viaInput.setText(ride.viaPlace)
         binding.toInput.setText(ride.toPlace)
         binding.memoInput.setText(ride.memo)
         binding.insuranceInput.setText(ride.insuranceAmount.toString())
@@ -380,6 +381,7 @@ class AddRideActivity : AppCompatActivity() {
             tip = tip(),
             insuranceAmount = result.insurance,
             fromPlace = binding.fromInput.text.toString().trim(),
+            viaPlace = binding.viaInput.text.toString().trim(),
             toPlace = binding.toInput.text.toString().trim(),
             memo = binding.memoInput.text.toString().trim(),
             // 콜밭 지역 입력은 화면에서 뺐다 — 예전 기록의 태그는 고칠 때도 그대로 남긴다
@@ -413,6 +415,7 @@ class AddRideActivity : AppCompatActivity() {
             binding.tipInput.setText("")
             binding.memoInput.setText("")
             binding.fromInput.setText("")
+            binding.viaInput.setText("")
             binding.toInput.setText("")
             if (!insuranceTouched) applyDefaultInsurance()
             timeMillis = System.currentTimeMillis()

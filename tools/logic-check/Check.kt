@@ -1,7 +1,10 @@
 import com.youngsu.daeriledger.data.DcbBackup
 import com.youngsu.daeriledger.data.Hotspots
+import com.youngsu.daeriledger.data.PaymentType
 import com.youngsu.daeriledger.data.Payout
 import com.youngsu.daeriledger.data.Platforms
+import com.youngsu.daeriledger.data.Ride
+import com.youngsu.daeriledger.data.ServiceType
 import com.youngsu.daeriledger.ui.widget.CalendarGrid
 import com.youngsu.daeriledger.ui.widget.PressTracker
 import com.youngsu.daeriledger.util.BizTime
@@ -355,6 +358,38 @@ fun main() {
     expect("휴무 표시 없음", DcbBackup.isOffDay(null), false)
     // 휴무 행은 날짜만 있고 주문시각이 비어 있다 → 그 작업일을 그대로 쓴다
     expect("휴무일 날짜", DcbBackup.businessDay("2023-01-05", null), LocalDate.of(2023, 1, 5))
+
+    // v1.0.11 — 출발지 · 경유 · 도착지 경로 표기, 결제 이름(카드·포인트 → 후불 / 후불·미수 → 미수금)
+    fun ride(from: String, via: String, to: String) = Ride(
+        businessDay = d,
+        timeMillis = ts(20, 0),
+        platformId = "kakao",
+        service = ServiceType.DAERI,
+        payment = PaymentType.CASH,
+        gross = 25_000,
+        feePercent = 20.0,
+        feeAmount = 5_000,
+        tip = 0,
+        insuranceAmount = 1_500,
+        fromPlace = from,
+        viaPlace = via,
+        toPlace = to
+    )
+    expect("경로 출발→도착", ride("정자동", "", "수지구청역").routeLabel, "정자동 → 수지구청역")
+    expect("경로 출발→경유→도착", ride("정자동", "광교", "수지구청역").routeLabel, "정자동 → 광교 → 수지구청역")
+    expect("경로 도착만", ride("", "", "수지구청역").routeLabel, "수지구청역")
+    expect("경로 출발만", ride("정자동", "", "").routeLabel, "정자동")
+    expect("경로 경유만", ride("", "광교", "").routeLabel, "광교")
+    expect("경로 전부 빈값", ride("", "", "").routeLabel, "")
+    expect("경로 공백만", ride("  ", " ", "\t").routeLabel, "")
+    expect("결제 현금", PaymentType.CASH.label, "현금")
+    expect("결제 후불(카드·포인트 자리)", PaymentType.CARD.label, "후불")
+    expect("결제 미수금(후불·미수 자리)", PaymentType.UNPAID.label, "미수금")
+    // 저장된 id 는 그대로 — 예전 기록도 같은 결제 수단으로 읽힌다
+    expect("결제 id 호환 card", PaymentType.from("card"), PaymentType.CARD)
+    expect("결제 id 호환 unpaid", PaymentType.from("unpaid"), PaymentType.UNPAID)
+    expect("결제 id 모르면 현금", PaymentType.from("??"), PaymentType.CASH)
+
 
     println(if (failures == 0) "ALL CHECKS PASSED" else "$failures CHECK(S) FAILED")
     if (failures > 0) kotlin.system.exitProcess(1)

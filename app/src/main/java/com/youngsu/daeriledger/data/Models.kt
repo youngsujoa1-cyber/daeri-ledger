@@ -12,11 +12,15 @@ enum class ServiceType(val id: String, val label: String) {
     }
 }
 
-/** 결제 수단. 후불/미수는 미수금으로 잡힌다. */
+/**
+ * 결제 수단. 카드·포인트 결제도 손님에게 나중에 받는 후불이라 화면에는 `후불`로 쓰고,
+ * 현장에서 받지 못한 후불·미수는 `미수금`으로 잡힌다.
+ * 저장되는 id(cash/card/unpaid)는 그대로라 예전 기록도 그대로 읽힌다.
+ */
 enum class PaymentType(val id: String, val label: String, val short: String) {
     CASH("cash", "현금", "현금"),
-    CARD("card", "카드·포인트", "카드"),
-    UNPAID("unpaid", "후불·미수", "미수");
+    CARD("card", "후불", "후불"),
+    UNPAID("unpaid", "미수금", "미수");
 
     companion object {
         fun from(id: String?): PaymentType = entries.firstOrNull { it.id == id } ?: CASH
@@ -73,6 +77,7 @@ data class Ride(
     val tip: Int,
     val insuranceAmount: Int,
     val fromPlace: String = "",
+    val viaPlace: String = "",
     val toPlace: String = "",
     val memo: String = "",
     val spot: String = "",
@@ -83,13 +88,11 @@ data class Ride(
     val net: Int get() = total - feeAmount - insuranceAmount
     val platformLabel: String get() = Platforms.label(platformId)
     val isUnpaid: Boolean get() = payment == PaymentType.UNPAID && !settled
+    /** 경로 — 적어 둔 곳만 순서대로. 경유가 있으면 출발 → 경유 → 도착 */
     val routeLabel: String
-        get() = when {
-            fromPlace.isNotBlank() && toPlace.isNotBlank() -> "$fromPlace → $toPlace"
-            fromPlace.isNotBlank() -> fromPlace
-            toPlace.isNotBlank() -> toPlace
-            else -> ""
-        }
+        get() = listOf(fromPlace, viaPlace, toPlace)
+            .filter { it.isNotBlank() }
+            .joinToString(" → ")
 }
 
 data class Expense(

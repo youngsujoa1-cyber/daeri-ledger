@@ -41,9 +41,9 @@ class LedgerRepository(context: Context) {
                 ${LedgerDb.C_BUSINESS_DAY}, ${LedgerDb.C_TIME}, ${LedgerDb.C_PLATFORM},
                 ${LedgerDb.C_SERVICE}, ${LedgerDb.C_PAYMENT}, ${LedgerDb.C_GROSS},
                 ${LedgerDb.C_FEE_PERCENT}, ${LedgerDb.C_FEE_AMOUNT}, ${LedgerDb.C_TIP},
-                ${LedgerDb.C_INSURANCE}, ${LedgerDb.C_FROM}, ${LedgerDb.C_TO}, ${LedgerDb.C_MEMO},
+                ${LedgerDb.C_INSURANCE}, ${LedgerDb.C_FROM}, ${LedgerDb.C_VIA}, ${LedgerDb.C_TO}, ${LedgerDb.C_MEMO},
                 ${LedgerDb.C_SPOT}, ${LedgerDb.C_SETTLED}, ${LedgerDb.C_CREATED}
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         """.trimIndent()
         val database = db
         val now = System.currentTimeMillis()
@@ -64,11 +64,12 @@ class LedgerRepository(context: Context) {
                     st.bindLong(9, ride.tip.toLong())
                     st.bindLong(10, ride.insuranceAmount.toLong())
                     st.bindString(11, ride.fromPlace)
-                    st.bindString(12, ride.toPlace)
-                    st.bindString(13, ride.memo)
-                    st.bindString(14, ride.spot)
-                    st.bindLong(15, if (ride.settled) 1L else 0L)
-                    st.bindLong(16, if (ride.createdAt == 0L) now else ride.createdAt)
+                    st.bindString(12, ride.viaPlace)
+                    st.bindString(13, ride.toPlace)
+                    st.bindString(14, ride.memo)
+                    st.bindString(15, ride.spot)
+                    st.bindLong(16, if (ride.settled) 1L else 0L)
+                    st.bindLong(17, if (ride.createdAt == 0L) now else ride.createdAt)
                     st.executeInsert()
                     count++
                 }
@@ -92,6 +93,7 @@ class LedgerRepository(context: Context) {
         put(LedgerDb.C_TIP, ride.tip)
         put(LedgerDb.C_INSURANCE, ride.insuranceAmount)
         put(LedgerDb.C_FROM, ride.fromPlace)
+        put(LedgerDb.C_VIA, ride.viaPlace)
         put(LedgerDb.C_TO, ride.toPlace)
         put(LedgerDb.C_MEMO, ride.memo)
         put(LedgerDb.C_SPOT, ride.spot)
@@ -706,6 +708,7 @@ class LedgerRepository(context: Context) {
         tip = getInt(getColumnIndexOrThrow(LedgerDb.C_TIP)),
         insuranceAmount = getInt(getColumnIndexOrThrow(LedgerDb.C_INSURANCE)),
         fromPlace = getString(getColumnIndexOrThrow(LedgerDb.C_FROM)),
+        viaPlace = getString(getColumnIndexOrThrow(LedgerDb.C_VIA)).orEmpty(),
         toPlace = getString(getColumnIndexOrThrow(LedgerDb.C_TO)),
         memo = getString(getColumnIndexOrThrow(LedgerDb.C_MEMO)),
         spot = getString(getColumnIndexOrThrow(LedgerDb.C_SPOT)),

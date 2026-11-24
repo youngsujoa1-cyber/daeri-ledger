@@ -23,7 +23,7 @@ import com.youngsu.daeriledger.ui.entry.AddRideActivity
 import com.youngsu.daeriledger.ui.widget.RideCardBinder
 import com.youngsu.daeriledger.util.Money
 
-/** 미수금 정리 — 후불·미수 콜을 모아 한 번에 입금 처리 */
+/** 미수금 정리 — 후불·미수로 남긴 콜을 모아 한 번에 입금 처리 */
 class UnpaidActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityUnpaidBinding
@@ -111,7 +111,7 @@ class UnpaidActivity : AppCompatActivity() {
         override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
             if (holder is EmptyHolder) {
                 holder.b.emptyTitle.text = "미수금이 없어요"
-                holder.b.emptyMessage.text = "후불·미수로 기록한 콜이 여기에 모입니다"
+                holder.b.emptyMessage.text = "미수금으로 기록한 콜이 여기에 모입니다"
                 return
             }
             val ride = items[position]

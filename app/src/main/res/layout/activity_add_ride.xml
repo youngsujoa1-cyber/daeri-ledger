@@ -191,14 +191,27 @@
                 app:chipSpacingHorizontal="7dp"
                 app:singleSelection="true" />
 
-            <!-- 출발 · 도착 (항상 보임) — 금액보다 위에, 크게 -->
-            <TextView
-                style="@style/Text.Daeri.Section"
-                android:layout_width="wrap_content"
+            <!-- 출발 · 경유 · 도착 (항상 보임) — 금액보다 위에, 크게 -->
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="18dp"
                 android:layout_marginBottom="8dp"
-                android:text="출발지 · 도착지" />
+                android:orientation="horizontal">
+
+                <TextView
+                    style="@style/Text.Daeri.Section"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="출발지 · 경유 · 도착지" />
+
+                <TextView
+                    style="@style/Text.Daeri.Label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="경유는 비워도 돼요" />
+            </LinearLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -217,17 +230,36 @@
                     android:inputType="text"
                     android:maxLength="40"
                     android:minHeight="56dp"
-                    android:paddingHorizontal="14dp"
+                    android:paddingHorizontal="10dp"
                     android:paddingVertical="14dp"
                     android:textColor="@color/text_primary"
                     android:textColorHint="@color/text_tertiary"
-                    android:textSize="17sp" />
+                    android:textSize="16sp" />
+
+                <EditText
+                    android:id="@+id/viaInput"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_amount_field"
+                    android:hint="경유"
+                    android:imeOptions="actionNext"
+                    android:importantForAutofill="no"
+                    android:inputType="text"
+                    android:maxLength="40"
+                    android:minHeight="56dp"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="14dp"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_tertiary"
+                    android:textSize="16sp" />
 
                 <EditText
                     android:id="@+id/toInput"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="6dp"
                     android:layout_weight="1"
                     android:background="@drawable/bg_amount_field"
                     android:hint="도착지"
@@ -236,11 +268,11 @@
                     android:inputType="text"
                     android:maxLength="40"
                     android:minHeight="56dp"
-                    android:paddingHorizontal="14dp"
+                    android:paddingHorizontal="10dp"
                     android:paddingVertical="14dp"
                     android:textColor="@color/text_primary"
                     android:textColorHint="@color/text_tertiary"
-                    android:textSize="17sp" />
+                    android:textSize="16sp" />
             </LinearLayout>
 
             <!-- 금액 -->
