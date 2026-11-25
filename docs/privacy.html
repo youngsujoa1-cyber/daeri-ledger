@@ -115,7 +115,7 @@
       <h2>1. 총칙</h2>
       <p>대리장부(이하 “앱”)는 대리운전·탁송 기사를 위한 수입·지출 장부 앱입니다. 개발자 Topster(이하 “개발자”)는 이용자의 개인정보를 소중히 여기며, 관련 법령과 Google Play 정책을 준수합니다. 본 방침은 앱이 어떤 정보를 다루고, 그 정보가 어디에 저장되며, 이용자가 무엇을 선택할 수 있는지 설명합니다.</p>
       <div class="note">
-        <p><b>핵심 요약:</b> 앱에 입력한 운행 기록·수입·지출·휴무일·메모·콜밭·설정은 <b>이용자의 기기 안에만</b> 저장됩니다. <span class="ok">개발자는 이러한 기록을 받아 보관하는 서버를 운영하지 않으며, 해당 내용을 열람·수집하지 않습니다.</span> 앱은 회원가입이나 로그인을 요구하지 않습니다. 기기 밖으로 나가는 통신은 ① 광고(Google AdMob)를 불러오는 통신과 ② <b>기사님들이 함께 쓰는 공용 콜밭 제보</b>뿐입니다. 공용 콜밭 제보는 이용자가 직접 남긴 콜밭 이름·좌표·메모와 기기를 구분하는 익명 해시만 보내며, 장부 기록(운행·수입·지출·미수금·메모)은 보내지 않습니다.</p>
+        <p><b>핵심 요약:</b> 앱에 입력한 운행 기록·수입·지출·휴무일·메모·콜밭·설정은 <b>이용자의 기기 안에만</b> 저장됩니다. <span class="ok">개발자는 이러한 기록을 받아 보관하는 서버를 운영하지 않으며, 해당 내용을 열람·수집하지 않습니다.</span> 앱은 회원가입이나 로그인을 요구하지 않습니다. 기기 밖으로 나가는 통신은 ① 광고(Google AdMob)를 불러오는 통신과 ② <b>기사님들이 함께 쓰는 공용 콜밭 제보</b>, ③ <b>🗺️ 지도에서 위치 고르기</b> 화면의 지도 타일(OpenStreetMap)뿐입니다. 공용 콜밭 제보는 이용자가 직접 남긴 콜밭 이름·좌표·메모와 기기를 구분하는 익명 해시만 보내며, 장부 기록(운행·수입·지출·미수금·메모)은 보내지 않습니다. 지도 타일 요청에는 앱을 밝히는 값과 타일 번호만 실리며, 장부 내용은 전송되지 않습니다.</p>
       </div>
 
       <h2>2. 앱이 저장하는 정보 (기기 내부)</h2>
@@ -172,7 +172,7 @@
         <tr>
           <th>인터넷<br>(필수)</th>
           <td><code>INTERNET</code><br>
-          공용 콜밭 제보를 보내고, 다른 기사님이 5명 이상 모아 올린 콜밭·없어진 곳 신고를 받아 오는 데 사용합니다. 광고(Google Mobile Ads SDK)를 불러오고 광고를 측정하는 데도 함께 쓰입니다.</td>
+          공용 콜밭 제보를 보내고, 다른 기사님이 5명 이상 모아 올린 콜밭·없어진 곳 신고를 받아 오는 데 사용합니다. 광고(Google Mobile Ads SDK)를 불러오고 광고를 측정하는 데도 함께 쓰입니다. <b>🗺️ 지도에서 위치 고르기</b> 화면에서 지도 타일(OpenStreetMap)을 받아 오는 데도 쓰입니다.</td>
         </tr>
       </table>
       <p>이 밖에 카메라·마이크·연락처·문자·통화 기록·사진첩·알림 등 다른 권한은 요청하지 않습니다.</p>
@@ -216,11 +216,12 @@
       <p>앱은 만 14세 미만 아동을 대상으로 하지 않으며, 아동의 개인정보를 고의로 수집하지 않습니다. 앱은 대리운전·탁송 업무를 위한 장부 앱으로 만 18세 이상 이용자를 권장합니다.</p>
 
       <h2>9. 안전성 확보 조치</h2>
-      <p>장부 데이터는 앱 전용 저장 영역에 보관되어 다른 앱이 임의로 접근하기 어렵습니다. 앱이 외부로 보내는 통신은 ① 광고 SDK 통신과 ② 공용 콜밭 제보(Firebase Firestore) 통신이며, 모두 HTTPS로 암호화됩니다. 장부 내용은 서버로 보내지 않으므로 서버 유출로 장부 내용이 노출될 가능성은 없습니다.</p>
+      <p>장부 데이터는 앱 전용 저장 영역에 보관되어 다른 앱이 임의로 접근하기 어렵습니다. 앱이 외부로 보내는 통신은 ① 광고 SDK 통신과 ② 공용 콜밭 제보(Firebase Firestore) 통신, ③ 지도 타일(OpenStreetMap) 요청이며, 모두 HTTPS로 암호화됩니다. 장부 내용은 서버로 보내지 않으므로 서버 유출로 장부 내용이 노출될 가능성은 없습니다.</p>
 
       <h2>10. 방침의 변경</h2>
       <p>본 방침이 변경되는 경우 이 페이지에 변경 내용과 시행일을 게시합니다. 앱이 다루는 정보나 권한이 달라지는 중요한 변경이 있는 경우 앱 업데이트 또는 본 페이지를 통해 안내합니다.</p>
       <ul>
+        <li>2026년 11월 25일 — 🗺️ 지도에서 위치 고르기(OpenStreetMap 지도 타일) 통신 안내 추가</li>
         <li>2026년 11월 25일 — 공용 콜밭 제보(5명 기준)와 인터넷 권한 안내 추가</li>
       </ul>
 
@@ -264,7 +265,7 @@
       <h2>1. Overview</h2>
       <p>대리장부 (“the App”) is an income and expense ledger for designated-driver and delivery-errand drivers in Korea. The developer, Topster (“the Developer”), respects your privacy and follows applicable law and Google Play policies. This policy explains what information the App handles, where it is stored, and what choices you have.</p>
       <div class="note">
-        <p><b>In short:</b> The trip records, income, expenses, days off, memos, hotspot list and settings you enter are stored <b>only on your own device</b>. <span class="ok">The Developer runs no server that receives or keeps this data and cannot read it.</span> The App has no sign-up or login. The only traffic that leaves your device is ① the request that loads ads (Google AdMob) and ② anonymous <b>shared hotspot reports</b>. A shared hotspot report sends only the hotspot name, coordinates and memo you entered, plus a device hash; ledger records (trips, income, expenses, unpaid amounts, memos) are never sent.</p>
+        <p><b>In short:</b> The trip records, income, expenses, days off, memos, hotspot list and settings you enter are stored <b>only on your own device</b>. <span class="ok">The Developer runs no server that receives or keeps this data and cannot read it.</span> The App has no sign-up or login. The only traffic that leaves your device is ① the request that loads ads (Google AdMob), ② anonymous <b>shared hotspot reports</b>, and ③ <b>map tiles (OpenStreetMap)</b> for the <b>🗺️ Pick a location on the map</b> screen. A shared hotspot report sends only the hotspot name, coordinates and memo you entered, plus a device hash; ledger records (trips, income, expenses, unpaid amounts, memos) are never sent. Map tile requests carry an app identifier and the tile numbers only — no ledger content.</p>
       </div>
 
       <h2>2. Information the App stores (on your device)</h2>
@@ -321,7 +322,7 @@
         <tr>
           <th>Internet<br>(required)</th>
           <td><code>INTERNET</code><br>
-          Used to send shared hotspot reports, to fetch hotspots and “gone” reports collected from other drivers, and to load and measure ads (Google Mobile Ads).</td>
+          Used to send shared hotspot reports, to fetch hotspots and “gone” reports collected from other drivers, and to load and measure ads (Google Mobile Ads). Also used to load map tiles (OpenStreetMap) for the <b>🗺️ Pick a location on the map</b> screen.</td>
         </tr>
       </table>
       <p>The App requests no other permissions such as camera, microphone, contacts, SMS, call log, photo library or notifications.</p>
@@ -365,11 +366,12 @@
       <p>The App is not directed to children under 14 and does not knowingly collect their personal information. It is a work ledger for designated-driver and errand services and is recommended for users aged 18 or older.</p>
 
       <h2>9. Security</h2>
-      <p>Ledger data is kept in the App’s private storage area, which other apps cannot readily access. The App’s outbound traffic is ① the advertising SDK’s and ② shared hotspot reports (Firebase Firestore), and both are encrypted over HTTPS. Because ledger contents are never sent to a server, a server breach cannot expose your ledger.</p>
+      <p>Ledger data is kept in the App’s private storage area, which other apps cannot readily access. The App’s outbound traffic is ① the advertising SDK’s, ② shared hotspot reports (Firebase Firestore), and ③ map tile requests (OpenStreetMap), all encrypted over HTTPS. Because ledger contents are never sent to a server, a server breach cannot expose your ledger.</p>
 
       <h2>10. Changes to this policy</h2>
       <p>If this policy changes, the change and its effective date will be posted on this page. Significant changes to the information or permissions the App handles will also be noted in an App update or on this page.</p>
       <ul>
+        <li>November 25, 2026 — map tiles (OpenStreetMap) used by “Pick a location on the map” added</li>
         <li>November 25, 2026 — shared hotspot reports (5-driver threshold) and the Internet permission added</li>
       </ul>
 

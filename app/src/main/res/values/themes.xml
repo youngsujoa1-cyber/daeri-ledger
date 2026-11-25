@@ -45,6 +45,15 @@
 
     <style name="Theme.DaeriLedger" parent="Theme.DaeriLedger.Base" />
 
+    <!-- 지도에서 위치 고르기 — 화면을 꽉 채우는 다이얼로그 -->
+    <style name="Theme.DaeriLedger.FullScreen" parent="Theme.DaeriLedger">
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowBackground">@color/bg</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
+
     <style name="Shape.Daeri.ExtraSmall" parent="ShapeAppearance.Material3.Corner.ExtraSmall">
         <item name="cornerSize">8dp</item>
     </style>

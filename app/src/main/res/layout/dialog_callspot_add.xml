@@ -74,6 +74,18 @@
         android:textSize="14sp" />
 
     <com.google.android.material.button.MaterialButton
+        android:id="@+id/pickOnMapButton"
+        style="@style/Widget.Daeri.Button.Tonal"
+        android:layout_width="match_parent"
+        android:layout_height="46dp"
+        android:layout_marginTop="6dp"
+        android:minHeight="46dp"
+        android:text="🗺️ 지도에서 위치 고르기"
+        android:textSize="13sp"
+        app:icon="@drawable/ic_my_location"
+        app:iconSize="16dp" />
+
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/findAddressButton"
         style="@style/Widget.Daeri.Button.Tonal"
         android:layout_width="match_parent"
