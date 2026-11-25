@@ -75,6 +75,7 @@ object AddSpotDialog {
             if (!checked) {
                 lat = null
                 lng = null
+                placeLabel = null
                 showLocation()
                 return@setOnCheckedChangeListener
             }
