@@ -39,7 +39,7 @@ data class PublicSpot(
     val admin: Boolean = false
 )
 
-/** 서로 다른 기기 5명 이상이 '없어진 곳'이라고 신고한 자리 — 반경 150m 안의 콜밭을 숨긴다 */
+/** 서로 다른 기기 5명 이상이 '없어진 곳'이라고 신고한 자리 — 반경 20m 안의 콜밭을 숨긴다 */
 data class RemovedSpot(
     val name: String,
     val lat: Double,
@@ -62,10 +62,13 @@ data class SpotPublicState(
  * 제보 묶음 계산 — Android 와 무관한 순수 로직이라 단위 테스트로 검증할 수 있다.
  *
  * 규칙 (사용자가 정한 **5명 기준**):
- *  - 같은 자리(반경 150m)에 서로 다른 기기 **5명 이상**이 `콜밭` 제보 → 공용 콜밭으로 노출.
- *  - 그 자리 반경 150m 안에 서로 다른 기기 **5명 이상**이 `삭제` 신고 → 공용 콜밭에서도 숨긴다.
- *  - `삭제` 신고가 5명 이상 모인 자리는 [RemovedSpot] 으로 돌려주고, 화면은 그 반경 150m 안의
+ *  - 같은 자리(반경 20m)에 서로 다른 기기 **5명 이상**이 `콜밭` 제보 → 공용 콜밭으로 노출.
+ *  - 그 자리 반경 20m 안에 서로 다른 기기 **5명 이상**이 `삭제` 신고 → 공용 콜밭에서도 숨긴다.
+ *  - `삭제` 신고가 5명 이상 모인 자리는 [RemovedSpot] 으로 돌려주고, 화면은 그 반경 20m 안의
  *    기본·기사 추천·내 콜밭까지 모두 숨긴다.
+ *
+ * **거리 기준 (v1.0.24)**: 같은 자리로 보는 반경은 **20m**다(사용자 요청으로 150m → 20m).
+ *  등록 묶기·삭제 묶기·없어진 자리 숨김·운영자 판정이 모두 [GROUP_RADIUS_M] 하나를 쓴다.
  *
  * **운영자(관리자) 모드 (v1.0.23)**: 운영자 암호로 만든 기기 해시([adminDeviceHash])가 붙은 제보 한 건은
  * 5명을 기다리지 않고 바로 공개·삭제된다. 서버 규칙(8칸 형식만 검사)을 그대로 쓰기 위해
@@ -73,8 +76,8 @@ data class SpotPublicState(
  */
 object SpotAggregator {
 
-    /** 같은 콜밭으로 묶는 반경(m) */
-    const val GROUP_RADIUS_M = 150.0
+    /** 같은 콜밭으로 묶는 반경(m) — v1.0.24 에서 150m → 20m */
+    const val GROUP_RADIUS_M = 20.0
     /** 공용 등록·공용 삭제 모두 서로 다른 기기 5명 이상 */
     const val MIN_REPORTERS = 5
 
@@ -102,8 +105,8 @@ object SpotAggregator {
 
     /**
      * 제보 목록 -> 공용 콜밭·없어진 자리.
-     * 1) 최신 제보부터 훑으며 아직 안 묶인 제보를 씨앗으로 삼고 150m 안의 같은 종류 제보를 한 묶음으로 모은다.
-     * 2) 콜밭 묶음은 서로 다른 기기 5명 이상일 때만, 그 반경 150m 안의 삭제 신고 기기가 5명 미만일 때만 노출한다.
+     * 1) 최신 제보부터 훑으며 아직 안 묶인 제보를 씨앗으로 삼고 20m 안의 같은 종류 제보를 한 묶음으로 모은다.
+     * 2) 콜밭 묶음은 서로 다른 기기 5명 이상일 때만, 그 반경 20m 안의 삭제 신고 기기가 5명 미만일 때만 노출한다.
      * 3) 삭제 묶음은 서로 다른 기기 5명 이상이면 [RemovedSpot] 으로 내보낸다.
      * 4) 운영자 해시([adminHash])가 붙은 제보는 기기 수와 상관없이 바로 공개·삭제되고,
      *    같은 자리에서 운영자 쪽이 더 새로 하면 그쪽이 이긴다(오래된 삭제는 새 공개/새 5명 등록에 풀린다).
@@ -116,7 +119,7 @@ object SpotAggregator {
         val spotGroups = groupReports(spots)
         val removalGroups = groupReports(removals)
 
-        /** 반경 150m 안에서 기기 수 [minDevices] 이상인 콜밭 묶음의 가장 늦은 시각(ms) */
+        /** 반경 20m 안에서 기기 수 [minDevices] 이상인 콜밭 묶음의 가장 늦은 시각(ms) */
         fun crowdSpotAt(lat: Double, lng: Double, minDevices: Int): Long =
             spotGroups.asSequence()
                 .filter { distanceM(lat, lng, it.lat, it.lng) <= GROUP_RADIUS_M }
@@ -178,13 +181,13 @@ object SpotAggregator {
         return SpotPublicState(added = added, removed = removed)
     }
 
-    /** 이 좌표가 5명 이상이 신고한 '없어진 자리' 반경 150m 안인지 */
+    /** 이 좌표가 5명 이상이 신고한 '없어진 자리' 반경 20m 안인지 */
     fun isRemoved(lat: Double, lng: Double, removed: List<RemovedSpot>): Boolean {
         if (removed.isEmpty()) return false
         return removed.any { distanceM(lat, lng, it.lat, it.lng) <= GROUP_RADIUS_M }
     }
 
-    /** 반경 150m 안에 운영자가 바로 삭제한 자리가 있는지 */
+    /** 반경 20m 안에 운영자가 바로 삭제한 자리가 있는지 */
     fun adminRemovalNear(
         removals: List<SpotReport>,
         lat: Double,
@@ -192,7 +195,7 @@ object SpotAggregator {
         adminHash: String?
     ): Boolean = newestAdminAt(removals, lat, lng, adminHash) > 0L
 
-    /** 반경 150m 안에서 운영자가 제보한 가장 늦은 시각(ms) — 없으면 0 */
+    /** 반경 20m 안에서 운영자가 제보한 가장 늦은 시각(ms) — 없으면 0 */
     fun newestAdminAt(
         reports: List<SpotReport>,
         lat: Double,
@@ -207,7 +210,7 @@ object SpotAggregator {
             .maxOrNull() ?: 0L
     }
 
-    /** 좌표 하나에서 150m 안에 제보한 서로 다른 기기 수 */
+    /** 좌표 하나에서 20m 안에 제보한 서로 다른 기기 수 */
     fun devicesNear(reports: List<SpotReport>, lat: Double, lng: Double): Int =
         reports.asSequence()
             .filter { it.deviceHash.isNotBlank() }
@@ -216,7 +219,7 @@ object SpotAggregator {
             .toSet()
             .size
 
-    /** 최신 제보부터 150m 반경으로 묶는다 (같은 기기가 여러 번 올려도 한 묶음 안에 남는다) */
+    /** 최신 제보부터 20m 반경으로 묶는다 (같은 기기가 여러 번 올려도 한 묶음 안에 남는다) */
     private fun groupReports(reports: List<SpotReport>): List<ReportGroup> {
         if (reports.isEmpty()) return emptyList()
         val sorted = reports.sortedByDescending { it.createdAt }

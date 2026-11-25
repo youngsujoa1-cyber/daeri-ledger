@@ -184,7 +184,7 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         }
     }
 
-    /** 기사님들이 5명 이상 '없어졌다'고 신고한 자리(반경 150m)에 있는 콜밭인지 */
+    /** 기사님들이 5명 이상 '없어졌다'고 신고한 자리(반경 20m)에 있는 콜밭인지 */
     private fun isCloudRemoved(spot: Hotspot): Boolean =
         spot.hasLocation && SpotAggregator.isRemoved(spot.lat, spot.lng, cloudState.removed)
 
@@ -441,7 +441,7 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
     /**
      * 👑 운영자: 전체에서 바로 삭제 — 운영자 모드에서만 보이는 카드 버튼.
      *
-     * 위치가 있는 콜밭이면 서버에 운영자 해시를 단 `삭제` 제보를 한 건 올려, 같은 자리(반경 150m)의
+     * 위치가 있는 콜밭이면 서버에 운영자 해시를 단 `삭제` 제보를 한 건 올려, 같은 자리(반경 20m)의
      * 기본·기사 추천·공용 제보 콜밭이 모든 기사님 앱에서 5명 대기 없이 바로 사라진다.
      * 위치가 없어 다른 기기로 알릴 수 없으면 이 화면에서만 숨긴다.
      */
@@ -463,7 +463,7 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
             activity,
             "👑 운영자: 전체에서 바로 삭제",
             "‘${spot.name}’을(를) 모든 기사님 앱에서 지금 바로 지울까요?\n\n" +
-                "이 자리 반경 150m 안의 기본·기사 추천·공용 제보 콜밭이 5명 신고를 기다리지 않고 바로 사라집니다.",
+                "이 자리 반경 20m 안의 기본·기사 추천·공용 제보 콜밭이 5명 신고를 기다리지 않고 바로 사라집니다.",
             positive = "전체에서 삭제",
             destructive = true
         ) {

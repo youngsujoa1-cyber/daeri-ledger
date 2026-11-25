@@ -150,7 +150,7 @@
         <li>콜밭 이름, 종류(<code>콜밭</code> / <code>삭제</code>), 콜밭 좌표(위도·경도), 주소, 메모(있을 때), 신고 시각</li>
         <li><b>기기 해시:</b> <code>ANDROID_ID</code>를 SHA-256으로 변환한 32자 값입니다. 같은 사람이 여러 번 눌러도 1명으로 세기 위한 값이며 이름·전화번호 등과 연결되지 않고, 앱을 지우면 값이 바뀝니다.</li>
         <li><b>+ 콜밭 추가</b>에서 <b>현재 GPS 위치</b>를 선택한 경우, 그 위치가 콜밭 좌표로 함께 전송됩니다. 주소로 찾기나 이름만 저장을 고르면 현재 위치는 전송되지 않습니다.</li>
-        <li>서버는 누구나 읽을 수 있고, 앱이 최근 30일 제보를 모아 <b>서로 다른 기기 5명 이상</b>이 제보한 곳만 공용 콜밭으로 보여 줍니다. 같은 자리에 <b>5명 이상</b>이 없어진 곳으로 신고하면 그 반경 150m 안의 콜밭이 모든 이용자 화면에서 숨겨집니다. 4명까지는 아무 변화도 없습니다.</li>
+        <li>서버는 누구나 읽을 수 있고, 앱이 최근 30일 제보를 모아 <b>서로 다른 기기 5명 이상</b>이 제보한 곳만 공용 콜밭으로 보여 줍니다. 같은 자리에 <b>5명 이상</b>이 없어진 곳으로 신고하면 그 반경 20m 안의 콜밭이 모든 이용자 화면에서 숨겨집니다. 4명까지는 아무 변화도 없습니다.</li>
         <li>전송된 제보는 수정·삭제 권한이 없는 로그로 남습니다(서버 규칙). 개발자는 이를 다른 목적으로 사용하지 않습니다.</li>
       </ul>
 
@@ -302,7 +302,7 @@
         <li>Hotspot name, kind (<code>hotspot</code> / <code>gone</code>), hotspot coordinates (latitude and longitude), address, optional memo, and report time.</li>
         <li><b>Device hash:</b> a 32-character SHA-256 value of <code>ANDROID_ID</code>. It is used only to count distinct reporters, is not linked to your name, phone number or any other detail, and changes if you reinstall the App.</li>
         <li>If you turn on <b>use current GPS location</b> while adding a hotspot, that location is sent as the hotspot coordinates. If you search by address or save a name only, your current location is not sent.</li>
-        <li>Reports are public to read. The App uses only the last 30 days of reports and shows a shared hotspot only when <b>5 or more distinct devices</b> report the same place (within 150 m); it hides hotspots within 150 m when <b>5 or more distinct devices</b> report it as gone. Up to 4 reports change nothing.</li>
+        <li>Reports are public to read. The App uses only the last 30 days of reports and shows a shared hotspot only when <b>5 or more distinct devices</b> report the same place (within 20 m); it hides hotspots within 20 m when <b>5 or more distinct devices</b> report it as gone. Up to 4 reports change nothing.</li>
         <li>Submitted reports are kept as a log the App cannot edit or delete (server rules). The Developer does not use them for any other purpose.</li>
       </ul>
 

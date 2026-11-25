@@ -646,7 +646,7 @@ fun main() {
 
     // 기준값 자체
     expect("공용 제보 기준 인원", SpotAggregator.MIN_REPORTERS, 5)
-    expect("제보 묶음 반경(m)", SpotAggregator.GROUP_RADIUS_M, 150.0)
+    expect("제보 묶음 반경(m)", SpotAggregator.GROUP_RADIUS_M, 20.0)
     expect("등록 kind", SpotAggregator.KIND_SPOT, "콜밭")
     expect("삭제 kind", SpotAggregator.KIND_REMOVED, "삭제")
 
@@ -663,11 +663,17 @@ fun main() {
     val blankHash = spots(5).map { it.copy(deviceHash = "  ") }
     expect("빈 기기 해시 제외", SpotAggregator.aggregate(blankHash).added.size, 0)
 
-    // (3) 150m 넘게 떨어진 제보는 다른 자리로 묶인다 (0.001도 ≒ 111m, 0.003도 ≒ 334m)
+    // (3) 20m 넘게 떨어진 제보는 다른 자리로 묶인다 (0.00013도 ≒ 15m, 0.0003도 ≒ 33m)
+    expect("반경 15m 거리", SpotAggregator.distanceM(lat0, lng0, lat0 + 0.00013, lng0) < 20.0, true)
+    expect("반경 33m 거리", SpotAggregator.distanceM(lat0, lng0, lat0 + 0.0003, lng0) > 20.0, true)
+    // 15m 안쪽 5명 = 한 자리로 합쳐짐
+    val near = spots(3) + (4..5).map { report(it, lat = lat0 + 0.00013) }
+    expect("15m 안 3명+2명 = 5명 노출", SpotAggregator.aggregate(near).added.firstOrNull()?.reporters, 5)
+    // 33m(30m 밖)이면 별도 자리라 3명+2명 = 미노출
+    val apart = spots(3) + (4..5).map { report(it, lat = lat0 + 0.0003) }
+    expect("33m 밖 3명+2명 = 미노출", SpotAggregator.aggregate(apart).added.size, 0)
     val spread = (1..3).map { report(it) } + (4..5).map { report(it, lat = lat0 + 0.003) }
     expect("떨어진 3명+2명 = 미노출", SpotAggregator.aggregate(spread).added.size, 0)
-    val near = (1..3).map { report(it) } + (4..5).map { report(it, lat = lat0 + 0.001) }
-    expect("111m 안 3명+2명 = 5명 노출", SpotAggregator.aggregate(near).added.firstOrNull()?.reporters, 5)
 
     // (4) 이름·좌표·주소·메모 — 가장 많이 나온 이름, 좌표는 평균
     val named = listOf(
@@ -698,10 +704,10 @@ fun main() {
     expect("5명 삭제 시 콜밭 미노출", gone.added.size, 0)
     expect("5명 삭제 시 없어진 자리 1곳", gone.removed.size, 1)
 
-    // (8) 기본 콜밭(1,223곳) 숨김 판정 — 반경 150m 안이면 숨김, 150m 밖은 그대로
+    // (8) 기본 콜밭(1,223곳) 숨김 판정 — 반경 20m 안이면 숨김, 20m 밖은 그대로
     expect("없어진 자리 반경 안", SpotAggregator.isRemoved(lat0, lng0, gone.removed), true)
-    expect("없어진 자리 130m", SpotAggregator.isRemoved(lat0 + 0.0011, lng0, gone.removed), true)
-    expect("없어진 자리 330m", SpotAggregator.isRemoved(lat0 + 0.003, lng0, gone.removed), false)
+    expect("없어진 자리 15m", SpotAggregator.isRemoved(lat0 + 0.00013, lng0, gone.removed), true)
+    expect("없어진 자리 33m", SpotAggregator.isRemoved(lat0 + 0.0003, lng0, gone.removed), false)
     expect("없어진 자리 없으면 유지", SpotAggregator.isRemoved(lat0, lng0, keep.removed), false)
 
     // (9) 반경 안의 삭제 기기 수 계산 (묶음 경계와 무관하게 같은 자리 신고로 본다)
@@ -766,19 +772,24 @@ fun main() {
     expect("암호 없는 빌드는 운영자 삭제도 못 알아봄",
         SpotAggregator.aggregate(listOf(adminReport(SpotAggregator.KIND_REMOVED)), null).removed.size, 0)
 
-    // (4) 운영자 삭제가 일반 5명 등록과 같거나 더 새로우면 삭제가 이긴다 (반경 150m)
+    // (4) 운영자 삭제가 일반 5명 등록과 같거나 더 새로우면 삭제가 이긴다 (반경 20m)
     val adminOverFive = SpotAggregator.aggregate(
         spots(5) + adminReport(SpotAggregator.KIND_REMOVED), adminHash
     )
     expect("운영자 삭제 vs 5명 등록 → 공개 0", adminOverFive.added.size, 0)
     expect("운영자 삭제 vs 5명 등록 → 삭제 1", adminOverFive.removed.size, 1)
 
-    // (5) 운영자 삭제도 반경 150m 밖이면 5명 등록 유지
+    // (5) 운영자 삭제도 반경 20m 밖이면 5명 등록 유지 / 15m 안이면 숨긴다
     val adminFar = SpotAggregator.aggregate(
-        spots(5) + adminReport(SpotAggregator.KIND_REMOVED, lat = lat0 + 0.003), adminHash
+        spots(5) + adminReport(SpotAggregator.KIND_REMOVED, lat = lat0 + 0.0003), adminHash
     )
-    expect("330m 밖 운영자 삭제 → 공개 유지", adminFar.added.size, 1)
-    expect("330m 밖 운영자 삭제 → 삭제 1", adminFar.removed.size, 1)
+    expect("33m 밖 운영자 삭제 → 공개 유지", adminFar.added.size, 1)
+    expect("33m 밖 운영자 삭제 → 삭제 1", adminFar.removed.size, 1)
+    val adminNear = SpotAggregator.aggregate(
+        spots(5) + adminReport(SpotAggregator.KIND_REMOVED, lat = lat0 + 0.00013), adminHash
+    )
+    expect("15m 안 운영자 삭제 → 5명 등록도 숨김", adminNear.added.size, 0)
+    expect("15m 안 운영자 삭제 → 삭제 1", adminNear.removed.size, 1)
 
     // (6) 5명 삭제보다 운영자 공개가 더 새로우면 공개가 이긴다
     val oldRemovals = removals(5).map { it.copy(createdAt = it.createdAt - 600_000L) }
@@ -818,15 +829,15 @@ fun main() {
     expect("운영자 제보 판정", SpotAggregator.isAdminReport(adminReport(), adminHash), true)
     expect("일반 제보는 운영자 아님", SpotAggregator.isAdminReport(report(1), adminHash), false)
     expect("암호 없으면 아님", SpotAggregator.isAdminReport(adminReport(), null), false)
-    expect("반경 150m 안 운영자 삭제",
+    expect("반경 20m 안 운영자 삭제",
         SpotAggregator.adminRemovalNear(
             listOf(adminReport(SpotAggregator.KIND_REMOVED)),
-            lat0 + 0.0011, lng0, adminHash
+            lat0 + 0.00013, lng0, adminHash
         ), true)
-    expect("반경 330m 밖 운영자 삭제",
+    expect("반경 33m 밖 운영자 삭제",
         SpotAggregator.adminRemovalNear(
             listOf(adminReport(SpotAggregator.KIND_REMOVED)),
-            lat0 + 0.003, lng0, adminHash
+            lat0 + 0.0003, lng0, adminHash
         ), false)
 
     // (12) 공용 콜밭 -> 목록 항목 (기사 제보 배지·기자 수·마지막 제보)
