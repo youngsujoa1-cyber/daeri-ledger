@@ -27,6 +27,7 @@ class AppSettings private constructor(context: Context) {
         private const val KEY_LAST_PLATFORM = "last_platform"
         private const val KEY_LAST_SERVICE = "last_service"
         private const val KEY_TIP_PCT = "fee_pct_tip"
+        private const val KEY_HIDDEN_SPOTS = "hidden_spot_ids"
 
         @Volatile private var instance: AppSettings? = null
         fun get(context: Context): AppSettings =
@@ -111,4 +112,12 @@ class AppSettings private constructor(context: Context) {
     var netGrossMigrationDone: Boolean
         get() = prefs.getBoolean("migrated_net_gross_v2", false)
         set(value) = prefs.edit().putBoolean("migrated_net_gross_v2", value).apply()
+
+    /**
+     * 콜밭 화면에서 숨긴 콜밭 id — 현장에 가 보니 없어진 곳을 길게 눌러 숨기면 여기에 남는다.
+     * 되돌리기로 언제든 싹 비울 수 있다.
+     */
+    var hiddenSpotIds: Set<String>
+        get() = prefs.getStringSet(KEY_HIDDEN_SPOTS, emptySet())?.toSet() ?: emptySet()
+        set(value) = prefs.edit().putStringSet(KEY_HIDDEN_SPOTS, HashSet(value)).apply()
 }

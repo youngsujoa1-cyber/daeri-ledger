@@ -132,8 +132,8 @@ fun main() {
     expect("formatDistance(0.4)", Hotspots.formatDistance(0.4), "400m")
     expect("formatDistance(12.34)", Hotspots.formatDistance(12.34), "12.3km")
 
-    // 콜밭 목록 자체 점검 — v1.0.9: 수도권 세부 콜밭까지 318곳
-    val spots = Hotspots.ALL
+    // 콜밭 목록 자체 점검 — v1.0.9: 수도권 세부 콜밭까지 318곳 (직접 정리한 기본 목록)
+    val spots = Hotspots.CURATED
     expect("콜밭 수", spots.size, 318)
     expect("콜밭 id 중복 없음", spots.map { it.id }.distinct().size, spots.size)
     expect("콜밭 이름 중복 없음", spots.map { it.name }.distinct().size, spots.size)
@@ -144,10 +144,10 @@ fun main() {
     expect("인천 콜밭 수", spots.count { it.city == "인천" }, 22)
     expect("수도권 콜밭 수", spots.count { it.city in listOf("서울", "경기", "인천") }, 260)
     expect("좌표 범위(한국)", spots.all { it.lat in 33.0..38.9 && it.lng in 124.0..132.0 }, true)
-    val hannam = Hotspots.byId("hannam-ogeori")
+    val hannam = spots.firstOrNull { it.id == "hannam-ogeori" }
     expect("한남오거리 이름", hannam?.name, "한남오거리")
     expect("한남오거리 좌표", hannam?.let { "%.4f,%.4f".format(it.lat, it.lng) }, "37.5334,127.0076")
-    expect("한남오거리 검색", Hotspots.ALL.count { it.matches("한남오거리") }, 1)
+    expect("한남오거리 검색", spots.count { it.matches("한남오거리") }, 1)
 
     // 300m 안에 겹치는 콜밭이 없어야 한다
     var closestM = Double.MAX_VALUE
@@ -161,6 +161,47 @@ fun main() {
     }
     println("INFO  가장 가까운 콜밭 = ${closestM.toInt()}m ($closestPair)")
     expect("300m 이내 중복 없음", closestM >= 300, true)
+
+    // v1.0.14 — 카카오맵 즐겨찾기에서 옮긴 콜밭(res/raw/callspots.tsv) 점검
+    //   Android Context 없이 파일을 직접 읽어 데이터 자체를 검사한다.
+    val tsv = java.io.File("app/src/main/res/raw/callspots.tsv")
+    expect("callspots.tsv 존재", tsv.isFile, true)
+    val rows = if (tsv.isFile) tsv.readLines(Charsets.UTF_8).filter { it.isNotBlank() } else emptyList()
+    val cols = rows.map { it.split('\t') }
+    expect("카카오 콜밭 수", cols.size, 1262)
+    expect("카카오 콜밭 8칸", cols.all { it.size == 8 }, true)
+    expect("카카오 콜밭 id 중복 없음", cols.map { it[0] }.distinct().size, cols.size)
+    expect("카카오 콜밭 이름·지역 채움", cols.all { it[2].isNotBlank() && it[3].isNotBlank() && it[4].isNotBlank() }, true)
+    expect("카카오 콜밭 출처 값", cols.all { it[1] in listOf("콜포인트1", "콜포인트2", "탁송") }, true)
+    expect("카카오 콜밭 시·도 값", cols.all { it[3] in Hotspots.CITIES }, true)
+    val kLat = cols.map { it[5].toDouble() }
+    val kLng = cols.map { it[6].toDouble() }
+    expect("카카오 콜밭 좌표 범위(한국)",
+        kLat.all { it in 33.0..38.9 } && kLng.all { it in 124.0..132.0 }, true)
+    expect("콜포인트1 수", cols.count { it[1] == "콜포인트1" }, 464)
+    expect("콜포인트2 수", cols.count { it[1] == "콜포인트2" }, 441)
+    expect("탁송 수", cols.count { it[1] == "탁송" }, 357)
+    // 같은 이름이 200m 안에 두 번 있으면 안 된다
+    var nearDup = ""
+    var nearMin = Double.MAX_VALUE
+    for (i in cols.indices) for (j in i + 1 until cols.size) {
+        val a = cols[i][2].replace(" ", "")
+        val b = cols[j][2].replace(" ", "")
+        if (!(a == b || a.contains(b) || b.contains(a))) continue
+        val m = Hotspots.distanceKm(kLat[i], kLng[i], kLat[j], kLng[j]) * 1000
+        if (m < nearMin) { nearMin = m; nearDup = "${cols[i][2]} ↔ ${cols[j][2]}" }
+    }
+    println("INFO  같은 이름 최근접 = ${if (nearMin == Double.MAX_VALUE) "없음" else "${nearMin.toInt()}m ($nearDup)"}")
+    expect("카카오 콜밭 200m 같은 이름 중복 없음", nearMin >= 200, true)
+    // 기본 콜밭과도 300m 안에 같은 이름으로 겹치지 않아야 한다
+    var clash = ""
+    for (k in cols.indices) for (c in spots) {
+        val a = cols[k][2].replace(" ", "")
+        val b = c.name.replace(" ", "")
+        if (!(a == b || a.contains(b) || b.contains(a))) continue
+        if (Hotspots.distanceKm(kLat[k], kLng[k], c.lat, c.lng) * 1000 < 300) clash = "${cols[k][2]} ↔ ${c.name}"
+    }
+    expect("기본 콜밭과 300m 같은 이름 겹침 없음", clash, "")
 
     // 달력 그리드 터치 판정 (CalendarMonthView 가 쓰는 계산 — 눌린 칸 = 그려진 칸)
     val nov = YearMonth.of(2026, 11)

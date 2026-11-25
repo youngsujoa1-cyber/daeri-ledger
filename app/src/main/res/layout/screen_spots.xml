@@ -132,10 +132,28 @@
                     app:tint="@color/text_tertiary" />
             </LinearLayout>
 
+            <!-- 콜밭 출처 필터: 기본 / 콜포인트1 / 콜포인트2 / 탁송 -->
             <HorizontalScrollView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
+                android:clipToPadding="false"
+                android:paddingHorizontal="18dp"
+                android:scrollbars="none">
+
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/sourceChips"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:chipSpacingHorizontal="8dp"
+                    app:singleLine="true"
+                    app:singleSelection="true" />
+            </HorizontalScrollView>
+
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
                 android:clipToPadding="false"
                 android:paddingHorizontal="18dp"
                 android:scrollbars="none">
@@ -148,6 +166,20 @@
                     app:singleLine="true"
                     app:singleSelection="true" />
             </HorizontalScrollView>
+
+            <!-- 숨긴 콜밭이 있을 때만 보인다 -->
+            <TextView
+                android:id="@+id/hiddenInfo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="18dp"
+                android:layout_marginTop="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:paddingVertical="4dp"
+                android:text="숨긴 콜밭 0곳 · 되돌리기"
+                android:textColor="@color/text_tertiary"
+                android:textSize="11sp"
+                android:visibility="gone" />
 
             <!-- 내가 저장한 콜밭 -->
             <LinearLayout
@@ -203,14 +235,14 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="주요 콜밭 · 피크 시간대" />
+                    android:text="콜밭 목록" />
 
                 <TextView
                     android:id="@+id/nearbyCountText"
                     style="@style/Text.Daeri.Label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="318곳" />
+                    android:text="" />
             </LinearLayout>
 
             <LinearLayout
@@ -239,7 +271,7 @@
                 android:layout_marginHorizontal="18dp"
                 android:layout_marginTop="18dp"
                 android:lineSpacingExtra="3dp"
-                android:text="* 콜밭 정보는 지역 특성으로 정리한 참고 자료이며, 카카오T·로지 등 플랫폼의 실시간 콜 수량이 아닙니다. 현장 상황은 달라질 수 있어요."
+                android:text="* 콜밭 정보는 지역 특성과 기사님들이 모아 둔 지도 즐겨찾기를 정리한 참고 자료이며, 카카오T·로지 등 플랫폼의 실시간 콜 수량이 아닙니다. 없어진 곳은 카드를 길게 눌러 숨길 수 있어요."
                 android:textColor="@color/text_tertiary"
                 android:textSize="11sp" />
 

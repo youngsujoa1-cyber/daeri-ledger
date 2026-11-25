@@ -18,20 +18,26 @@ data class Hotspot(
     val lat: Double,
     val lng: Double,
     val peak: String,
-    val tip: String
+    val tip: String,
+    /** 어디서 온 콜밭인지 — "" = 기본(직접 정리), "콜포인트1"·"콜포인트2"·"탁송" = 카카오맵 즐겨찾기 */
+    val source: String = ""
 ) {
+    /** 피크 시간대 정보가 있는 곳(직접 정리한 콜밭)만 true */
+    val hasPeak: Boolean get() = peak.isNotBlank()
+
     /** 검색어가 이름·지역·시·특징 중 어디에든 들어 있는지 (공백으로 여러 낱말 AND) */
     fun matches(query: String): Boolean {
         val q = query.trim()
         if (q.isEmpty()) return true
-        val haystack = "$name $area $city $tip"
+        val haystack = "$name $area $city $tip $source"
         return q.split(" ", "\t").filter { it.isNotBlank() }.all { haystack.contains(it, ignoreCase = true) }
     }
 }
 
 object Hotspots {
 
-    val ALL: List<Hotspot> = listOf(
+    /** 직접 정리한 기본 콜밭 — 피크 시간대·특징 메모가 붙어 있다 */
+    val CURATED: List<Hotspot> = listOf(
         Hotspot(
             id = "hannam-ogeori",
             name = "한남오거리",
@@ -3253,15 +3259,21 @@ object Hotspots {
         return String.format(java.util.Locale.KOREA, "%.0fkm", km)
     }
 
-    fun byId(id: String): Hotspot? = ALL.firstOrNull { it.id == id }
+    /** 콜밭 출처 필터 — (값, 화면에 보이는 이름) */
+    val SOURCES: List<Pair<String, String>> = listOf(
+        "" to "기본",
+        "콜포인트1" to "콜포인트1",
+        "콜포인트2" to "콜포인트2",
+        "탁송" to "탁송"
+    )
 
     /** 이름으로 대략적인 좌표 찾기 (내 콜밭 저장·표시용) */
-    fun findByName(name: String): Hotspot? {
+    fun findByName(name: String, spots: List<Hotspot>): Hotspot? {
         val n = name.trim()
         if (n.isEmpty()) return null
-        return ALL.firstOrNull { it.name == n }
-            ?: ALL.firstOrNull { it.name.contains(n) || n.contains(it.name) }
-            ?: ALL.firstOrNull { it.name.split(" ").any { part -> part.isNotBlank() && n.contains(part) } }
+        return spots.firstOrNull { it.name == n }
+            ?: spots.firstOrNull { it.name.contains(n) || n.contains(it.name) }
+            ?: spots.firstOrNull { it.name.split(" ").any { part -> part.isNotBlank() && n.contains(part) } }
     }
 
     fun sameSpot(a: String, b: String): Boolean =
