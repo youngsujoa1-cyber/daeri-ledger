@@ -99,7 +99,7 @@
       </div>
       <h1>개인정보처리방침</h1>
     </div>
-    <p class="sub">대리장부 (Daeri Ledger) · 개발자 Topster · 시행일 2026년 11월 24일</p>
+    <p class="sub">대리장부 (Daeri Ledger) · 개발자 Topster · 시행일 2026년 11월 25일</p>
 
     <div class="card">
       <div class="meta">
@@ -107,7 +107,7 @@
         <span><b>패키지</b> <code>com.youngsu.daeriledger</code> (Android)</span>
         <span><b>개발자</b> Topster</span>
         <span><b>문의</b> <a href="mailto:youngsujoa1@gmail.com">youngsujoa1@gmail.com</a></span>
-        <span><b>시행일</b> 2026년 11월 24일</span>
+        <span><b>시행일</b> 2026년 11월 25일</span>
       </div>
     </div>
 
@@ -115,7 +115,7 @@
       <h2>1. 총칙</h2>
       <p>대리장부(이하 “앱”)는 대리운전·탁송 기사를 위한 수입·지출 장부 앱입니다. 개발자 Topster(이하 “개발자”)는 이용자의 개인정보를 소중히 여기며, 관련 법령과 Google Play 정책을 준수합니다. 본 방침은 앱이 어떤 정보를 다루고, 그 정보가 어디에 저장되며, 이용자가 무엇을 선택할 수 있는지 설명합니다.</p>
       <div class="note">
-        <p><b>핵심 요약:</b> 앱에 입력한 운행 기록·수입·지출·휴무일·메모·콜밭·설정은 <b>이용자의 기기 안에만</b> 저장됩니다. <span class="ok">개발자는 이러한 기록을 받아 보관하는 서버를 운영하지 않으며, 해당 내용을 열람·수집하지 않습니다.</span> 앱은 회원가입이나 로그인을 요구하지 않습니다. 기기 밖으로 나가는 통신은 광고(Google AdMob)를 불러오는 통신뿐입니다.</p>
+        <p><b>핵심 요약:</b> 앱에 입력한 운행 기록·수입·지출·휴무일·메모·콜밭·설정은 <b>이용자의 기기 안에만</b> 저장됩니다. <span class="ok">개발자는 이러한 기록을 받아 보관하는 서버를 운영하지 않으며, 해당 내용을 열람·수집하지 않습니다.</span> 앱은 회원가입이나 로그인을 요구하지 않습니다. 기기 밖으로 나가는 통신은 ① 광고(Google AdMob)를 불러오는 통신과 ② <b>기사님들이 함께 쓰는 공용 콜밭 제보</b>뿐입니다. 공용 콜밭 제보는 이용자가 직접 남긴 콜밭 이름·좌표·메모와 기기를 구분하는 익명 해시만 보내며, 장부 기록(운행·수입·지출·미수금·메모)은 보내지 않습니다.</p>
       </div>
 
       <h2>2. 앱이 저장하는 정보 (기기 내부)</h2>
@@ -144,15 +144,25 @@
       </table>
       <p>저장 위치는 기기의 앱 전용 영역입니다: 장부 데이터베이스 <code>daeri_ledger.db</code>(운행·지출·휴무일·저장한 콜밭 테이블)와 설정 파일 <code>daeri_settings.xml</code>. 다른 앱이 임의로 접근하기 어려운 앱 전용 공간이며, 개발자는 이 파일에 접근할 수 없습니다.</p>
 
+      <h3>기사님 공용 콜밭 제보 (선택)</h3>
+      <p>콜밭 화면의 <b>+ 콜밭 추가</b>나 카드 길게 누르기의 <b>없어진 곳 신고</b>를 사용할 때만, 아래 값이 Google Firebase(Firestore)의 <code>daeri-ledger-spots</code> 프로젝트로 전송됩니다.</p>
+      <ul>
+        <li>콜밭 이름, 종류(<code>콜밭</code> / <code>삭제</code>), 콜밭 좌표(위도·경도), 주소, 메모(있을 때), 신고 시각</li>
+        <li><b>기기 해시:</b> <code>ANDROID_ID</code>를 SHA-256으로 변환한 32자 값입니다. 같은 사람이 여러 번 눌러도 1명으로 세기 위한 값이며 이름·전화번호 등과 연결되지 않고, 앱을 지우면 값이 바뀝니다.</li>
+        <li><b>+ 콜밭 추가</b>에서 <b>현재 GPS 위치</b>를 선택한 경우, 그 위치가 콜밭 좌표로 함께 전송됩니다. 주소로 찾기나 이름만 저장을 고르면 현재 위치는 전송되지 않습니다.</li>
+        <li>서버는 누구나 읽을 수 있고, 앱이 최근 30일 제보를 모아 <b>서로 다른 기기 5명 이상</b>이 제보한 곳만 공용 콜밭으로 보여 줍니다. 같은 자리에 <b>5명 이상</b>이 없어진 곳으로 신고하면 그 반경 150m 안의 콜밭이 모든 이용자 화면에서 숨겨집니다. 4명까지는 아무 변화도 없습니다.</li>
+        <li>전송된 제보는 수정·삭제 권한이 없는 로그로 남습니다(서버 규칙). 개발자는 이를 다른 목적으로 사용하지 않습니다.</li>
+      </ul>
+
       <h3>앱이 수집하지 않는 정보</h3>
-      <p>앱은 이름·전화번호·이메일·주소·주민등록번호·연락처·사진·통화·문자·계정 로그인 정보를 요구하거나 수집하지 않습니다. 광고 식별자를 제외하면, 이용자를 식별할 수 있는 정보를 앱이 직접 만들어 보관하는 일은 없습니다.</p>
+      <p>앱은 이름·전화번호·이메일·주소·주민등록번호·연락처·사진·통화·문자·계정 로그인 정보를 요구하거나 수집하지 않습니다. 광고 식별자와 공용 콜밭 제보의 기기 해시를 제외하면, 이용자를 식별할 수 있는 정보를 앱이 직접 만들어 보관하는 일은 없습니다.</p>
 
       <h2>3. 앱이 사용하는 권한</h2>
       <table>
         <tr>
           <th>위치<br>(선택)</th>
           <td><code>ACCESS_FINE_LOCATION</code> / <code>ACCESS_COARSE_LOCATION</code><br>
-          <b>콜밭</b> 탭에서 내 위치를 기준으로 가까운 콜밭을 가까운 순서로 정렬하고, 지도 앱으로 길찾기를 열 때만 사용합니다. 거리 계산은 기기 안에서 이루어지며, <b>위치 좌표는 개발자 서버로 전송되지 않고 앱이 별도의 위치 기록으로 저장하지도 않습니다.</b> 위치 권한을 허용하지 않아도 앱은 지역 필터 기준으로 정상 동작합니다.<br>
+          <b>콜밭</b> 탭에서 내 위치를 기준으로 가까운 콜밭을 가까운 순서로 정렬하고, 지도 앱으로 길찾기를 열 때만 사용합니다. 거리 계산은 기기 안에서 이루어지며, 앱은 별도의 위치 기록을 저장하지 않습니다. 위치 좌표는 이용자가 <b>+ 콜밭 추가</b>에서 <b>현재 GPS 위치 쓰기</b>를 직접 켠 경우에만 그 콜밭의 좌표로 공용 콜밭 제보에 포함되어 전송되고, 그 밖에는 개발자 서버로 보내지 않습니다. 위치 권한을 허용하지 않아도 앱은 지역 필터 기준으로 정상 동작합니다.<br>
           길찾기를 누르면 선택한 콜밭의 좌표가 기기에 설치된 지도 앱으로 전달되며, 그 이후의 처리는 해당 지도 앱의 개인정보처리방침을 따릅니다.</td>
         </tr>
         <tr>
@@ -160,8 +170,9 @@
           <td>Android의 파일 선택기(SAF)를 통해 이용자가 직접 고른 파일·폴더에만 접근합니다. 용도는 ① CSV 내보내기, ② JSON 백업 저장·복원, ③ 다른 앱(대리 가계부)의 백업 파일 <code>dcb_teras.zip</code> / <code>.db</code> 가져오기입니다. 이용자가 고르지 않은 파일에는 접근하지 않습니다.</td>
         </tr>
         <tr>
-          <th>인터넷·<br>네트워크 상태</th>
-          <td>앱 코드가 직접 사용하지 않으며, 광고(Google Mobile Ads SDK)를 불러오고 광고를 측정할 때 사용됩니다.</td>
+          <th>인터넷<br>(필수)</th>
+          <td><code>INTERNET</code><br>
+          공용 콜밭 제보를 보내고, 다른 기사님이 5명 이상 모아 올린 콜밭·없어진 곳 신고를 받아 오는 데 사용합니다. 광고(Google Mobile Ads SDK)를 불러오고 광고를 측정하는 데도 함께 쓰입니다.</td>
         </tr>
       </table>
       <p>이 밖에 카메라·마이크·연락처·문자·통화 기록·사진첩·알림 등 다른 권한은 요청하지 않습니다.</p>
@@ -174,7 +185,7 @@
         <li>이 정보는 Google의 개인정보처리방침에 따라 처리됩니다: <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">policies.google.com/privacy</a></li>
         <li>Google이 파트너 사이트·앱의 데이터를 이용하는 방식: <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener">policies.google.com/technologies/partner-sites</a></li>
       </ul>
-      <p>앱에 입력한 장부 내용(운행·수입·지출·메모·콜밭 등)은 광고 SDK에 전달되지 않습니다. 앱은 위 광고 SDK 외에 자체 분석 도구, 크래시 수집 도구, 자체 서버를 사용하지 않습니다.</p>
+      <p>앱에 입력한 장부 내용(운행·수입·지출·메모·콜밭 등)은 광고 SDK에 전달되지 않습니다. 앱은 위 광고 SDK와 공용 콜밭 제보에 쓰는 Google Firebase Firestore 외에 자체 분석 도구, 크래시 수집 도구, 자체 서버를 사용하지 않습니다.</p>
       <p>이용자는 Android 설정 → 개인정보 보호 → 광고에서 <b>광고 ID를 삭제하거나 맞춤 광고를 끌 수</b> 있습니다. 개발자는 AdMob을 통해 개별 이용자를 식별할 수 있는 정보를 제공받지 않습니다.</p>
 
       <h2>5. 백업 파일과 기기 이전</h2>
@@ -189,7 +200,8 @@
         <li>운행·지출·휴무일·콜밭·설정은 모두 <b>이용자의 기기</b>에 저장되며, 개발자는 이를 보관하지 않습니다.</li>
         <li>기록은 앱 안에서 삭제할 수 있고, <b>앱을 삭제(제거)하면 기기에 저장된 장부 데이터와 설정도 함께 삭제</b>됩니다. 내보낸 CSV·JSON 파일은 이용자가 저장한 위치에 남으므로 필요하면 직접 삭제해 주세요.</li>
         <li>Android 자동 백업 사본이 만들어졌다면 Google 계정의 백업 설정에서 삭제할 수 있습니다.</li>
-        <li>개발자는 별도로 보관하는 개인정보가 없으므로 파기할 개인정보도 없습니다. 문의 과정에서 이메일로 받은 내용은 문의 처리 목적으로만 사용하고 처리 완료 후 지체 없이 삭제합니다.</li>
+        <li>개발자는 장부 데이터를 보관하지 않습니다. 공용 콜밭 제보로 전송된 콜밭 이름·좌표·메모·기기 해시는 Google Firebase에 저장되며, 앱은 최근 30일 제보만 사용합니다. 이 제보는 이용자 화면에서 숨길 수 있지만 서버 기록 자체의 삭제는 개발자에게 문의해 주세요.</li>
+        <li>문의 과정에서 이메일로 받은 내용은 문의 처리 목적으로만 사용하고 처리 완료 후 지체 없이 삭제합니다.</li>
       </ul>
 
       <h2>7. 이용자의 권리와 선택</h2>
@@ -197,17 +209,20 @@
         <li>위치 권한은 Android 설정 → 애플리케이션 → 대리장부 → 권한에서 언제든 허용·철회할 수 있습니다. 철회해도 장부 기능은 그대로 사용할 수 있고, 콜밭 정렬만 지역 기준으로 바뀝니다.</li>
         <li>장부 기록·지출·휴무일·저장한 콜밭은 앱 안에서 직접 추가·수정·삭제할 수 있습니다.</li>
         <li>광고 ID 재설정·삭제와 맞춤 광고 차단은 Android 설정에서 가능합니다.</li>
-        <li>개발자는 서버에 개인정보를 보관하지 않으므로, 열람·정정·삭제 요청의 대상은 이용자 기기 안의 데이터입니다. 앱 안에서 직접 처리하실 수 있으며, 방법이 궁금하거나 다른 문의가 있으면 아래 이메일로 연락해 주세요.</li>
+        <li>장부 기록은 개발자 서버에 보관되지 않으므로, 열람·정정·삭제는 앱 안에서 이용자 기기 데이터를 직접 처리하실 수 있습니다. 공용 콜밭 제보로 서버에 저장된 기록의 삭제를 원하시면 아래 이메일로 알려 주세요.</li>
       </ul>
 
       <h2>8. 아동의 개인정보</h2>
       <p>앱은 만 14세 미만 아동을 대상으로 하지 않으며, 아동의 개인정보를 고의로 수집하지 않습니다. 앱은 대리운전·탁송 업무를 위한 장부 앱으로 만 18세 이상 이용자를 권장합니다.</p>
 
       <h2>9. 안전성 확보 조치</h2>
-      <p>장부 데이터는 앱 전용 저장 영역에 보관되어 다른 앱이 임의로 접근하기 어렵습니다. 앱이 외부로 보내는 통신은 광고 SDK의 통신뿐이며, 해당 통신은 HTTPS로 암호화됩니다. 개발자는 이용자의 장부 내용을 서버로 받지 않으므로, 서버 유출로 장부 내용이 노출될 가능성은 없습니다.</p>
+      <p>장부 데이터는 앱 전용 저장 영역에 보관되어 다른 앱이 임의로 접근하기 어렵습니다. 앱이 외부로 보내는 통신은 ① 광고 SDK 통신과 ② 공용 콜밭 제보(Firebase Firestore) 통신이며, 모두 HTTPS로 암호화됩니다. 장부 내용은 서버로 보내지 않으므로 서버 유출로 장부 내용이 노출될 가능성은 없습니다.</p>
 
       <h2>10. 방침의 변경</h2>
       <p>본 방침이 변경되는 경우 이 페이지에 변경 내용과 시행일을 게시합니다. 앱이 다루는 정보나 권한이 달라지는 중요한 변경이 있는 경우 앱 업데이트 또는 본 페이지를 통해 안내합니다.</p>
+      <ul>
+        <li>2026년 11월 25일 — 공용 콜밭 제보(5명 기준)와 인터넷 권한 안내 추가</li>
+      </ul>
 
       <h2>11. 문의</h2>
       <p>개인정보 처리에 관한 문의는 아래로 연락해 주십시오.</p>
@@ -216,7 +231,7 @@
         <li>이메일: <a href="mailto:youngsujoa1@gmail.com">youngsujoa1@gmail.com</a></li>
       </ul>
 
-      <p class="sub" style="margin-top:22px">본 방침은 2026년 11월 24일부터 적용됩니다.</p>
+      <p class="sub" style="margin-top:22px">본 방침은 2026년 11월 25일부터 적용됩니다.</p>
     </div>
   </section>
 
@@ -233,7 +248,7 @@
       </div>
       <h1>Privacy Policy</h1>
     </div>
-    <p class="sub">대리장부 (Daeri Ledger) · Developer Topster · Effective November 24, 2026</p>
+    <p class="sub">대리장부 (Daeri Ledger) · Developer Topster · Effective November 25, 2026</p>
 
     <div class="card">
       <div class="meta">
@@ -241,7 +256,7 @@
         <span><b>Package</b> <code>com.youngsu.daeriledger</code> (Android)</span>
         <span><b>Developer</b> Topster</span>
         <span><b>Contact</b> <a href="mailto:youngsujoa1@gmail.com">youngsujoa1@gmail.com</a></span>
-        <span><b>Effective date</b> November 24, 2026</span>
+        <span><b>Effective date</b> November 25, 2026</span>
       </div>
     </div>
 
@@ -249,7 +264,7 @@
       <h2>1. Overview</h2>
       <p>대리장부 (“the App”) is an income and expense ledger for designated-driver and delivery-errand drivers in Korea. The developer, Topster (“the Developer”), respects your privacy and follows applicable law and Google Play policies. This policy explains what information the App handles, where it is stored, and what choices you have.</p>
       <div class="note">
-        <p><b>In short:</b> The trip records, income, expenses, days off, memos, hotspot list and settings you enter are stored <b>only on your own device</b>. <span class="ok">The Developer runs no server that receives or keeps this data and cannot read it.</span> The App has no sign-up or login. The only traffic that leaves your device is the request that loads ads (Google AdMob).</p>
+        <p><b>In short:</b> The trip records, income, expenses, days off, memos, hotspot list and settings you enter are stored <b>only on your own device</b>. <span class="ok">The Developer runs no server that receives or keeps this data and cannot read it.</span> The App has no sign-up or login. The only traffic that leaves your device is ① the request that loads ads (Google AdMob) and ② anonymous <b>shared hotspot reports</b>. A shared hotspot report sends only the hotspot name, coordinates and memo you entered, plus a device hash; ledger records (trips, income, expenses, unpaid amounts, memos) are never sent.</p>
       </div>
 
       <h2>2. Information the App stores (on your device)</h2>
@@ -278,15 +293,25 @@
       </table>
       <p>Storage location: the App’s private area — the ledger database <code>daeri_ledger.db</code> (trip, expense, day-off and saved-hotspot tables) and the settings file <code>daeri_settings.xml</code>. Other apps cannot readily access this area, and the Developer cannot access these files.</p>
 
+      <h3>Shared hotspot reports (optional)</h3>
+      <p>Only when you use <b>+ Add hotspot</b> or long-press a card → <b>Report as gone</b>, the following is sent to Google Firebase Firestore (project <code>daeri-ledger-spots</code>):</p>
+      <ul>
+        <li>Hotspot name, kind (<code>hotspot</code> / <code>gone</code>), hotspot coordinates (latitude and longitude), address, optional memo, and report time.</li>
+        <li><b>Device hash:</b> a 32-character SHA-256 value of <code>ANDROID_ID</code>. It is used only to count distinct reporters, is not linked to your name, phone number or any other detail, and changes if you reinstall the App.</li>
+        <li>If you turn on <b>use current GPS location</b> while adding a hotspot, that location is sent as the hotspot coordinates. If you search by address or save a name only, your current location is not sent.</li>
+        <li>Reports are public to read. The App uses only the last 30 days of reports and shows a shared hotspot only when <b>5 or more distinct devices</b> report the same place (within 150 m); it hides hotspots within 150 m when <b>5 or more distinct devices</b> report it as gone. Up to 4 reports change nothing.</li>
+        <li>Submitted reports are kept as a log the App cannot edit or delete (server rules). The Developer does not use them for any other purpose.</li>
+      </ul>
+
       <h3>What the App does not collect</h3>
-      <p>The App does not request or collect your name, phone number, email, address, resident registration number, contacts, photos, calls, messages or account credentials. Apart from the advertising ID described below, the App does not create or keep information that identifies you.</p>
+      <p>The App does not request or collect your name, phone number, email, address, resident registration number, contacts, photos, calls, messages or account credentials. Apart from the advertising ID described below and the device hash used in shared hotspot reports, the App does not create or keep information that identifies you.</p>
 
       <h2>3. Permissions the App uses</h2>
       <table>
         <tr>
           <th>Location<br>(optional)</th>
           <td><code>ACCESS_FINE_LOCATION</code> / <code>ACCESS_COARSE_LOCATION</code><br>
-          Used only in the <b>Hotspots</b> tab to sort nearby call hotspots by distance from where you are and to open directions in a map app. Distance is calculated on the device; <b>your coordinates are never sent to a Developer server, and the App keeps no separate location log.</b> If you do not grant location, the App still works with the region filter.<br>
+          Used only in the <b>Hotspots</b> tab to sort nearby call hotspots by distance from where you are and to open directions in a map app. Distance is calculated on the device, and the App keeps no separate location log. Your coordinates are sent to a Developer server only when you yourself turn on <b>use current GPS location</b> while adding a hotspot, in which case they are included in that shared hotspot report; otherwise they are never sent to a Developer server. If you do not grant location, the App still works with the region filter.<br>
           When you tap directions, the coordinates of the hotspot you picked are passed to the map app installed on your device; further handling is governed by that app’s privacy policy.</td>
         </tr>
         <tr>
@@ -294,8 +319,9 @@
           <td>The App reaches only the file or folder you pick yourself through the Android file picker (SAF), for ① exporting CSV, ② saving or restoring a JSON backup, and ③ importing another app’s backup file (<code>dcb_teras.zip</code> / <code>.db</code>). It does not access files you did not pick.</td>
         </tr>
         <tr>
-          <th>Internet ·<br>network state</th>
-          <td>Not used by the App’s own code; used by the advertising SDK (Google Mobile Ads) to load and measure ads.</td>
+          <th>Internet<br>(required)</th>
+          <td><code>INTERNET</code><br>
+          Used to send shared hotspot reports, to fetch hotspots and “gone” reports collected from other drivers, and to load and measure ads (Google Mobile Ads).</td>
         </tr>
       </table>
       <p>The App requests no other permissions such as camera, microphone, contacts, SMS, call log, photo library or notifications.</p>
@@ -308,7 +334,7 @@
         <li>That data is handled under Google’s Privacy Policy: <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">policies.google.com/privacy</a></li>
         <li>How Google uses data from partner sites and apps: <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener">policies.google.com/technologies/partner-sites</a></li>
       </ul>
-      <p>Your ledger content (trips, income, expenses, memos, hotspots and so on) is never passed to the advertising SDK. Apart from this advertising SDK, the App uses no analytics service, no crash-reporting service and no server of its own.</p>
+      <p>Your ledger content (trips, income, expenses, memos, hotspots and so on) is never passed to the advertising SDK. Apart from this advertising SDK and the Google Firebase Firestore service used for shared hotspot reports, the App uses no analytics service, no crash-reporting service and no server of its own.</p>
       <p>You can <b>delete your advertising ID or opt out of personalized ads</b> in Android Settings → Privacy → Ads. The Developer does not receive information from AdMob that identifies individual users.</p>
 
       <h2>5. Backup files and device transfer</h2>
@@ -323,7 +349,8 @@
         <li>Trip records, expenses, days off, hotspots and settings are stored <b>on your device</b>. The Developer keeps none of them.</li>
         <li>Records can be deleted inside the App, and <b>uninstalling the App removes the ledger data and settings stored on the device</b>. Exported CSV/JSON files remain wherever you saved them, so delete them yourself if needed.</li>
         <li>Any Android auto-backup copy can be removed in your Google account’s backup settings.</li>
-        <li>The Developer keeps no personal data separately, so there is nothing to delete. Support emails you send are used only to answer your inquiry and are deleted promptly afterwards.</li>
+        <li>The Developer keeps no ledger data. Hotspot names, coordinates, memos and device hashes sent as shared hotspot reports are stored in Google Firebase, and the App uses only the last 30 days of reports. You can hide those reports from your screen, but to have the server record itself deleted, please contact the Developer.</li>
+        <li>Support emails you send are used only to answer your inquiry and are deleted promptly afterwards.</li>
       </ul>
 
       <h2>7. Your choices and rights</h2>
@@ -331,17 +358,20 @@
         <li>You can grant or revoke the location permission at any time in Android Settings → Apps → 대리장부 → Permissions. Without it, all ledger features still work and only hotspot sorting falls back to region.</li>
         <li>You can add, edit and delete trip records, expenses, days off and saved hotspots inside the App.</li>
         <li>You can reset or delete your advertising ID and turn off personalized ads in Android Settings.</li>
-        <li>Because the Developer holds no personal data on a server, any access, correction or deletion is done on the data in your own device, which the App lets you manage directly. If you need help or have another question, contact us at the email below.</li>
+        <li>Because ledger data is not kept on a Developer server, you can access, correct and delete it directly inside the App on your own device. If you want a record stored on the server as a shared hotspot report to be deleted, tell us at the email below.</li>
       </ul>
 
       <h2>8. Children’s privacy</h2>
       <p>The App is not directed to children under 14 and does not knowingly collect their personal information. It is a work ledger for designated-driver and errand services and is recommended for users aged 18 or older.</p>
 
       <h2>9. Security</h2>
-      <p>Ledger data is kept in the App’s private storage area, which other apps cannot readily access. The only outbound traffic is the advertising SDK’s, and that traffic is encrypted over HTTPS. Because the Developer never receives your ledger on a server, a server breach cannot expose your ledger contents.</p>
+      <p>Ledger data is kept in the App’s private storage area, which other apps cannot readily access. The App’s outbound traffic is ① the advertising SDK’s and ② shared hotspot reports (Firebase Firestore), and both are encrypted over HTTPS. Because ledger contents are never sent to a server, a server breach cannot expose your ledger.</p>
 
       <h2>10. Changes to this policy</h2>
       <p>If this policy changes, the change and its effective date will be posted on this page. Significant changes to the information or permissions the App handles will also be noted in an App update or on this page.</p>
+      <ul>
+        <li>November 25, 2026 — shared hotspot reports (5-driver threshold) and the Internet permission added</li>
+      </ul>
 
       <h2>11. Contact</h2>
       <p>For questions about privacy, please contact:</p>
@@ -350,7 +380,7 @@
         <li>Email: <a href="mailto:youngsujoa1@gmail.com">youngsujoa1@gmail.com</a></li>
       </ul>
 
-      <p class="sub" style="margin-top:22px">This policy is effective from November 24, 2026.</p>
+      <p class="sub" style="margin-top:22px">This policy is effective from November 25, 2026.</p>
     </div>
   </section>
 
