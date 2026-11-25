@@ -1,7 +1,20 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
 }
+
+// 공용 콜밭 제보 서버 키 — 소스에 적지 않고 local.properties(저장소 제외)에서 읽어 BuildConfig 로 넣는다.
+// local.properties 에 `FIREBASE_API_KEY=...` 한 줄을 두거나, 같은 이름의 환경 변수를 쓰면 된다.
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+val firebaseApiKey: String =
+    localProperties.getProperty("FIREBASE_API_KEY")
+        ?: System.getenv("FIREBASE_API_KEY")
+        ?: ""
 
 android {
     namespace = "com.youngsu.daeriledger"
@@ -13,6 +26,9 @@ android {
         targetSdk = 35
         versionCode = 17
         versionName = "1.0.16"
+
+        // 키가 비어 있으면 앱은 공용 제보를 조용히 건너뛰고 로컬 콜밭만 쓴다
+        buildConfigField("String", "FIREBASE_API_KEY", "\"$firebaseApiKey\"")
 
         vectorDrawables {
             useSupportLibrary = true
@@ -48,6 +64,7 @@ android {
 
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
 
     packaging {

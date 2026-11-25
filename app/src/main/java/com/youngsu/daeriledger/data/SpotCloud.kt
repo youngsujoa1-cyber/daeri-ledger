@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import com.youngsu.daeriledger.BuildConfig
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedReader
@@ -33,7 +34,18 @@ object SpotCloud {
 
     // ---------------------------------------------------------------- 서버 설정
     private const val PROJECT_ID = "daeri-ledger-spots"
-    private const val API_KEY = "AIzaSyCuWTIVmoMKtOGEoZMx7oPRocrMom6DKiA"
+
+    /**
+     * Firebase 웹 API 키 — **저장소에 올리지 않는다**.
+     * `local.properties` 의 `FIREBASE_API_KEY` 값을 `app/build.gradle.kts` 가 BuildConfig 로 넣는다.
+     * 저장소는 공개라 키를 소스에 적으면 GitHub Secret Scanning 에 걸리고, 노출된 키는
+     * Google Cloud 콘솔에서 Cloud Firestore API 전용으로 제한해 두어야 한다.
+     */
+    private val API_KEY: String = BuildConfig.FIREBASE_API_KEY
+
+    /** 키가 없는 빌드(예: 새로 받은 소스)에서는 서버 호출을 건너뛰고 로컬 목록만 쓴다 */
+    private val enabled: Boolean get() = API_KEY.isNotBlank()
+
     private const val COLLECTION = "spot_reports"
     private const val BASE =
         "https://firestore.googleapis.com/v1/projects/$PROJECT_ID/databases/(default)/documents"
@@ -75,6 +87,10 @@ object SpotCloud {
         onDone: (Boolean, String) -> Unit
     ) {
         val app = context.applicationContext
+        if (!enabled) {
+            main.post { onDone(false, "공용 제보 설정이 없는 빌드예요. 최신 앱으로 다시 설치해 주세요.") }
+            return
+        }
         Thread {
             var ok = false
             var msg: String
@@ -139,6 +155,12 @@ object SpotCloud {
      * 콜백은 메인 스레드에서 온다.
      */
     fun publicState(context: Context, force: Boolean = false, onDone: (SpotPublicState) -> Unit) {
+        if (!enabled) {
+            lastError = "공용 제보 설정이 없는 빌드예요"
+            val cached = cache
+            main.post { onDone(cached) }
+            return
+        }
         if (!force && cacheAt != 0L && System.currentTimeMillis() - cacheAt < CACHE_MS) {
             val cached = cache
             main.post { onDone(cached) }

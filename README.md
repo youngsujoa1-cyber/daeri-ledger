@@ -66,6 +66,21 @@ GRADLE_USER_HOME=/workspace/buildenv/gradle-home HOME=/workspace \
 
 산출물: `app/build/outputs/apk/debug/app-debug.apk`
 
+### 공용 콜밭 제보 키 (저장소에 올리지 않음)
+
+Firebase 웹 API 키는 소스에 적지 않습니다. `local.properties`(저장소 제외, `.gitignore`)에 한 줄을 두면
+`app/build.gradle.kts` 가 `BuildConfig.FIREBASE_API_KEY` 로 넣어 줍니다.
+
+```properties
+# local.properties
+sdk.dir=/workspace/buildenv/android-sdk
+FIREBASE_API_KEY=여기에_Firebase_웹_API_키
+```
+
+같은 이름의 환경 변수(`FIREBASE_API_KEY`)를 써도 됩니다. 키가 비어 있으면 앱은 공용 제보를 조용히 건너뛰고
+로컬 콜밭 목록만 쓰므로 빌드 자체는 실패하지 않습니다. Google Cloud 콘솔에서 이 키를
+**Cloud Firestore API 전용**으로 제한해 두세요(공개 저장소에 노출된 적이 있는 키는 재발급을 권장).
+
 ## 구조
 
 ```
