@@ -14,6 +14,9 @@ import com.youngsu.daeriledger.data.CallSpots
 import com.youngsu.daeriledger.data.Hotspot
 import com.youngsu.daeriledger.data.Hotspots
 import com.youngsu.daeriledger.data.MySpot
+import com.youngsu.daeriledger.data.SpotAggregator
+import com.youngsu.daeriledger.data.SpotCloud
+import com.youngsu.daeriledger.data.SpotPublicState
 import com.youngsu.daeriledger.data.SpotStat
 import com.youngsu.daeriledger.databinding.ItemEmptyBinding
 import com.youngsu.daeriledger.databinding.ItemHotspotBinding
@@ -34,8 +37,10 @@ import kotlin.math.roundToInt
  * 콜밭 화면.
  *  - 위치가 있으면 가까운 순으로 정렬한 콜밭 목록 + 길찾기
  *  - 출처 칩 없이 **하나의 콜밭 목록** — 시·도 칩으로 걸러 보고, 이름·주소로 검색
- *  - 현장에 가 보니 없어진 곳은 카드를 길게 눌러 숨기거나(내 콜밭은 삭제) 한다 (되돌리기 가능)
- *  - `+ 콜밭 추가` 로 내가 다니는 콜밭을 직접 넣는다 (구분·지역·피크·메모, GPS/주소로 좌표)
+ *  - 현장에 가 보니 없어진 곳은 카드를 길게 눌러 내 화면에서 숨기거나 **없어진 곳으로 신고**한다
+ *    (신고는 서버로 가고, 같은 자리에서 5명 이상 모이면 모든 기사님 화면에서 숨겨진다 — 내 화면은 바로 숨김)
+ *  - `+ 콜밭 추가` 로 내가 다니는 콜밭을 직접 넣는다 (구분·지역·피크·메모, GPS/주소로 좌표). 좌표가 있으면 서버에도 제보한다
+ *  - 기사님들이 **5명 이상** 제보한 공용 콜밭은 `기사 제보` 배지로 목록에 함께 보인다 (5분 캐시, 실패하면 로컬 목록만)
  */
 class SpotsScreen(private val activity: MainActivity) : Screen {
 
@@ -55,9 +60,13 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
     private var savedSpots: List<MySpot> = emptyList()
     private var spotStats: List<SpotStat> = emptyList()
 
-    /** 전체 콜밭 (기본 + 기사 추천 + 탁송) + 내가 추가한 콜밭 — 새로고침마다 다시 만든다 */
+    /** 전체 콜밭 (기본 + 기사 추천) + 내가 추가한 콜밭 + 기사님 제보 콜밭 — 새로고침마다 다시 만든다 */
     private var spotList: List<Hotspot> = emptyList()
     private var hiddenIds: Set<String> = emptySet()
+
+    /** 서버에서 받은 공용 제보 상태 (5명 이상 등록 / 5명 이상 삭제) */
+    private var cloudState: SpotPublicState = SpotPublicState()
+    private var cloudLoading = false
 
     /** 화면에 그린 목록 상태 — 1,500곳이 넘어 한 번에 다 만들지 않고 40곳씩 늘린다 */
     private var renderedList: List<Hotspot> = emptyList()
@@ -99,8 +108,8 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         savedSpots = activity.repo.allSpots()
         spotStats = activity.repo.spotStats(today.minusDays(89), today, limit = 20)
         // 기본·기사 추천·탁송 콜밭 + 내가 추가한 콜밭(DB)을 한 목록으로
-        spotList = CallSpots.all(activity) + savedSpots.map { Hotspots.fromMySpot(it) }
         hiddenIds = activity.settings.hiddenSpotIds
+        rebuildSpotList()
 
         buildRegionChips()
         updateHiddenInfo()
@@ -108,7 +117,37 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         renderNearby()
         updateLocationCard()
         maybeLocate()
+        // 서버 제보는 비동기로 — 네트워크가 안 되면 조용히 로컬 목록만 유지한다
+        loadCloud()
     }
+
+    /** 기본·기사 추천·내 콜밭 + 서버 공용 콜밭을 한 목록으로 */
+    private fun rebuildSpotList() {
+        val local = CallSpots.all(activity) + savedSpots.map { Hotspots.fromMySpot(it) }
+        // 같은 이름이 이미 기본/기사 추천 목록에 있으면 제보 콜밭으로 또 그리지 않는다
+        val cloud = cloudState.added
+            .map { Hotspots.fromPublicSpot(it) }
+            .filter { spot -> local.none { it.name.trim().equals(spot.name.trim(), ignoreCase = true) } }
+        spotList = local + cloud
+    }
+
+    /** 공용 제보 상태(5명 이상 등록·5명 이상 삭제)를 받아 목록에 반영한다 */
+    private fun loadCloud(force: Boolean = false) {
+        if (cloudLoading) return
+        cloudLoading = true
+        SpotCloud.publicState(activity, force) { state ->
+            cloudLoading = false
+            if (state == cloudState) return@publicState
+            cloudState = state
+            rebuildSpotList()
+            updateHiddenInfo()
+            renderNearby()
+        }
+    }
+
+    /** 기사님들이 5명 이상 '없어졌다'고 신고한 자리(반경 150m)에 있는 콜밭인지 */
+    private fun isCloudRemoved(spot: Hotspot): Boolean =
+        spot.hasLocation && SpotAggregator.isRemoved(spot.lat, spot.lng, cloudState.removed)
 
     // ------------------------------------------------------------- 위치
 
@@ -133,6 +172,8 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
                 userLocation = null
                 locating = true
                 updateLocationCard()
+                // 새로고침을 누르면 기사님 제보도 다시 받아 온다 (서버는 5분 캐시)
+                loadCloud(force = true)
                 LocationHelper.request(activity) { location ->
                     locating = false
                     userLocation = location
@@ -186,6 +227,7 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
             val list = spotList.filter {
                 (cityFilter == null || it.city == cityFilter) &&
                     it.id !in hiddenIds &&
+                    !isCloudRemoved(it) &&
                     it.matches(query)
             }
             val loc = userLocation
@@ -216,22 +258,32 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
 
     private fun updateHiddenInfo() {
         val count = hiddenIds.size
-        if (count == 0) {
+        val cloudGone = cloudState.removed.size
+        val parts = ArrayList<String>()
+        if (count > 0) parts.add("숨긴 콜밭 ${count}곳 · 되돌리기")
+        if (cloudGone > 0) parts.add("기사님 신고로 숨긴 자리 ${cloudGone}곳")
+        if (parts.isEmpty()) {
             binding.hiddenInfo.visibility = View.GONE
         } else {
             binding.hiddenInfo.visibility = View.VISIBLE
-            binding.hiddenInfo.text = "숨긴 콜밭 ${count}곳 · 되돌리기"
+            binding.hiddenInfo.text = parts.joinToString(" · ")
         }
     }
 
-    /** 카드를 길게 눌렀을 때 — 숨기기, 내가 추가한 콜밭이면 삭제도 고를 수 있다 */
+    /** 카드를 길게 눌렀을 때 — 내 화면에서 숨기기, 없어진 곳 신고(5명 이상이면 공용 삭제), 내 콜밭 삭제 */
     private fun showSpotActions(spot: Hotspot) {
-        val labels = if (spot.mine) arrayOf("목록에서 숨기기", "내 콜밭 삭제")
-        else arrayOf("목록에서 숨기기")
+        val labels = ArrayList<String>()
+        labels.add("내 화면에서만 숨기기")
+        labels.add("없어진 곳 신고 (5명 이상이면 모든 기사님 화면에서 숨김)")
+        if (spot.mine) labels.add("내 콜밭 삭제")
         MaterialAlertDialogBuilder(activity)
             .setTitle(spot.name)
-            .setItems(labels) { _, which ->
-                if (which == 0) confirmHide(spot) else confirmDeleteMySpot(spot)
+            .setItems(labels.toTypedArray()) { _, which ->
+                when (which) {
+                    0 -> confirmHide(spot)
+                    1 -> confirmReportRemoved(spot)
+                    else -> confirmDeleteMySpot(spot)
+                }
             }
             .setNegativeButton("닫기", null)
             .show()
@@ -253,27 +305,71 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         }
     }
 
-    /** 카드를 길게 눌렀을 때 — 현장에 없어진 곳을 목록에서 숨긴다 */
+    /** 카드를 길게 눌렀을 때 — 현장에 없어진 곳을 내 화면에서 숨긴다 */
     private fun confirmHide(spot: Hotspot) {
         Dialogs.confirm(
             activity,
             "콜밭 숨기기",
-            "‘${spot.name}’을(를) 목록에서 숨길까요? 없어진 곳이면 숨겨 두세요.\n" +
+            "‘${spot.name}’을(를) 내 화면에서 숨길까요? 없어진 곳이면 숨겨 두세요.\n" +
                 "숨긴 곳은 목록 위의 ‘되돌리기’로 다시 볼 수 있어요.",
             positive = "숨기기",
             destructive = true
         ) {
-            activity.settings.hiddenSpotIds = activity.settings.hiddenSpotIds + spot.id
-            hiddenIds = activity.settings.hiddenSpotIds
-            updateHiddenInfo()
-            renderNearby()
-            activity.toast("‘${spot.name}’ 숨김")
+            hideLocally(spot, "‘${spot.name}’ 숨김")
+        }
+    }
+
+    /** 내 화면에서만 숨긴다 — 되돌리기 가능 (서버에 알리지 않음) */
+    private fun hideLocally(spot: Hotspot, toastText: String?) {
+        activity.settings.hiddenSpotIds = activity.settings.hiddenSpotIds + spot.id
+        hiddenIds = activity.settings.hiddenSpotIds
+        updateHiddenInfo()
+        renderNearby()
+        if (toastText != null) activity.toast(toastText)
+    }
+
+    /**
+     * 없어진 곳 신고 — 서버에 `kind = "삭제"` 로 보내고 내 화면은 바로 숨긴다.
+     * 같은 자리에서 서로 다른 기기 5명 이상이 신고하면 모든 기사님 화면에서도 숨겨진다.
+     */
+    private fun confirmReportRemoved(spot: Hotspot) {
+        if (!spot.hasLocation) {
+            Dialogs.confirm(
+                activity,
+                "없어진 곳 신고",
+                "‘${spot.name}’은(는) 위치 정보가 없어 다른 기사님께 알릴 수 없어요.\n" +
+                    "내 화면에서만 숨길까요?",
+                positive = "내 화면에서 숨기기",
+                destructive = true
+            ) {
+                hideLocally(spot, "‘${spot.name}’ 숨김")
+            }
+            return
+        }
+        Dialogs.confirm(
+            activity,
+            "없어진 곳 신고",
+            "‘${spot.name}’이(가) 없어졌나요?\n\n" +
+                "같은 자리에서 5명 이상 신고하면 모든 기사님 화면에서 이 콜밭이 숨겨져요.\n" +
+                "신고하면 내 화면에서는 바로 사라집니다.",
+            positive = "신고하고 숨기기",
+            destructive = true
+        ) {
+            hideLocally(spot, null)
+            SpotCloud.reportRemoved(
+                activity, spot.name, spot.lat, spot.lng, address = spot.area
+            ) { _, msg -> activity.toast(msg) }
         }
     }
 
     private fun confirmRestoreHidden() {
         val count = hiddenIds.size
-        if (count == 0) return
+        if (count == 0) {
+            if (cloudState.removed.isNotEmpty()) {
+                activity.toast("기사님들이 없어진 곳으로 신고한 자리라 되돌릴 수 없어요")
+            }
+            return
+        }
         Dialogs.confirm(
             activity,
             "숨긴 콜밭 되돌리기",
@@ -340,11 +436,24 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
 
     /** `+ 콜밭 추가` — 장소명·구분·지역·피크·메모를 받아 내 콜밭으로 저장한다 */
     private fun showAddSpotDialog() {
-        AddSpotDialog.show(activity) {
-            // 방금 추가한 콜밭이 바로 보이도록 검색·출처·지역 필터를 ‘전체’로 돌리고 맨 위로
+        AddSpotDialog.show(activity) { spot ->
+            // 방금 추가한 콜밭이 바로 보이도록 검색·지역 필터를 ‘전체’로 돌리고 맨 위로
             searchQuery = ""
             binding.spotSearch.setText("")
             cityFilter = null
+            // 좌표가 있으면 서버에도 제보해 다른 기사님과 나눈다 (같은 자리 5명 이상이면 공용 콜밭)
+            val lat = spot.lat
+            val lng = spot.lng
+            if (lat != null && lng != null) {
+                SpotCloud.submit(
+                    activity,
+                    spot.name,
+                    lat,
+                    lng,
+                    address = spot.area,
+                    note = spot.memo
+                ) { ok, msg -> if (ok) activity.toast(msg) }
+            }
             refresh()
             binding.spotsScroll.smoothScrollTo(0, 0)
         }
@@ -363,6 +472,7 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         binding.spotsSubtitle.text = when {
             query.isNotEmpty() -> "‘$query’ 검색 결과 · 콜밭 참고 정보"
             userLocation != null -> "내 위치에서 가까운 순 · 콜밭 ${spotList.size}곳"
+            cloudState.added.isNotEmpty() -> "콜밭 ${list.size}곳 · 기사님 제보 ${cloudState.added.size}곳"
             else -> "콜밭 ${list.size}곳 · 지역으로 골라 보기"
         }
 
@@ -397,13 +507,19 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
                 b.spotArea.text = hotspot.area
             }
 
-            // 출처 배지 — 기본 콜밭은 배지 없이, 기사 추천·탁송·내 콜밭만 표시
+            // 출처 배지 — 기본 콜밭은 배지 없이, 기사 추천·기사 제보·내 콜밭만 표시
             when {
                 hotspot.mine -> {
                     b.spotBadge.visibility = View.VISIBLE
                     b.spotBadge.text = "내 콜밭"
                     b.spotBadge.setBackgroundResource(R.drawable.bg_pill_accent)
                     b.spotBadge.setTextColor(activity.color(R.color.accent))
+                }
+                hotspot.source == Hotspots.SOURCE_CLOUD -> {
+                    b.spotBadge.visibility = View.VISIBLE
+                    b.spotBadge.text = Hotspots.SOURCE_CLOUD
+                    b.spotBadge.setBackgroundResource(R.drawable.bg_tag_blue)
+                    b.spotBadge.setTextColor(activity.color(R.color.chart_bar))
                 }
                 hotspot.source.isBlank() -> b.spotBadge.visibility = View.GONE
                 else -> {
@@ -413,6 +529,15 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
                     b.spotBadge.setBackgroundResource(if (taksong) R.drawable.bg_tag_blue else R.drawable.bg_tag_amber)
                     b.spotBadge.setTextColor(activity.color(if (taksong) R.color.chart_bar else R.color.accent))
                 }
+            }
+
+            // 기사님 제보 콜밭은 `기사 N명 제보 · N시간 전` 줄을 붙인다
+            val reportMeta = cloudMeta(hotspot)
+            if (reportMeta.isBlank()) {
+                b.spotReportMeta.visibility = View.GONE
+            } else {
+                b.spotReportMeta.visibility = View.VISIBLE
+                b.spotReportMeta.text = reportMeta
             }
 
             if (hotspot.hasPeak) {
@@ -463,6 +588,27 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
             binding.moreSpotsButton.text = "나머지 ${remaining}곳 더 보기"
         } else {
             binding.moreSpotsButton.visibility = View.GONE
+        }
+    }
+
+    /** 기사님 제보 콜밭 카드의 한 줄 — `기사 5명 제보 · 10분 전` (제보 콜밭이 아니면 빈 문자열) */
+    private fun cloudMeta(hotspot: Hotspot): String {
+        if (hotspot.reporters <= 0) return ""
+        val time = timeAgo(hotspot.lastAt)
+        return if (time.isBlank()) "기사 ${hotspot.reporters}명 제보"
+        else "기사 ${hotspot.reporters}명 제보 · $time"
+    }
+
+    /** 마지막 제보 시각 -> `방금`·`N분 전`·`N시간 전`·`N일 전` */
+    private fun timeAgo(millis: Long): String {
+        if (millis <= 0) return ""
+        val diff = System.currentTimeMillis() - millis
+        if (diff < 0) return "방금"
+        return when {
+            diff < 60_000L -> "방금"
+            diff < 3_600_000L -> "${diff / 60_000L}분 전"
+            diff < 86_400_000L -> "${diff / 3_600_000L}시간 전"
+            else -> "${diff / 86_400_000L}일 전"
         }
     }
 

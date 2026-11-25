@@ -19,6 +19,11 @@ v1.0.15 부터는 콜밭 출처와 내 콜밭을 검사합니다 — `콜포인�
 지역·주소 글에서 시·도 찾기(`cityOfArea`), `+ 콜밭 추가` 로 저장한 콜밭(`MySpot`)이 콜밭 목록 항목으로
 바뀌는지(`fromMySpot`: id·출처·내 콜밭 표시·시·도·피크·메모·좌표 유무·검색)를 확인합니다.
 
+v1.0.16 부터는 공용 제보 집계(`SpotAggregate.kt`)를 검사합니다 — **공용 등록 5명 · 공용 삭제 5명** 기준,
+4명은 노출·삭제 모두 안 됨, 같은 기기가 5번 올려도 1명, 빈 기기 해시 제외, 150m 묶음(111m는 묶이고 334m는 갈라짐),
+5명 등록 + 4명 삭제는 콜밭 유지 / 5명 등록 + 5명 삭제는 콜밭 미노출 + 없어진 자리 1곳, 없어진 자리 반경 150m 안(130m)은 숨김·330m는 유지,
+제보 순서가 바뀌어도 같은 결과, `kind` 빈 값은 등록으로 집계, `Hotspots.fromPublicSpot` 의 `기사 제보` 배지·기사 수·마지막 제보·시·도·검색.
+
 ```bash
 # Kotlin 컴파일러/스탠다드 라이브러리는 Gradle 캐시에서 찾습니다.
 KJAR=$(find "$GRADLE_USER_HOME/caches/modules-2" -name 'kotlin-compiler-embeddable-2.0.21.jar' | head -1)
@@ -30,7 +35,7 @@ ANNOT=$(find "$GRADLE_USER_HOME/caches/modules-2" -name 'annotations-23.0.0.jar'
 SRC=app/src/main/java/com/youngsu/daeriledger
 java -cp "$KJAR:$STDLIB:$COROUT:$TROVE:$ANNOT" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler \
   -no-stdlib -cp "$STDLIB" -d out \
-  $SRC/data/Models.kt $SRC/data/Hotspots.kt $SRC/data/Payout.kt $SRC/data/DcbBackup.kt $SRC/util/TimeUtils.kt \
+  $SRC/data/Models.kt $SRC/data/Hotspots.kt $SRC/data/SpotAggregate.kt $SRC/data/Payout.kt $SRC/data/DcbBackup.kt $SRC/util/TimeUtils.kt \
   $SRC/ui/widget/CalendarGrid.kt $SRC/ui/widget/PressTracker.kt tools/logic-check/Check.kt
 
 java -Duser.timezone=Asia/Seoul -cp "out:$STDLIB" CheckKt

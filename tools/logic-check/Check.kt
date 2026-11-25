@@ -4,8 +4,11 @@ import com.youngsu.daeriledger.data.MySpot
 import com.youngsu.daeriledger.data.PaymentType
 import com.youngsu.daeriledger.data.Payout
 import com.youngsu.daeriledger.data.Platforms
+import com.youngsu.daeriledger.data.PublicSpot
 import com.youngsu.daeriledger.data.Ride
 import com.youngsu.daeriledger.data.ServiceType
+import com.youngsu.daeriledger.data.SpotAggregator
+import com.youngsu.daeriledger.data.SpotReport
 import com.youngsu.daeriledger.ui.widget.CalendarGrid
 import com.youngsu.daeriledger.ui.widget.PressTracker
 import com.youngsu.daeriledger.util.BizTime
@@ -566,6 +569,127 @@ fun main() {
     // (11) 수수료율이 바뀌어도 저장값만으로 팁 수수료를 되짚는다 (저장 수수료 − 요금 몫)
     expect("팁 수수료 되짚기", Payout.tipInputFrom(45_000, 12_500, 11_500, 20.0), 10_000)
     expect("팁 수수료 되짚기(옛 행)", Payout.tipInputFrom(45_000, 10_000, 9_000, 20.0), 10_000)
+
+    // ============================================================ 콜밭 공용 제보 (v1.0.16)
+    // 사용자가 정한 기준: 공용 등록도 공용 삭제도 **서로 다른 기기 5명 이상**
+    val lat0 = 37.5000
+    val lng0 = 127.0000
+    fun report(
+        device: Int,
+        lat: Double = lat0,
+        lng: Double = lng0,
+        kind: String = SpotAggregator.KIND_SPOT,
+        name: String = "테스트 콜밭",
+        minutesAgo: Long = 0L,
+        address: String = "서울 강남구 테헤란로",
+        note: String = ""
+    ) = SpotReport(
+        name = name,
+        lat = lat,
+        lng = lng,
+        address = address,
+        note = note,
+        deviceHash = "device-$device",
+        createdAt = 1_700_000_000_000L - minutesAgo * 60_000L,
+        kind = kind
+    )
+    fun removals(n: Int, lat: Double = lat0, lng: Double = lng0) =
+        (1..n).map { report(100 + it, lat, lng, SpotAggregator.KIND_REMOVED, name = "테스트 콜밭") }
+    fun spots(n: Int, lat: Double = lat0, lng: Double = lng0) =
+        (1..n).map { report(it, lat, lng) }
+
+    // 기준값 자체
+    expect("공용 제보 기준 인원", SpotAggregator.MIN_REPORTERS, 5)
+    expect("제보 묶음 반경(m)", SpotAggregator.GROUP_RADIUS_M, 150.0)
+    expect("등록 kind", SpotAggregator.KIND_SPOT, "콜밭")
+    expect("삭제 kind", SpotAggregator.KIND_REMOVED, "삭제")
+
+    // (1) 공용 등록 — 5명이면 노출, 4명이면 미노출
+    val five = SpotAggregator.aggregate(spots(5))
+    expect("5명 등록 노출 수", five.added.size, 1)
+    expect("5명 등록 reporters", five.added.firstOrNull()?.reporters, 5)
+    expect("4명 등록은 미노출", SpotAggregator.aggregate(spots(4)).added.size, 0)
+
+    // (2) 같은 기기가 5번 올려도 1명 — 노출되지 않는다
+    val sameDevice = (1..5).map { report(1, minutesAgo = it.toLong()) }
+    expect("같은 기기 5회 = 1명", SpotAggregator.aggregate(sameDevice).added.size, 0)
+    // 빈 deviceHash 는 세지 않는다
+    val blankHash = spots(5).map { it.copy(deviceHash = "  ") }
+    expect("빈 기기 해시 제외", SpotAggregator.aggregate(blankHash).added.size, 0)
+
+    // (3) 150m 넘게 떨어진 제보는 다른 자리로 묶인다 (0.001도 ≒ 111m, 0.003도 ≒ 334m)
+    val spread = (1..3).map { report(it) } + (4..5).map { report(it, lat = lat0 + 0.003) }
+    expect("떨어진 3명+2명 = 미노출", SpotAggregator.aggregate(spread).added.size, 0)
+    val near = (1..3).map { report(it) } + (4..5).map { report(it, lat = lat0 + 0.001) }
+    expect("111m 안 3명+2명 = 5명 노출", SpotAggregator.aggregate(near).added.firstOrNull()?.reporters, 5)
+
+    // (4) 이름·좌표·주소·메모 — 가장 많이 나온 이름, 좌표는 평균
+    val named = listOf(
+        report(1, name = "역삼역 2번출구"),
+        report(2, name = "역삼역 2번출구"),
+        report(3, name = "역삼역 2번출구"),
+        report(4, name = "역삼역"),
+        report(5, name = "역삼역")
+    )
+    val namedSpot = SpotAggregator.aggregate(named).added.firstOrNull()
+    expect("가장 많이 나온 이름", namedSpot?.name, "역삼역 2번출구")
+    expect("좌표 평균", namedSpot?.lat, lat0)
+    expect("주소 유지", namedSpot?.address, "서울 강남구 테헤란로")
+
+    // (5) 공용 삭제 — 5명이면 없어진 자리, 4명이면 아무 일도 없다
+    val removed5 = SpotAggregator.aggregate(removals(5))
+    expect("5명 삭제 = 없어진 자리 1곳", removed5.removed.size, 1)
+    expect("5명 삭제 reporters", removed5.removed.firstOrNull()?.reporters, 5)
+    expect("4명 삭제 = 없어진 자리 없음", SpotAggregator.aggregate(removals(4)).removed.size, 0)
+
+    // (6) 5명 등록 + 4명 삭제 → 공용 콜밭은 그대로 보인다
+    val keep = SpotAggregator.aggregate(spots(5) + removals(4))
+    expect("4명 삭제는 콜밭 유지", keep.added.size, 1)
+    expect("4명 삭제는 삭제 목록 없음", keep.removed.size, 0)
+
+    // (7) 5명 등록 + 5명 삭제 → 공용 콜밭도 숨긴다
+    val gone = SpotAggregator.aggregate(spots(5) + removals(5))
+    expect("5명 삭제 시 콜밭 미노출", gone.added.size, 0)
+    expect("5명 삭제 시 없어진 자리 1곳", gone.removed.size, 1)
+
+    // (8) 기본 콜밭(1,223곳) 숨김 판정 — 반경 150m 안이면 숨김, 150m 밖은 그대로
+    expect("없어진 자리 반경 안", SpotAggregator.isRemoved(lat0, lng0, gone.removed), true)
+    expect("없어진 자리 130m", SpotAggregator.isRemoved(lat0 + 0.0011, lng0, gone.removed), true)
+    expect("없어진 자리 330m", SpotAggregator.isRemoved(lat0 + 0.003, lng0, gone.removed), false)
+    expect("없어진 자리 없으면 유지", SpotAggregator.isRemoved(lat0, lng0, keep.removed), false)
+
+    // (9) 반경 안의 삭제 기기 수 계산 (묶음 경계와 무관하게 같은 자리 신고로 본다)
+    expect("반경 안 삭제 기기 5", SpotAggregator.devicesNear(removals(5), lat0, lng0), 5)
+    expect("반경 밖 삭제 기기 0", SpotAggregator.devicesNear(removals(5, lat0 + 0.01, lng0), lat0, lng0), 0)
+
+    // (10) 들어온 순서가 달라도 결과가 같다 (최신순 정렬 후 묶음)
+    val shuffled = (spots(5) + removals(5)).reversed()
+    val shuffledState = SpotAggregator.aggregate(shuffled)
+    expect("순서 무관 콜밭 수", shuffledState.added.size, gone.added.size)
+    expect("순서 무관 삭제 수", shuffledState.removed.size, gone.removed.size)
+    expect("순서 무관 이름", shuffledState.removed.firstOrNull()?.name, gone.removed.firstOrNull()?.name)
+
+    // (11) kind 가 비어 있거나 모르는 값이면 콜밭 등록으로 본다
+    val unknownKind = spots(5).map { it.copy(kind = "") }
+    expect("kind 빈 값 = 등록으로 집계", SpotAggregator.aggregate(unknownKind).added.size, 1)
+
+    // (12) 공용 콜밭 -> 목록 항목 (기사 제보 배지·기자 수·마지막 제보)
+    val publicSpot = PublicSpot(
+        name = "테헤란로 콜밭",
+        lat = 37.5,
+        lng = 127.0,
+        address = "서울 강남구 테헤란로",
+        reporters = 5,
+        lastAt = 1_700_000_000_000L,
+        note = "12시 넘어 잘 서는 자리"
+    )
+    val cloudItem = Hotspots.fromPublicSpot(publicSpot)
+    expect("제보 콜밭 출처", cloudItem.source, Hotspots.SOURCE_CLOUD)
+    expect("제보 콜밭 reporters", cloudItem.reporters, 5)
+    expect("제보 콜밭 lastAt", cloudItem.lastAt, 1_700_000_000_000L)
+    expect("제보 콜밭 시·도", cloudItem.city, "서울")
+    expect("제보 콜밭 좌표 있음", cloudItem.hasLocation, true)
+    expect("제보 콜밭 이름 검색", cloudItem.matches("테헤란로"), true)
 
     println(if (failures == 0) "ALL CHECKS PASSED" else "$failures CHECK(S) FAILED")
     if (failures > 0) kotlin.system.exitProcess(1)

@@ -25,7 +25,11 @@ data class Hotspot(
      */
     val source: String = "",
     /** 내가 직접 추가한 콜밭인지 — 카드에 `내 콜밭` 배지로 표시된다 */
-    val mine: Boolean = false
+    val mine: Boolean = false,
+    /** 공용 제보 콜밭이면 서로 다른 기기(=기사님) 수, 아니면 0 */
+    val reporters: Int = 0,
+    /** 공용 제보 마지막 시각(ms) — 0이면 없음 */
+    val lastAt: Long = 0L
 ) {
     /** 피크 시간대 정보가 있는 곳(직접 정리한 콜밭)만 true */
     val hasPeak: Boolean get() = peak.isNotBlank()
@@ -3270,6 +3274,8 @@ object Hotspots {
     /** 콜밭 출처 — 화면에는 구분 칩 없이 하나의 콜밭 목록으로 보이고, 카드 배지만 다르다 */
     const val SOURCE_DRIVER = "기사 추천"
     const val SOURCE_TAKSONG = "탁송"
+    /** 기사님들이 5명 이상 제보해 올라온 공용 콜밭 */
+    const val SOURCE_CLOUD = "기사 제보"
 
     /**
      * `구분`(대리/탁송)에 맞는 콜밭 출처.
@@ -3333,6 +3339,29 @@ object Hotspots {
             tip = spot.memo,
             source = sourceFor(spot.service),
             mine = true
+        )
+    }
+
+    /**
+     * 서버에서 받은 공용 콜밭([PublicSpot])을 콜밭 목록 항목으로.
+     *  - `기사 제보` 배지 + `기사 N명 제보 · N시간 전` 줄로 표시된다
+     *  - 좌표는 서버 제보 묶음의 평균이라 그대로 길찾기에 쓴다
+     */
+    fun fromPublicSpot(spot: PublicSpot): Hotspot {
+        val areaText = spot.address.trim()
+        val city = cityOfArea(areaText).ifBlank { cityOfArea(spot.name) }
+        return Hotspot(
+            id = "cloud-${spot.lat},${spot.lng}",
+            name = spot.name.ifBlank { "기사님 제보 콜밭" },
+            area = areaText,
+            city = city,
+            lat = spot.lat,
+            lng = spot.lng,
+            peak = "",
+            tip = spot.note,
+            source = SOURCE_CLOUD,
+            reporters = spot.reporters,
+            lastAt = spot.lastAt
         )
     }
 

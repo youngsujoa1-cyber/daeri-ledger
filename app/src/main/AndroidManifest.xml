@@ -4,6 +4,8 @@
     <!-- 콜밭: 가까운 순 정렬용 (거부해도 지역 필터로 동작) -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- 공용 콜밭 제보·조회 (Firebase Firestore REST) -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <queries>
         <intent>
