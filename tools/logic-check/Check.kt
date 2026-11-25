@@ -111,6 +111,52 @@ fun main() {
     expect("고용·산재 1% 보험", e.insurance, 1_750)
     expect("고용·산재 1% 순수익", e.net, 23_250)
 
+    // v1.0.20 — 건당 보험료는 카카오T·티맵에 붙지 않는다 (3.3% 세금만)
+    expect("카카오T 건당보험 안 뗌", Platforms.chargesPerCallInsurance("kakao"), false)
+    expect("티맵 건당보험 안 뗌", Platforms.chargesPerCallInsurance("tmap"), false)
+    expect("핸들 건당보험 뗌", Platforms.chargesPerCallInsurance("handle"), true)
+    expect("로지 건당보험 뗌", Platforms.chargesPerCallInsurance("roji"), true)
+    expect("콜마너 건당보험 뗌", Platforms.chargesPerCallInsurance("colmaner"), true)
+    expect("아이콘 건당보험 뗌", Platforms.chargesPerCallInsurance("icon"), true)
+    expect("개인콜 건당보험 뗌", Platforms.chargesPerCallInsurance("personal"), true)
+    expect("카카오T 적용 건당 0", Payout.perCallInsuranceFor("kakao", 1_168), 0)
+    expect("티맵 적용 건당 0", Payout.perCallInsuranceFor("tmap", 2_500), 0)
+    expect("로지 적용 건당 설정값", Payout.perCallInsuranceFor("roji", 1_168), 1_168)
+
+    // 사용자 캡처(카카오T 3:06) — 받은 36,000 → 총매출 45,000 · 수수료 9,000 · 보험&세금 1,485(3.3%) · 순수익 34,515
+    val kakaoShot = Payout.calculate(
+        input = 36_000, tip = 0, feePercent = 20.0, tipFeePercent = 20.0,
+        insurancePerCall = Payout.perCallInsuranceFor("kakao", 1_168),
+        employmentInsurancePercent = 3.3, netShown = true
+    )
+    expect("캡처 카카오 총매출", kakaoShot.gross, 45_000)
+    expect("캡처 카카오 수수료", kakaoShot.fee, 9_000)
+    expect("캡처 카카오 보험&세금", kakaoShot.insurance, 1_485)
+    expect("캡처 카카오 순수익", kakaoShot.net, 34_515)
+    expect("캡처 세금 몫", Payout.employmentOf(45_000, 3.3), 1_485)
+
+    // 같은 금액을 로지(건당 보험 있음)로 입력하면 건당 1,168 + 3.3% 1,485 가 함께 빠진다
+    val rojiShot = Payout.calculate(
+        input = 45_000, tip = 0, feePercent = 20.0, tipFeePercent = 20.0,
+        insurancePerCall = Payout.perCallInsuranceFor("roji", 1_168),
+        employmentInsurancePercent = 3.3
+    )
+    expect("로지 보험&세금 합계", rojiShot.insurance, 2_653)
+    expect("로지 순수익", rojiShot.net, 33_347)
+
+    // 수정 화면 왕복 — 저장된 합계에서 건당 몫만 되돌린다 (3.3% 두 번 붙지 않게)
+    expect("건당 되돌리기 카카오", Payout.perCallFromStored(45_000, 1_485, 3.3), 0)
+    expect("건당 되돌리기 로지", Payout.perCallFromStored(45_000, 2_653, 3.3), 1_168)
+    expect("건당 되돌리기 세금 0%", Payout.perCallFromStored(45_000, 1_485, 0.0), 1_485)
+    val rojiPerCall = Payout.perCallFromStored(rojiShot.gross, rojiShot.insurance, 3.3)
+    val rojiAgain = Payout.calculate(
+        input = rojiShot.gross, tip = 0, feePercent = 20.0, tipFeePercent = 20.0,
+        insurancePerCall = Payout.perCallInsuranceFor("roji", rojiPerCall),
+        employmentInsurancePercent = 3.3
+    )
+    expect("로지 수정 왕복 보험&세금 유지", rojiAgain.insurance, rojiShot.insurance)
+    expect("로지 수정 왕복 순수익 유지", rojiAgain.net, rojiShot.net)
+
     val f = Payout.calculate(33_333, 0, 20.0, 20.0, 1_500, 0.0)
     expect("33,333 수수료 반올림", f.fee, 6_667)
     expect("33,333 순수익", f.net, 25_166)

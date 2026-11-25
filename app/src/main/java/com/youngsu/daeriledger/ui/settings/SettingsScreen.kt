@@ -27,7 +27,7 @@ import com.youngsu.daeriledger.util.setChips
 import com.youngsu.daeriledger.util.toast
 import java.util.Locale
 
-/** 설정 — 수수료율, 보험료, 영업일 기준, 목표, 테마, 백업 */
+/** 설정 — 수수료율, 보험 & 세금, 영업일 기준, 목표, 테마, 백업 */
 class SettingsScreen(private val activity: MainActivity) : Screen {
 
     private val binding = ScreenSettingsBinding.inflate(activity.layoutInflater)
@@ -94,12 +94,17 @@ class SettingsScreen(private val activity: MainActivity) : Screen {
                 "0%로 두면 팁에 수수료를 떼지 않고, 손님이 현금으로 준 팁은 0%가 맞아요."
         )
 
-        // ------------------------------------------------------------ 보험료
-        section("보험료")
+        // ------------------------------------------------------- 보험 & 세금
+        section("보험 & 세금")
+        note(
+            "카카오T·티맵은 건당 보험료가 빠지지 않아요. 두 플랫폼은 아래 고용·산재·세금(3.3%)만 빠지고, " +
+                "그 외 플랫폼은 건당 보험료 + 3.3% 세금이 함께 빠집니다. 입력 화면의 `보험&세금` 줄에서 " +
+                "건당 0원 + 3.3% 1,485원처럼 내역을 나눠 보여 줘요."
+        )
         row(
             icon = R.drawable.ic_receipt,
             title = "대리 건당 보험료",
-            subtitle = "대리 콜 한 건마다 빠지는 금액",
+            subtitle = "대리 콜 한 건마다 빠지는 금액 · 카카오T·티맵 제외",
             value = Money.won(settings.insuranceDaeri)
         ) {
             Dialogs.amount(
@@ -113,7 +118,7 @@ class SettingsScreen(private val activity: MainActivity) : Screen {
         row(
             icon = R.drawable.ic_receipt,
             title = "탁송 건당 보험료",
-            subtitle = "탁송 콜 한 건마다 빠지는 금액",
+            subtitle = "탁송 콜 한 건마다 빠지는 금액 · 카카오T·티맵 제외",
             value = Money.won(settings.insuranceTaksong)
         ) {
             Dialogs.amount(
@@ -126,12 +131,12 @@ class SettingsScreen(private val activity: MainActivity) : Screen {
         }
         row(
             icon = R.drawable.ic_receipt,
-            title = "고용·산재 보험료율",
+            title = "고용·산재·세금 (3.3%)",
             subtitle = "매출 기준으로 계산합니다 (선택)",
             value = String.format(Locale.KOREA, "%.1f%%", settings.employmentInsurancePercent)
         ) {
             Dialogs.amount(
-                activity, "고용·산재 보험료율", "%",
+                activity, "고용·산재·세금 (3.3%)", "%",
                 String.format(Locale.KOREA, "%.1f", settings.employmentInsurancePercent),
                 hint = "예: 1.0 (매출의 1%)",
                 presets = listOf("0" to "0%", "0.5" to "0.5%", "1" to "1%", "1.5" to "1.5%"),

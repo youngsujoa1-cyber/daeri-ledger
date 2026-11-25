@@ -32,19 +32,22 @@ enum class PaymentType(val id: String, val label: String, val short: String) {
  * netShown = true 는 앱에 이미 "수수료 차감 후 금액"이 표시되는 플랫폼이라는 뜻이다.
  * 이 경우 입력값이 실수령액(수수료 떼고 받은 돈)이고, 총매출은 수수료율로 역산한다.
  * 예) 카카오T 20,000원 입력 → 총매출 25,000원, 수수료 5,000원 (수수료율 20%).
+ * chargesPerCallInsurance = false 는 건당 보험료가 자동으로 빠지지 않는 플랫폼이다(v1.0.20).
+ * 카카오T·티맵은 건당 보험료 0원이고 매출의 3.3% 세금만 빠진다.
  */
 data class PlatformDef(
     val id: String,
     val label: String,
     val defaultFeePercent: Double,
     val defaultNetShown: Boolean,
-    val brandColor: Long
+    val brandColor: Long,
+    val chargesPerCallInsurance: Boolean = true
 )
 
 object Platforms {
     val ALL: List<PlatformDef> = listOf(
-        PlatformDef("kakao", "카카오T", 20.0, true, 0xFFF9E000),
-        PlatformDef("tmap", "티맵", 20.0, true, 0xFF2E7DF6),
+        PlatformDef("kakao", "카카오T", 20.0, true, 0xFFF9E000, chargesPerCallInsurance = false),
+        PlatformDef("tmap", "티맵", 20.0, true, 0xFF2E7DF6, chargesPerCallInsurance = false),
         PlatformDef("handle", "핸들", 20.0, true, 0xFF00C2A8),
         PlatformDef("roji", "로지", 20.0, false, 0xFFFF6B3D),
         PlatformDef("colmaner", "콜마너", 20.0, false, 0xFF9B6BFF),
@@ -55,6 +58,9 @@ object Platforms {
     fun byId(id: String?): PlatformDef = ALL.firstOrNull { it.id == id } ?: ALL.first()
 
     fun label(id: String?): String = byId(id).label
+
+    /** 이 플랫폼이 건당 보험료를 떼는지 — 카카오T·티맵만 안 떼고, 나머지는 설정값대로 뗀다. */
+    fun chargesPerCallInsurance(id: String?): Boolean = byId(id).chargesPerCallInsurance
 }
 
 /**

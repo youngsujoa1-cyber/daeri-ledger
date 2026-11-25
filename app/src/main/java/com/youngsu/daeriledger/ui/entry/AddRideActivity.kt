@@ -138,7 +138,8 @@ class AddRideActivity : AppCompatActivity() {
         binding.platformChips.setChips(Platforms.ALL.map { it.id to it.label }, platformId) { id ->
             platformId = id
             renderPlatformNote()
-            if (!insuranceTouched) applyDefaultInsurance()
+            // 카카오T·티맵은 건당 보험료 0원, 나머지는 손대지 않았을 때 설정값으로 되돌린다
+            applyDefaultInsurance()
             updatePreview()
         }
 
@@ -147,7 +148,7 @@ class AddRideActivity : AppCompatActivity() {
             service.id
         ) { id ->
             service = ServiceType.from(id)
-            if (!insuranceTouched) applyDefaultInsurance()
+            applyDefaultInsurance()
             updatePreview()
         }
 
@@ -189,7 +190,7 @@ class AddRideActivity : AppCompatActivity() {
     private fun toggleAdvanced(forceOpen: Boolean? = null) {
         val open = forceOpen ?: (binding.advancedPanel.visibility != View.VISIBLE)
         binding.advancedPanel.visibility = if (open) View.VISIBLE else View.GONE
-        binding.advancedToggle.text = if (open) "▴ 상세 입력 접기" else "▾ 상세 입력 (보험료)"
+        binding.advancedToggle.text = if (open) "▴ 상세 입력 접기" else "▾ 상세 입력 (건당 보험료)"
     }
 
     // ------------------------------------------------------------ 칩/표시
@@ -198,7 +199,7 @@ class AddRideActivity : AppCompatActivity() {
         binding.platformChips.selectChip(platformId)
         binding.serviceChips.selectChip(service.id)
         binding.paymentChips.selectChip(payment.id)
-        binding.insuranceHintText.text = "건당 보험료 ${Money.won(settings.insuranceFor(service))} 자동"
+        applyDefaultInsurance()
         syncAmountChip()
     }
 
@@ -255,10 +256,27 @@ class AddRideActivity : AppCompatActivity() {
         binding.businessDayChip.text = "영업일 ${businessDay.monthValue}/${businessDay.dayOfMonth}"
     }
 
+    /**
+     * 건당 보험료 칸과 구분 줄의 안내를 플랫폼에 맞춘다.
+     * - 카카오T·티맵: 건당 보험료 없음 → 항상 0원으로 두고 안내에도 그렇게 적는다(v1.0.20).
+     * - 그 외: 직접 고친 값이 있으면 그대로 두고, 아니면 설정의 건당 보험료로 채운다.
+     */
     private fun applyDefaultInsurance() {
+        val exempt = !Platforms.chargesPerCallInsurance(platformId)
         applyingDefaultInsurance = true
-        binding.insuranceInput.setText(settings.insuranceFor(service).toString())
+        when {
+            exempt -> binding.insuranceInput.setText("0")
+            !insuranceTouched -> binding.insuranceInput.setText(settings.insuranceFor(service).toString())
+        }
         applyingDefaultInsurance = false
+        if (exempt) insuranceTouched = false
+        // 카카오T·티맵은 건당 보험료가 붙지 않으므로 칸도 0원으로 잠근다
+        binding.insuranceInput.isEnabled = !exempt
+        binding.insuranceHintText.text = if (exempt) {
+            "${Platforms.label(platformId)}은(는) 건당 보험 없음"
+        } else {
+            "건당 보험료 ${Money.won(settings.insuranceFor(service))} 자동"
+        }
     }
 
     private fun prefill(ride: Ride) {
@@ -283,10 +301,17 @@ class AddRideActivity : AppCompatActivity() {
         binding.viaInput.setText(ride.viaPlace)
         binding.toInput.setText(ride.toPlace)
         binding.memoInput.setText(ride.memo)
-        binding.insuranceInput.setText(ride.insuranceAmount.toString())
+        // 저장된 보험&세금 합계에서 건당 몫만 되돌린다(3.3% 세금은 다시 계산) — 두 번 붙지 않게
+        val perCallStored = Payout.perCallFromStored(
+            ride.gross,
+            ride.insuranceAmount,
+            settings.employmentInsurancePercent
+        )
+        binding.insuranceInput.setText(perCallStored.toString())
         insuranceTouched = true
-        // 출발·도착·특이사항은 항상 보이므로, 보험료가 기본값과 다를 때만 상세를 편다.
-        if (ride.insuranceAmount != settings.insuranceFor(ride.service)) {
+        // 출발·도착·특이사항은 항상 보이므로, 건당 보험료가 기본값과 다를 때만 상세를 편다.
+        val defaultPerCall = Payout.perCallInsuranceFor(ride.platformId, settings.insuranceFor(ride.service))
+        if (perCallStored != defaultPerCall) {
             toggleAdvanced(forceOpen = true)
         }
         renderChips()
@@ -338,7 +363,7 @@ class AddRideActivity : AppCompatActivity() {
         tip = tip(),
         feePercent = settings.effectiveFeePercent(platformId),
         tipFeePercent = settings.tipFeePercent,
-        insurancePerCall = insuranceValue(),
+        insurancePerCall = Payout.perCallInsuranceFor(platformId, insuranceValue()),
         employmentInsurancePercent = settings.employmentInsurancePercent,
         netShown = settings.platformNetShown(platformId)
     )
@@ -354,6 +379,7 @@ class AddRideActivity : AppCompatActivity() {
             binding.previewFeeLabel.text = feeLabel
             binding.previewFee.text = "-0원"
             binding.previewInsurance.text = "-0원"
+            binding.previewInsuranceNote.visibility = View.GONE
             binding.previewNet.text = "0원"
             binding.previewNet.setTextColor(getColor(R.color.text_secondary))
             binding.previewTipRow.visibility = View.GONE
@@ -368,6 +394,21 @@ class AddRideActivity : AppCompatActivity() {
         binding.previewFeeLabel.text = if (result.tipGross > 0) "$feeLabel · 팁·경유비 $tipPercentLabel%" else feeLabel
         binding.previewFee.text = "-" + Money.won(result.fee)
         binding.previewInsurance.text = "-" + Money.won(result.insurance)
+        // 보험&세금 내역 — 건당 보험료와 3.3% 세금을 나눠 보여 준다 (1,485원이 어디서 나왔는지)
+        val empPercent = settings.employmentInsurancePercent
+        val perCall = Payout.perCallInsuranceFor(platformId, insuranceValue())
+        val empAmount = Payout.employmentOf(result.gross, empPercent)
+        val empLabel = String.format(java.util.Locale.KOREA, "%.1f", empPercent)
+        val insuranceParts = buildList {
+            if (perCall > 0) add("건당 ${Money.won(perCall)}")
+            if (empAmount > 0) add("$empLabel% ${Money.won(empAmount)}")
+        }
+        if (insuranceParts.isEmpty()) {
+            binding.previewInsuranceNote.visibility = View.GONE
+        } else {
+            binding.previewInsuranceNote.visibility = View.VISIBLE
+            binding.previewInsuranceNote.text = insuranceParts.joinToString(" + ")
+        }
         binding.previewNet.text = Money.won(result.net)
         binding.previewNet.setTextColor(
             getColor(if (result.net < 0) R.color.loss else R.color.profit)
@@ -451,7 +492,7 @@ class AddRideActivity : AppCompatActivity() {
             binding.fromInput.setText("")
             binding.viaInput.setText("")
             binding.toInput.setText("")
-            if (!insuranceTouched) applyDefaultInsurance()
+            if (!insuranceTouched || !Platforms.chargesPerCallInsurance(platformId)) applyDefaultInsurance()
             timeMillis = System.currentTimeMillis()
             renderTime()
             updatePreview()

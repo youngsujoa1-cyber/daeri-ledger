@@ -18,6 +18,9 @@ import kotlin.math.roundToInt
  * 설정에서 `0%`로 두면 팁에 수수료를 떼지 않는다(입력값 그대로 +팁, 수수료 0원).
  *
  * 두 모드 모두 순수익 = (요금 총매출 + 팁 총액) − (요금 수수료 + 팁 수수료) − (건당 보험료 + 고용·산재 보험료).
+ *
+ * v1.0.20 — 건당 보험료는 카카오T·티맵에 붙지 않는다(`perCallInsuranceFor`).
+ *   두 플랫폼은 건당 0원으로 잡히고 매출의 고용·산재(3.3%)만 `보험&세금`으로 빠진다.
  */
 object Payout {
 
@@ -44,6 +47,22 @@ object Payout {
         val rate = feePercent.coerceIn(0.0, MAX_FEE_PERCENT) / 100.0
         if (rate <= 0.0) return safeNet
         return (safeNet / (1.0 - rate)).roundToInt()
+    }
+
+    /**
+     * 이 플랫폼에 실제로 적용할 건당 보험료 — 카카오T·티맵은 0원(설정값이 있어도 무시).
+     * 저장된 기존 기록은 건드리지 않고, 새 입력·플랫폼 전환·다시 계산할 때만 이 값을 쓴다.
+     */
+    fun perCallInsuranceFor(platformId: String, configured: Int): Int =
+        if (Platforms.chargesPerCallInsurance(platformId)) configured.coerceAtLeast(0) else 0
+
+    /**
+     * 저장된 보험&세금 합계(건당 + 고용·산재)에서 건당 몫만 되돌린다 — 수정 화면 입력칸에 넣을 값.
+     * 예) 총매출 45,000 · 저장 합계 1,485 · 3.3% → 건당 1,485 − 1,485 = 0
+     */
+    fun perCallFromStored(gross: Int, insuranceAmount: Int, employmentPercent: Double): Int {
+        val employment = employmentOf(gross.coerceAtLeast(0), employmentPercent)
+        return (insuranceAmount - employment).coerceAtLeast(0)
     }
 
     /** 입력값이 총매출인 플랫폼. 팁·경유비는 받은 금액을 그대로 역산해 더한다. */
@@ -168,10 +187,12 @@ object Payout {
     private fun feeOf(gross: Int, feePercent: Double): Int =
         (gross.coerceAtLeast(0) * feePercent.coerceIn(0.0, MAX_FEE_PERCENT) / 100.0).roundToInt()
 
-    private fun insuranceOf(gross: Int, insurancePerCall: Int, employmentPercent: Double): Int {
-        val employment = (gross * employmentPercent.coerceAtLeast(0.0) / 100.0).roundToInt()
-        return insurancePerCall.coerceAtLeast(0) + employment
-    }
+    private fun insuranceOf(gross: Int, insurancePerCall: Int, employmentPercent: Double): Int =
+        insurancePerCall.coerceAtLeast(0) + employmentOf(gross, employmentPercent)
+
+    /** 고용·산재·세금 몫 — 요금 총매출 기준 */
+    fun employmentOf(gross: Int, employmentPercent: Double): Int =
+        (gross.coerceAtLeast(0) * employmentPercent.coerceAtLeast(0.0) / 100.0).roundToInt()
 
     private const val MAX_FEE_PERCENT = 90.0
 }

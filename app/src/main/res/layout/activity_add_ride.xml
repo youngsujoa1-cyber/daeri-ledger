@@ -426,7 +426,7 @@
                 android:layout_marginTop="8dp"
                 android:background="?attr/selectableItemBackground"
                 android:paddingVertical="8dp"
-                android:text="▾ 상세 입력 (보험료)"
+                android:text="▾ 상세 입력 (건당 보험료)"
                 android:textColor="@color/accent"
                 android:textSize="13sp"
                 android:textStyle="bold" />
@@ -574,11 +574,12 @@
                         android:orientation="horizontal">
 
                         <TextView
+                            android:id="@+id/previewInsuranceLabel"
                             style="@style/Text.Daeri.Label"
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="보험료" />
+                            android:text="보험&amp;세금" />
 
                         <TextView
                             android:id="@+id/previewInsurance"
@@ -589,6 +590,18 @@
                             android:textColor="@color/text_secondary"
                             android:textSize="13sp" />
                     </LinearLayout>
+
+                    <!-- 보험&세금 내역 — 건당 0원 + 3.3% 1,485원 처럼 나눠 보여 준다 -->
+                    <TextView
+                        android:id="@+id/previewInsuranceNote"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:gravity="end"
+                        android:text="건당 0원 + 3.3% 1,485원"
+                        android:textColor="@color/text_tertiary"
+                        android:textSize="11sp"
+                        android:visibility="gone" />
 
                     <View
                         style="@style/Widget.Daeri.Divider"
