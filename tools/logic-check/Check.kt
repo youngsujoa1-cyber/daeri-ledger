@@ -53,6 +53,7 @@ fun main() {
             input = 20_000,
             tip = 0,
             feePercent = p.defaultFeePercent,
+            tipFeePercent = p.defaultFeePercent,
             insurancePerCall = 1_500,
             employmentInsurancePercent = 0.0,
             netShown = p.defaultNetShown
@@ -63,55 +64,56 @@ fun main() {
         expect("${p.label} 20,000 순수익", r.net, 18_500)
     }
 
-    // 팁은 그대로 더하고 보험료만 뺐다 — v1.0.12 부터는 역산 플랫폼이면 팁도 역산한다 (아래 블록)
-    val tippedLegacy = Payout.calculate(20_000, 3_000, 20.0, 1_500, 0.0, netShown = true)
+    // 팁도 받은 금액을 역산한다 (v1.0.13 부터 플랫폼 구분 없이 같은 규칙 — 아래 블록)
+    val tippedLegacy = Payout.calculate(20_000, 3_000, 20.0, 20.0, 1_500, 0.0 , netShown = true)
     expect("역산+팁 총액", tippedLegacy.total, 28_750)
     expect("역산+팁 수수료", tippedLegacy.fee, 5_750)
     expect("역산+팁 순수익", tippedLegacy.net, 21_500)
 
     // 역산 반올림 (33,333 / 0.8 = 41,666.25)
-    val rounded = Payout.calculate(33_333, 0, 20.0, 1_500, 0.0, netShown = true)
+    val rounded = Payout.calculate(33_333, 0, 20.0, 20.0, 1_500, 0.0 , netShown = true)
     expect("역산 반올림 총매출", rounded.gross, 41_666)
     expect("역산 반올림 수수료", rounded.fee, 8_333)
     expect("역산 반올림 순수익", rounded.net, 31_833)
 
     // 수수료율 0% 면 역산해도 입력값 그대로
-    val noFee = Payout.calculate(20_000, 0, 0.0, 1_500, 0.0, netShown = true)
+    val noFee = Payout.calculate(20_000, 0, 0.0, 0.0, 1_500, 0.0 , netShown = true)
     expect("0% 역산 총매출", noFee.gross, 20_000)
     expect("0% 역산 수수료", noFee.fee, 0)
     expect("0% 역산 순수익", noFee.net, 18_500)
 
     // 고용·산재 1% 는 총매출 기준: 25,000 × 1% = 250
-    val emp = Payout.calculate(20_000, 0, 20.0, 1_500, 1.0, netShown = true)
+    val emp = Payout.calculate(20_000, 0, 20.0, 20.0, 1_500, 1.0 , netShown = true)
     expect("역산 고용·산재 보험", emp.insurance, 1_750)
     expect("역산 고용·산재 순수익", emp.net, 18_250)
 
     // 총매출을 직접 입력하는 플랫폼(로지·콜마너·아이콘·개인콜)
-    val grossMode = Payout.calculate(25_000, 0, 20.0, 1_500, 0.0)
+    val grossMode = Payout.calculate(25_000, 0, 20.0, 20.0, 1_500, 0.0)
     expect("로지 25,000 총매출", grossMode.gross, 25_000)
     expect("로지 25,000 수수료", grossMode.fee, 5_000)
     expect("로지 25,000 순수익", grossMode.net, 18_500)
 
-    val a = Payout.calculate(25_000, 0, 0.0, 1_500, 0.0)
+    val a = Payout.calculate(25_000, 0, 0.0, 0.0, 1_500, 0.0)
     expect("개인콜 25,000 수수료", a.fee, 0)
     expect("개인콜 25,000 보험", a.insurance, 1_500)
     expect("개인콜 25,000 순수익", a.net, 23_500)
 
-    val c = Payout.calculate(25_000, 3_000, 20.0, 1_500, 0.0)
-    expect("팁 포함 총액", c.total, 28_000)
+    val c = Payout.calculate(25_000, 3_000, 20.0, 20.0, 1_500, 0.0)
+    expect("팁 포함 총액(팁 3,000→3,750)", c.total, 28_750)
+    expect("팁 포함 수수료(5,000+750)", c.fee, 5_750)
     expect("팁 포함 순수익", c.net, 21_500)
 
-    val e = Payout.calculate(25_000, 0, 0.0, 1_500, 1.0)
+    val e = Payout.calculate(25_000, 0, 0.0, 0.0, 1_500, 1.0 )
     expect("고용·산재 1% 보험", e.insurance, 1_750)
     expect("고용·산재 1% 순수익", e.net, 23_250)
 
-    val f = Payout.calculate(33_333, 0, 20.0, 1_500, 0.0)
+    val f = Payout.calculate(33_333, 0, 20.0, 20.0, 1_500, 0.0)
     expect("33,333 수수료 반올림", f.fee, 6_667)
     expect("33,333 순수익", f.net, 25_166)
 
     // 저장된 총매출·수수료로 순수익이 그대로 유지되는지 (마이그레이션 전후)
-    val before = Payout.calculate(20_000, 0, 0.0, 1_500, 0.0)
-    val after = Payout.calculate(20_000, 0, 20.0, 1_500, 0.0, netShown = true)
+    val before = Payout.calculate(20_000, 0, 0.0, 0.0, 1_500, 0.0)
+    val after = Payout.calculate(20_000, 0, 20.0, 20.0, 1_500, 0.0 , netShown = true)
     expect("마이그레이션 후 순수익 유지", after.net, before.net)
     val migratedNet = after.gross + 0 - after.fee - after.insurance
     expect("저장값 기준 순수익", migratedNet, 18_500)
@@ -391,68 +393,100 @@ fun main() {
     expect("결제 id 모르면 현금", PaymentType.from("??"), PaymentType.CASH)
 
 
-    // v1.0.12 — 팁·경유비도 티맵·카카오T·핸들처럼 역산 (20% · 받은 8,000 → 총액 10,000 · 수수료 2,000)
-    val tipInv = Payout.calculate(20_000, 8_000, 20.0, 1_500, 0.0, netShown = true)
-    expect("팁 역산 요금 총매출", tipInv.gross, 25_000)
-    expect("팁 역산 팁 총액", tipInv.tipGross, 10_000)
-    expect("팁 역산 총액", tipInv.total, 35_000)
-    expect("팁 역산 수수료(요금 5,000+팁 2,000)", tipInv.fee, 7_000)
-    expect("팁 역산 순수익(20,000+8,000−1,500)", tipInv.net, 26_500)
-    // 저장된 값 그대로 순수익이 맞는지 (Ride.net = gross + tip − fee − insurance)
-    val tipInvRide = ride("정자동", "광교", "수지구청역").copy(
-        gross = tipInv.gross, tip = tipInv.tipGross,
-        feeAmount = tipInv.fee, insuranceAmount = tipInv.insurance
+    // ===== v1.0.13 — 팁·경유비는 플랫폼과 상관없이 '받은 금액'을 설정 %로 역산한다 =====
+    // (1) 사용자 예시: 로지(요금 20% 차감) 45,000 + 받은 팁 10,000 (팁 20%)
+    //     → 총액 57,500 · 수수료 11,500 · 순수익 46,000 (36,000 + 10,000)
+    val rojiTip = Payout.calculate(45_000, 10_000, 20.0, 20.0, 0, 0.0, netShown = false)
+    expect("로지+팁 요금 총매출", rojiTip.gross, 45_000)
+    expect("로지+팁 팁 총액", rojiTip.tipGross, 12_500)
+    expect("로지+팁 총액(45,000+12,500)", rojiTip.total, 57_500)
+    expect("로지+팁 요금 수수료", rojiTip.fareFee, 9_000)
+    expect("로지+팁 팁 수수료", rojiTip.tipFee, 2_500)
+    expect("로지+팁 수수료 합", rojiTip.fee, 11_500)
+    expect("로지+팁 순수익(36,000+10,000)", rojiTip.net, 46_000)
+    val rojiTipRide = ride("신사", "", "다산").copy(
+        gross = rojiTip.gross, tip = rojiTip.tipGross,
+        feeAmount = rojiTip.fee, insuranceAmount = rojiTip.insurance
     )
-    expect("팁 역산 Ride 순수익", tipInvRide.net, 26_500)
-    expect("팁 역산 Ride 총수입", tipInvRide.total, 35_000)
+    expect("로지+팁 Ride 총수입", rojiTipRide.total, 57_500)
+    expect("로지+팁 Ride 순수익", rojiTipRide.net, 46_000)
 
-    // 요금 없이 팁만 받은 콜
-    val tipOnly = Payout.calculate(0, 8_000, 20.0, 1_500, 0.0, netShown = true)
+    // (2) 설정에서 팁 %를 0%로 두면 팁에 수수료를 떼지 않는다 — 총액 55,000 · 수수료 9,000 · 순수익은 그대로 46,000
+    val tipZero = Payout.calculate(45_000, 10_000, 20.0, 0.0, 0, 0.0, netShown = false)
+    expect("팁 0% 총액", tipZero.total, 55_000)
+    expect("팁 0% 팁 총액", tipZero.tipGross, 10_000)
+    expect("팁 0% 수수료", tipZero.fee, 9_000)
+    expect("팁 0% 순수익", tipZero.net, 46_000)
+
+    // (3) 역산 플랫폼(카카오T) — 요금도 팁도 받은 금액으로 넣는다 (36,900 · 10,000 / 20%)
+    val kakaoTip = Payout.calculate(36_900, 10_000, 20.0, 20.0, 0, 0.0, netShown = true)
+    expect("카카오T+팁 요금 총매출", kakaoTip.gross, 46_125)
+    expect("카카오T+팁 팁 총액", kakaoTip.tipGross, 12_500)
+    expect("카카오T+팁 총액", kakaoTip.total, 58_625)
+    expect("카카오T+팁 수수료(9,225+2,500)", kakaoTip.fee, 11_725)
+    expect("카카오T+팁 순수익(36,900+10,000)", kakaoTip.net, 46_900)
+
+    // (4) 요금 0 + 팁만 받은 콜 (개인콜) — 팁만 역산하고 보험료만 뺀다
+    val tipOnly = Payout.calculate(0, 10_000, 0.0, 20.0, 1_500, 0.0, netShown = false)
     expect("팁만 총매출", tipOnly.gross, 0)
-    expect("팁만 팁 총액", tipOnly.tipGross, 10_000)
-    expect("팁만 수수료", tipOnly.fee, 2_000)
-    expect("팁만 순수익", tipOnly.net, 6_500)
+    expect("팁만 팁 총액", tipOnly.tipGross, 12_500)
+    expect("팁만 수수료", tipOnly.fee, 2_500)
+    expect("팁만 순수익(10,000−1,500)", tipOnly.net, 8_500)
 
-    // 수수료율 0% 면 팁도 그대로
-    val tipNoFee = Payout.calculate(20_000, 8_000, 0.0, 1_500, 0.0, netShown = true)
-    expect("0% 팁 총액", tipNoFee.tipGross, 8_000)
-    expect("0% 팁 수수료", tipNoFee.fee, 0)
-    expect("0% 팁 순수익", tipNoFee.net, 26_500)
+    // (5) 요금 %와 팁 %가 다를 때 — 개인콜 요금 0% · 팁 20%
+    val mixed = Payout.calculate(30_000, 10_000, 0.0, 20.0, 1_500, 0.0, netShown = false)
+    expect("개인콜+팁 총액", mixed.total, 42_500)
+    expect("개인콜+팁 요금 수수료", mixed.fareFee, 0)
+    expect("개인콜+팁 팁 수수료", mixed.tipFee, 2_500)
+    expect("개인콜+팁 순수익(30,000+받은 팁 10,000−1,500)", mixed.net, 38_500)
 
-    // 역산 플랫폼이 아닌 곳(로지·콜마너·아이콘·개인콜)은 팁을 그대로 더한다 — 기존 그대로
-    val tipGross = Payout.calculate(25_000, 8_000, 20.0, 1_500, 0.0, netShown = false)
-    expect("로지 팁 총액 그대로", tipGross.tipGross, 8_000)
-    expect("로지 팁 수수료 없음", tipGross.fee, 5_000)
-    expect("로지 팁 순수익", tipGross.net, 26_500)
+    // (6) 반올림 — 받은 팁 3,333 · 20% → 총액 4,166 · 수수료 833
+    val tipOdd = Payout.calculate(25_000, 3_333, 20.0, 20.0, 1_500, 0.0, netShown = false)
+    expect("팁 반올림 총액", tipOdd.tipGross, 4_166)
+    expect("팁 반올림 팁 수수료", tipOdd.tipFee, 833)
+    expect("팁 반올림 수수료 합(5,000+833)", tipOdd.fee, 5_833)
 
-    // 수정 화면 왕복 — 저장된 값을 다시 열어도 두 번 역산되지 않는다
-    val saved = Payout.calculate(20_000, 8_000, 20.0, 1_500, 0.0, netShown = true)
-    val back = Payout.inputsFrom(saved.gross, saved.tipGross, saved.fee, 20.0, netShown = true)
-    expect("왕복 요금 입력칸", back.amount, 20_000)
-    expect("왕복 팁 입력칸", back.tip, 8_000)
-    val resaved = Payout.calculate(back.amount, back.tip, 20.0, 1_500, 0.0, netShown = true)
-    expect("재저장 총매출 그대로", resaved.gross, saved.gross)
-    expect("재저장 팁 그대로", resaved.tipGross, saved.tipGross)
-    expect("재저장 수수료 그대로", resaved.fee, saved.fee)
-    expect("재저장 순수익 그대로", resaved.net, saved.net)
-    // 반올림이 끼는 금액도 왕복이 어긋나지 않는다 (33,333 → 41,666 / 3,333 → 4,166)
-    val savedOdd = Payout.calculate(33_333, 3_333, 20.0, 1_500, 0.0, netShown = true)
-    val backOdd = Payout.inputsFrom(savedOdd.gross, savedOdd.tipGross, savedOdd.fee, 20.0, netShown = true)
-    expect("반올림 왕복 요금", backOdd.amount, 33_333)
-    expect("반올림 왕복 팁", backOdd.tip, 3_333)
-    val resavedOdd = Payout.calculate(backOdd.amount, backOdd.tip, 20.0, 1_500, 0.0, netShown = true)
-    expect("반올림 왕복 총매출", resavedOdd.gross, savedOdd.gross)
-    expect("반올림 왕복 팁 총액", resavedOdd.tipGross, savedOdd.tipGross)
-    // v1.0.11 이전 기록(팁에 수수료가 없던 행)은 열어도 팁이 줄지 않는다
-    val legacyRide = Payout.inputsFrom(25_000, 3_000, 5_000, 20.0, netShown = true)
-    expect("옛 기록 요금 입력칸", legacyRide.amount, 20_000)
-    expect("옛 기록 팁 입력칸", legacyRide.tip, 3_000)
-    // 총매출 입력 플랫폼은 왕복해도 그대로
-    val grossRide = Payout.inputsFrom(25_000, 3_000, 5_000, 20.0, netShown = false)
-    expect("로지 왕복 요금", grossRide.amount, 25_000)
-    expect("로지 왕복 팁", grossRide.tip, 3_000)
+    // (7) 수정 화면 왕복 — 로지: 저장된 값을 다시 열면 적었던 '받은 팁'으로 돌아온다
+    val rojiBack = Payout.inputsFrom(rojiTip.gross, rojiTip.tipGross, rojiTip.fee, 20.0, netShown = false)
+    expect("로지 왕복 요금", rojiBack.amount, 45_000)
+    expect("로지 왕복 팁", rojiBack.tip, 10_000)
+    val rojiResaved = Payout.calculate(rojiBack.amount, rojiBack.tip, 20.0, 20.0, 0, 0.0, netShown = false)
+    expect("로지 재저장 총액", rojiResaved.total, rojiTip.total)
+    expect("로지 재저장 수수료", rojiResaved.fee, rojiTip.fee)
+    expect("로지 재저장 순수익", rojiResaved.net, rojiTip.net)
+
+    // (8) 수정 화면 왕복 — 카카오T(역산)
+    val kakaoBack = Payout.inputsFrom(kakaoTip.gross, kakaoTip.tipGross, kakaoTip.fee, 20.0, netShown = true)
+    expect("카카오T 왕복 요금", kakaoBack.amount, 36_900)
+    expect("카카오T 왕복 팁", kakaoBack.tip, 10_000)
+    val kakaoResaved = Payout.calculate(kakaoBack.amount, kakaoBack.tip, 20.0, 20.0, 0, 0.0, netShown = true)
+    expect("카카오T 재저장 총액", kakaoResaved.total, kakaoTip.total)
+    expect("카카오T 재저장 수수료", kakaoResaved.fee, kakaoTip.fee)
+    expect("카카오T 재저장 순수익", kakaoResaved.net, kakaoTip.net)
+
+    // (9) 왕복 — 개인콜(요금 0% + 팁 20%) / 반올림이 끼는 팁
+    val mixedBack = Payout.inputsFrom(mixed.gross, mixed.tipGross, mixed.fee, 0.0, netShown = false)
+    expect("개인콜 왕복 요금", mixedBack.amount, 30_000)
+    expect("개인콜 왕복 팁", mixedBack.tip, 10_000)
+    val oddBack = Payout.inputsFrom(tipOdd.gross, tipOdd.tipGross, tipOdd.fee, 20.0, netShown = false)
+    expect("팁 반올림 왕복 팁", oddBack.tip, 3_333)
+    val oddResaved = Payout.calculate(oddBack.amount, oddBack.tip, 20.0, 20.0, 1_500, 0.0, netShown = false)
+    expect("팁 반올림 재저장 총액", oddResaved.total, tipOdd.total)
+    expect("팁 반올림 재저장 수수료", oddResaved.fee, tipOdd.fee)
+
+    // (10) 옛 기록 호환(팁에 수수료가 없던 행) — 열어도 팁이 줄지 않는다
+    val legacyGrossTip = Payout.inputsFrom(45_000, 10_000, 9_000, 20.0, netShown = false)
+    expect("옛 로지 요금", legacyGrossTip.amount, 45_000)
+    expect("옛 로지 팁", legacyGrossTip.tip, 10_000)
+    val legacyNetTip = Payout.inputsFrom(25_000, 3_000, 5_000, 20.0, netShown = true)
+    expect("옛 카카오T 요금", legacyNetTip.amount, 20_000)
+    expect("옛 카카오T 팁", legacyNetTip.tip, 3_000)
     expect("팁 0 왕복", Payout.inputsFrom(25_000, 0, 5_000, 20.0, netShown = true).tip, 0)
+    expect("팁 0 왕복(로지)", Payout.inputsFrom(25_000, 0, 5_000, 20.0, netShown = false).tip, 0)
 
+    // (11) 수수료율이 바뀌어도 저장값만으로 팁 수수료를 되짚는다 (저장 수수료 − 요금 몫)
+    expect("팁 수수료 되짚기", Payout.tipInputFrom(45_000, 12_500, 11_500, 20.0), 10_000)
+    expect("팁 수수료 되짚기(옛 행)", Payout.tipInputFrom(45_000, 10_000, 9_000, 20.0), 10_000)
 
     println(if (failures == 0) "ALL CHECKS PASSED" else "$failures CHECK(S) FAILED")
     if (failures > 0) kotlin.system.exitProcess(1)

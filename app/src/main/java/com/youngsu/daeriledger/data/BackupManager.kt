@@ -132,6 +132,7 @@ class BackupManager(
         s.put("insuranceDaeri", settings.insuranceDaeri)
         s.put("insuranceTaksong", settings.insuranceTaksong)
         s.put("employmentInsurancePercent", settings.employmentInsurancePercent)
+        s.put("tipFeePercent", settings.tipFeePercent)
         val fees = JSONObject()
         Platforms.ALL.forEach { p ->
             fees.put(p.id, JSONObject().apply {
@@ -491,6 +492,7 @@ class BackupManager(
         if (o.has("employmentInsurancePercent")) {
             settings.employmentInsurancePercent = o.optDouble("employmentInsurancePercent", 0.0)
         }
+        if (o.has("tipFeePercent")) settings.tipFeePercent = o.optDouble("tipFeePercent", 20.0)
         o.optJSONObject("platformFees")?.let { fees ->
             Platforms.ALL.forEach { p ->
                 fees.optJSONObject(p.id)?.let { entry ->

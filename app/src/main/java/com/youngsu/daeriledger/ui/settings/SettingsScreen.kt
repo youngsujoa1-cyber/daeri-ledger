@@ -77,10 +77,22 @@ class SettingsScreen(private val activity: MainActivity) : Screen {
         // ------------------------------------------------------ 플랫폼 수수료
         section("플랫폼 수수료")
         note(
-            "카카오T·티맵·핸들은 앱에 이미 수수료가 빠진 금액이 보여서 기본 0%로 잡았어요. " +
-                "로지·콜마너·아이콘은 기본 20%를 뺍니다. 실제 정산 기준에 맞게 고치면 순수익이 정확해져요."
+            "카카오T·티맵·핸들은 앱에 이미 수수료가 빠진 금액이 보여서 받은 금액을 넣고 총매출은 수수료율로 역산해요. " +
+                "로지·콜마너·아이콘은 총매출에서 20%를 뺍니다. 실제 정산 기준에 맞게 고치면 순수익이 정확해져요."
         )
         Platforms.ALL.forEach { platform -> platformRow(platform) }
+        // 개인콜 바로 아래 — 팁·경유비는 플랫폼이 아니라 따로 %를 잡는다
+        row(
+            icon = R.drawable.ic_receipt,
+            title = "팁 · 경유비",
+            subtitle = "받은 팁을 이 %로 역산 · 모든 플랫폼 공통",
+            value = String.format(Locale.KOREA, "%.0f%%", settings.tipFeePercent)
+        ) { showTipFeeDialog() }
+        note(
+            "팁·경유비는 플랫폼과 상관없이 받은 금액을 이 %로 역산해 총액을 잡아요. " +
+                "예) 로지 요금 45,000 + 받은 팁 10,000 (20%) → 총액 57,500 · 수수료 11,500 · 순수익 46,000. " +
+                "0%로 두면 팁에 수수료를 떼지 않고, 손님이 현금으로 준 팁은 0%가 맞아요."
+        )
 
         // ------------------------------------------------------------ 보험료
         section("보험료")
@@ -333,6 +345,27 @@ class SettingsScreen(private val activity: MainActivity) : Screen {
             }
         }
         dialog.show()
+    }
+
+    private fun showTipFeeDialog() {
+        Dialogs.amount(
+            activity,
+            title = "팁 · 경유비 수수료",
+            suffix = "%",
+            initial = String.format(Locale.KOREA, "%.0f", settings.tipFeePercent),
+            hint = "받은 팁을 이 %로 역산해요. 0%면 팁에 수수료를 떼지 않아요.",
+            presets = listOf("0" to "0%", "10" to "10%", "15" to "15%", "20" to "20%", "25" to "25%"),
+            allowDecimal = true
+        ) { value ->
+            val percent = value.replace(",", ".").toDoubleOrNull()
+            if (percent == null || percent < 0 || percent > 60) {
+                activity.toast("0~60 사이 수수료율을 입력해 주세요")
+            } else {
+                settings.tipFeePercent = percent
+                activity.refreshAll()
+                refresh()
+            }
+        }
     }
 
     private fun showCutoffDialog() {

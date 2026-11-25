@@ -26,6 +26,7 @@ class AppSettings private constructor(context: Context) {
         private const val KEY_THEME = "theme_mode"
         private const val KEY_LAST_PLATFORM = "last_platform"
         private const val KEY_LAST_SERVICE = "last_service"
+        private const val KEY_TIP_PCT = "fee_pct_tip"
 
         @Volatile private var instance: AppSettings? = null
         fun get(context: Context): AppSettings =
@@ -71,6 +72,14 @@ class AppSettings private constructor(context: Context) {
     var lastServiceType: String
         get() = prefs.getString(KEY_LAST_SERVICE, ServiceType.DAERI.id) ?: ServiceType.DAERI.id
         set(value) = prefs.edit().putString(KEY_LAST_SERVICE, value).apply()
+
+    /**
+     * 팁·경유비 수수료율(%). 플랫폼과 상관없이 받은 팁을 이 율로 역산한다.
+     * 기본 20% — 0% 로 두면 팁에는 수수료를 떼지 않는다.
+     */
+    var tipFeePercent: Double
+        get() = prefs.getFloat(KEY_TIP_PCT, 20f).toDouble()
+        set(value) = prefs.edit().putFloat(KEY_TIP_PCT, value.coerceIn(0.0, 60.0).toFloat()).apply()
 
     fun platformFeePercent(platformId: String): Double {
         val def = Platforms.byId(platformId)

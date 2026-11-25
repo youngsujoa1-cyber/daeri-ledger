@@ -215,28 +215,35 @@ class AddRideActivity : AppCompatActivity() {
     private fun renderPlatformNote() {
         val platform = Platforms.byId(platformId)
         val pct = settings.platformFeePercent(platformId)
+        val tipPct = settings.tipFeePercent
         val pctLabel = String.format(java.util.Locale.KOREA, "%.0f", pct)
+        val tipPctLabel = String.format(java.util.Locale.KOREA, "%.0f", tipPct)
+        // 팁·경유비는 플랫폼과 상관없이 '받은 금액'을 적는다 (설정의 팁·경유비 %로 역산)
+        binding.tipLabel.text = "팁 · 경유비 (받은 금액)"
+        val tipNote = if (tipPct > 0) {
+            "팁 · 경유비는 받은 금액을 ${tipPctLabel}%로 역산해요. " +
+                "(받은 ${Money.won(10_000)} → 총액 ${Money.won(Payout.grossFromNet(10_000, tipPct))}, " +
+                "수수료 ${Money.won(Payout.grossFromNet(10_000, tipPct) - 10_000)})"
+        } else {
+            "팁 · 경유비 수수료 0% — 받은 팁을 그대로 더해요. 설정에서 %를 넣으면 역산해요."
+        }
         if (settings.platformNetShown(platformId)) {
             binding.amountSectionLabel.text = "금액 (수수료 떼고 받은 금액)"
-            binding.tipLabel.text = "팁 · 경유비 (받은 금액)"
-            binding.platformFeeNote.text = if (pct > 0) {
+            binding.platformFeeNote.text = (if (pct > 0) {
                 "${platform.label}은(는) 수수료 ${pctLabel}%를 떼고 금액이 보여요. " +
                     "받은 금액을 넣으면 총매출을 역산해서 잡아요. " +
-                    "(받은 ${Money.won(20_000)} → 총매출 ${Money.won(Payout.grossFromNet(20_000, pct))})\n" +
-                    "팁 · 경유비도 받은 금액으로 넣으면 똑같이 역산해요. " +
-                    "(받은 ${Money.won(8_000)} → 총액 ${Money.won(Payout.grossFromNet(8_000, pct))})"
+                    "(받은 ${Money.won(20_000)} → 총매출 ${Money.won(Payout.grossFromNet(20_000, pct))})"
             } else {
                 "${platform.label}은(는) 앱에 수수료가 빠진 금액이 보여요. " +
                     "수수료율을 넣으면 총매출을 역산해서 잡아요."
-            }
+            }) + "\n" + tipNote
         } else {
             binding.amountSectionLabel.text = "금액 (총매출)"
-            binding.tipLabel.text = "팁 · 경유비"
-            binding.platformFeeNote.text = if (pct <= 0) {
+            binding.platformFeeNote.text = (if (pct <= 0) {
                 "${platform.label} 수수료 0% — 설정에서 실제 수수료율을 넣으면 순수익이 더 정확해져요."
             } else {
                 "${platform.label}은(는) 금액의 ${pct.toInt()}%를 수수료로 뺍니다. 설정에서 바꿀 수 있어요."
-            }
+            }) + "\n" + tipNote
         }
     }
 
@@ -330,6 +337,7 @@ class AddRideActivity : AppCompatActivity() {
         input = input,
         tip = tip(),
         feePercent = settings.effectiveFeePercent(platformId),
+        tipFeePercent = settings.tipFeePercent,
         insurancePerCall = insuranceValue(),
         employmentInsurancePercent = settings.employmentInsurancePercent,
         netShown = settings.platformNetShown(platformId)
@@ -338,8 +346,8 @@ class AddRideActivity : AppCompatActivity() {
     private fun updatePreview() {
         val input = inputAmount()
         val enteredTip = tip()
-        val netShown = settings.platformNetShown(platformId)
         val feePercent = settings.effectiveFeePercent(platformId)
+        val tipPercent = settings.tipFeePercent
         val feeLabel = "플랫폼 수수료 ${String.format(java.util.Locale.KOREA, "%.0f", feePercent)}%"
         if (input <= 0 && enteredTip <= 0) {
             binding.previewTotal.text = Money.won(0)
@@ -352,10 +360,12 @@ class AddRideActivity : AppCompatActivity() {
             return
         }
         val result = breakdown(input)
-        val tipFee = (result.tipGross - enteredTip).coerceAtLeast(0)
+        val tipFee = result.tipFee.coerceAtLeast(0)
+        val tipPercentLabel = String.format(java.util.Locale.KOREA, "%.0f", tipPercent)
 
         binding.previewTotal.text = Money.won(result.total)
-        binding.previewFeeLabel.text = if (tipFee > 0) "$feeLabel (팁 포함)" else feeLabel
+        // 수수료 줄에 팁·경유비 수수료율을 같이 보여 준다 — 팁을 적었을 때만
+        binding.previewFeeLabel.text = if (result.tipGross > 0) "$feeLabel · 팁·경유비 $tipPercentLabel%" else feeLabel
         binding.previewFee.text = "-" + Money.won(result.fee)
         binding.previewInsurance.text = "-" + Money.won(result.insurance)
         binding.previewNet.text = Money.won(result.net)
@@ -365,10 +375,10 @@ class AddRideActivity : AppCompatActivity() {
         // 팁·경유비 역산 내역 — 역산 플랫폼이면 받은 금액과 총액이 같이 보이게
         if (result.tipGross > 0) {
             binding.previewTipRow.visibility = View.VISIBLE
-            binding.previewTipLabel.text = if (netShown && tipFee > 0) {
-                "팁 · 경유비 (받은 ${Money.won(enteredTip)})"
+            binding.previewTipLabel.text = if (tipFee > 0) {
+                "팁 · 경유비 (받은 ${Money.won(enteredTip)} / ${tipPercentLabel}%)"
             } else {
-                "팁 · 경유비"
+                "팁 · 경유비 (받은 ${Money.won(enteredTip)} · 수수료 0%)"
             }
             binding.previewTip.text = "+" + Money.won(result.tipGross)
         } else {
