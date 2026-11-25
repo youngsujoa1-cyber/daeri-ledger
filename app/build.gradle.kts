@@ -16,6 +16,14 @@ val firebaseApiKey: String =
         ?: System.getenv("FIREBASE_API_KEY")
         ?: ""
 
+// 카카오맵 JavaScript 키 — 소스에 적지 않고 local.properties(저장소 제외)에서 읽어 BuildConfig 로 넣는다.
+// local.properties 에 `KAKAO_JS_KEY=...` 한 줄을 두거나, 같은 이름의 환경 변수를 쓰면 된다.
+// 값이 비어 있으면(오픈소스 빌드) 지도 피커는 예전 OpenStreetMap 타일 지도로 동작한다.
+val kakaoJsKey: String =
+    localProperties.getProperty("KAKAO_JS_KEY")
+        ?: System.getenv("KAKAO_JS_KEY")
+        ?: ""
+
 android {
     namespace = "com.youngsu.daeriledger"
     compileSdk = 35
@@ -24,11 +32,14 @@ android {
         applicationId = "com.youngsu.daeriledger"
         minSdk = 26
         targetSdk = 35
-        versionCode = 19
-        versionName = "1.0.18"
+        versionCode = 20
+        versionName = "1.0.19"
 
         // 키가 비어 있으면 앱은 공용 제보를 조용히 건너뛰고 로컬 콜밭만 쓴다
         buildConfigField("String", "FIREBASE_API_KEY", "\"$firebaseApiKey\"")
+
+        // 키가 비어 있으면 지도 피커는 OpenStreetMap 타일 지도로 폴백한다
+        buildConfigField("String", "KAKAO_JS_KEY", "\"$kakaoJsKey\"")
 
         vectorDrawables {
             useSupportLibrary = true

@@ -10,7 +10,6 @@ import androidx.appcompat.app.AlertDialog
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.materialswitch.MaterialSwitch
 import com.youngsu.daeriledger.R
 import com.youngsu.daeriledger.data.MySpot
 import com.youngsu.daeriledger.data.ServiceType
@@ -26,8 +25,10 @@ import java.util.Locale
  * `+ 콜밭 추가` 다이얼로그.
  *
  *  - 장소명(필수) · 구분(대리/탁송) · 시·도/지역 또는 주소 · 피크 · 메모를 받아
- *  - **현재 GPS 위치 쓰기** 스위치로 지금 위치를, **🗺️ 지도에서 위치 고르기**(OpenStreetMap 지도 피커)로
- *    골라 넣은 좌표를 저장한다. 좌표 없이 이름만 저장해도 된다.
+ *  - 창을 열면 **현재 GPS 위치를 자동으로 잡아** 좌표와 시·도/지역 칸을 미리 채우고,
+ *    **🗺️ 지도에서 위치 고르기**(카카오맵 피커)로 다른 자리를 골라 덮어쓸 수 있다.
+ *    위치를 못 잡으면 `위치를 아직 못 잡았어요 — 지도에서 골라 주세요` 로 안내한다.
+ *  - 좌표 없이 이름만 저장해도 된다.
  *  - 저장한 콜밭은 DB(my_spots)에 남아 콜밭 목록·검색·거리순 정렬·길찾기·숨기기에 그대로 쓰이고,
  *    JSON 백업에도 함께 들어간다.
  */
@@ -40,7 +41,6 @@ object AddSpotDialog {
         val peakInput = container.findViewById<EditText>(R.id.spotPeakInput)
         val memoInput = container.findViewById<EditText>(R.id.spotMemoInput)
         val serviceChips = container.findViewById<ChipGroup>(R.id.spotServiceChips)
-        val locationSwitch = container.findViewById<MaterialSwitch>(R.id.useLocationSwitch)
         val mapButton = container.findViewById<MaterialButton>(R.id.pickOnMapButton)
         val locationValue = container.findViewById<TextView>(R.id.locationValueText)
 
@@ -51,16 +51,21 @@ object AddSpotDialog {
         /** 지도에서 고른 주소(있으면 좌표 대신 보여 준다) */
         var placeLabel: String? = null
 
+        /** 지도에서 직접 고른 뒤에는 늦게 도착한 자동 위치가 덮어쓰지 않는다 */
+        var userPicked = false
+
         fun showLocation() {
             val la = lat
             val ln = lng
             locationValue.text = when {
                 la != null && ln != null && placeLabel != null ->
-                    String.format(Locale.KOREA, "위치 저장: %s · %.5f, %.5f", placeLabel, la, ln)
+                    String.format(Locale.KOREA, "위치: %s · %.5f, %.5f", placeLabel, la, ln)
                 la != null && ln != null ->
-                    String.format(Locale.KOREA, "위치 저장: %.5f, %.5f · 길찾기에 쓰여요", la, ln)
-                else -> "위치 없음 — 이름만 저장돼요"
+                    String.format(Locale.KOREA, "위치: %.5f, %.5f · 길찾기에 쓰여요", la, ln)
+                else -> "위치를 아직 못 잡았어요 — 지도에서 골라 주세요"
             }
+            mapButton.text =
+                if (la != null && ln != null) "🗺️ 지도에서 위치 바꾸기" else "🗺️ 지도에서 위치 고르기"
         }
 
         serviceChips.setChips(
@@ -68,47 +73,47 @@ object AddSpotDialog {
             service.id
         ) { id -> service = ServiceType.from(id) }
 
-        // 현재 GPS 위치
-        locationSwitch.setOnCheckedChangeListener { _, checked ->
-            if (!checked) {
-                lat = null
-                lng = null
-                placeLabel = null
-                showLocation()
-                return@setOnCheckedChangeListener
-            }
+        // 창을 열면 지금 위치를 자동으로 잡는다 (권한이 없으면 안내만)
+        fun autoLocate() {
             if (!activity.hasLocationPermission()) {
-                locationSwitch.isChecked = false
-                activity.requestLocationPermission()
-                activity.toast("위치 권한을 허용한 뒤 스위치를 다시 켜 주세요")
-                return@setOnCheckedChangeListener
+                showLocation()
+                return
             }
-            locationValue.text = "현재 위치를 확인하는 중…"
-            LocationHelper.request(activity) { location ->
-                if (location == null) {
-                    locationSwitch.isChecked = false
-                    activity.toast("위치를 찾지 못했어요 — 지도에서 직접 골라 주세요")
-                    showLocation()
-                } else {
-                    lat = location.latitude
-                    lng = location.longitude
+            LocationHelper.lastKnown(activity)?.let { last ->
+                if (!userPicked) {
+                    lat = last.latitude
+                    lng = last.longitude
                     placeLabel = null
                     showLocation()
-                    // 지역 칸이 비어 있으면 현재 위치의 주소로 채워 준다
-                    if (areaInput.text.isNullOrBlank()) {
-                        findAddress(activity, location.latitude, location.longitude) { address ->
-                            if (areaInput.text.isNullOrBlank() && address.isNotBlank()) areaInput.setText(address)
+                }
+            }
+            if (lat == null) locationValue.text = "현재 위치를 확인하는 중…"
+            LocationHelper.request(activity) { location ->
+                if (userPicked) return@request
+                if (location == null) {
+                    showLocation()
+                    return@request
+                }
+                lat = location.latitude
+                lng = location.longitude
+                placeLabel = null
+                showLocation()
+                // 지역 칸이 비어 있으면 지금 위치의 주소로 채워 준다
+                if (areaInput.text.isNullOrBlank()) {
+                    findAddress(activity, location.latitude, location.longitude) { address ->
+                        if (!userPicked && areaInput.text.isNullOrBlank() && address.isNotBlank()) {
+                            areaInput.setText(address)
                         }
                     }
                 }
             }
         }
 
-        // 지도에서 위치 고르기 (OpenStreetMap 타일 피커)
+        // 지도에서 위치 고르기 → 고른 좌표·주소로 덮어쓴다
         fun pickOnMap(startLat: Double?, startLng: Double?) {
             areaInput.hideKeyboard()
             SpotMapPicker.show(activity, startLat, startLng) { picked ->
-                locationSwitch.isChecked = false
+                userPicked = true
                 lat = picked.lat
                 lng = picked.lng
                 placeLabel = picked.address.ifBlank { null }
@@ -180,6 +185,8 @@ object AddSpotDialog {
             }
         }
         dialog.show()
+        showLocation()
+        autoLocate()
         nameInput.requestFocus()
     }
 

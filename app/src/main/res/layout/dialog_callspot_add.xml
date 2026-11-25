@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 콜밭 추가 다이얼로그: 장소명(필수) · 구분(대리/탁송) · 지역/주소 · 현재 위치 또는 지도에서 좌표 · 피크 · 메모 -->
+<!-- 콜밭 추가 다이얼로그: 장소명(필수) · 구분(대리/탁송) · 지역/주소 · 피크 · 메모
+     좌표는 창을 열 때 지금 위치로 자동으로 잡히고, 지도에서 골라 바꿀 수 있다 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
@@ -63,26 +64,16 @@
         android:textColorHint="@color/text_tertiary"
         android:textSize="15sp" />
 
-    <com.google.android.material.materialswitch.MaterialSwitch
-        android:id="@+id/useLocationSwitch"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:minHeight="48dp"
-        android:text="현재 GPS 위치 쓰기"
-        android:textColor="@color/text_primary"
-        android:textSize="14sp" />
-
     <com.google.android.material.button.MaterialButton
         android:id="@+id/pickOnMapButton"
         style="@style/Widget.Daeri.Button.Tonal"
         android:layout_width="match_parent"
         android:layout_height="46dp"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="8dp"
         android:minHeight="46dp"
-        android:text="🗺️ 지도에서 위치 고르기"
+        android:text="🗺️ 지도에서 위치 바꾸기"
         android:textSize="13sp"
-        app:icon="@drawable/ic_my_location"
+        app:icon="@drawable/ic_map_pin"
         app:iconSize="16dp" />
 
     <TextView
@@ -91,7 +82,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:text="위치 없음 — 이름만 저장돼요"
+        android:text="위치를 아직 못 잡았어요 — 지도에서 골라 주세요"
         android:textSize="11sp" />
 
     <EditText

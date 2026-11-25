@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 지도에서 위치 고르기: OSM 타일 지도 위에 정중앙 고정 핀, 아래 주소 카드와 `이 위치 선택` -->
+<!-- 지도에서 위치 고르기: 카카오맵(WebView) 위에 정중앙 고정 핀, 아래 주소 카드와 `이 위치 선택`.
+     카카오 키가 없거나 카카오맵을 못 불러오면 가려 둔 OpenStreetMap 지도(mapView)로 폴백한다. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/pickerRoot"
@@ -7,10 +8,31 @@
     android:layout_height="match_parent"
     android:background="@color/bg">
 
+    <!-- 폴백 지도 (OpenStreetMap 타일) — 카카오맵이 뜨면 GONE -->
     <com.youngsu.daeriledger.ui.widget.SpotMapView
         android:id="@+id/mapView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
+    <!-- 카카오맵 (JavaScript SDK in WebView) -->
+    <WebView
+        android:id="@+id/kakaoWeb"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/bg"
+        android:visibility="gone" />
+
+    <!-- 화면 정중앙 고정 핀 — 끝(점)이 지도 중심을 가리킨다. 64dp 높이의 핀 끝을 화면 중심에 맞춘다 -->
+    <ImageView
+        android:id="@+id/centerPin"
+        android:layout_width="48dp"
+        android:layout_height="64dp"
+        android:layout_gravity="center"
+        android:contentDescription="선택할 위치"
+        android:src="@drawable/ic_map_pin_center"
+        android:translationY="-29dp"
+        android:visibility="gone" />
 
     <!-- 상단 바 -->
     <LinearLayout
@@ -48,6 +70,75 @@
             android:layout_width="44dp"
             android:layout_height="44dp" />
     </LinearLayout>
+
+    <!-- 카카오맵을 못 불러왔을 때 안내 + 다시 시도 / 기본 지도 -->
+    <LinearLayout
+        android:id="@+id/mapErrorBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:layout_marginHorizontal="12dp"
+        android:layout_marginTop="62dp"
+        android:background="@drawable/bg_card_soft"
+        android:elevation="6dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="10dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/mapErrorText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="카카오맵을 불러오지 못해 기본 지도로 보여 드려요"
+            android:textColor="@color/text_primary"
+            android:textSize="12sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/mapRetryButton"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:layout_marginStart="8dp"
+            android:minHeight="36dp"
+            android:minWidth="0dp"
+            android:paddingHorizontal="10dp"
+            android:text="다시 시도"
+            android:textColor="@color/text_primary"
+            android:textSize="12sp"
+            app:backgroundTint="@color/surface_high"
+            app:cornerRadius="18dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/mapOsmButton"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:minHeight="36dp"
+            android:minWidth="0dp"
+            android:paddingHorizontal="8dp"
+            android:text="기본 지도"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- 지도를 불러오는 동안 -->
+    <TextView
+        android:id="@+id/mapLoading"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:background="@drawable/bg_card_soft"
+        android:elevation="4dp"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="10dp"
+        android:text="지도를 불러오는 중…"
+        android:textColor="@color/text_secondary"
+        android:textSize="12sp"
+        android:translationY="52dp"
+        android:visibility="gone" />
 
     <!-- 오른쪽 확대·축소·내 위치 -->
     <LinearLayout
@@ -160,14 +251,14 @@
             android:text="이 위치 선택"
             android:textSize="16sp" />
 
-        <!-- OSM 타일 이용 정책이 요구하는 출처 표기 -->
+        <!-- 지도 출처 표기 — 카카오맵이면 Kakao, 폴백이면 OpenStreetMap 으로 바뀐다 -->
         <TextView
             android:id="@+id/attributionText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:gravity="end"
-            android:text="지도 데이터 © OpenStreetMap 기여자"
+            android:text="지도 © Kakao Corp."
             android:textColor="@color/text_tertiary"
             android:textSize="10sp" />
     </LinearLayout>

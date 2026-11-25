@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 지도 화면 정중앙 고정 핀 — 끝(점)이 화면 중심을 가리킨다. 색은 테마의 앰버(accent) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="64dp"
+    android:viewportWidth="48"
+    android:viewportHeight="64">
+
+    <!-- 바닥 그림자 -->
+    <path
+        android:fillColor="#33000000"
+        android:pathData="M24,61.5m-6.5,0a6.5,2.2 0 1,0 13,0a6.5,2.2 0 1,0 -13,0" />
+
+    <!-- 핀 몸통: 앰버 + 흰 테두리 -->
+    <path
+        android:fillColor="@color/accent"
+        android:pathData="M24,60.5 C24,60.5 8,37.5 8,21.5 A16,16 0 1,1 40,21.5 C40,37.5 24,60.5 24,60.5 Z"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="2.5" />
+
+    <!-- 가운데 흰 점 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M24,21.5m-5.5,0a5.5,5.5 0 1,0 11,0a5.5,5.5 0 1,0 -11,0" />
+</vector>

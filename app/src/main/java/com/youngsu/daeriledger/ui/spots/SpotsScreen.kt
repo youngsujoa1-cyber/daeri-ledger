@@ -7,6 +7,7 @@ import android.net.Uri
 import android.view.LayoutInflater
 import android.view.View
 import android.view.inputmethod.EditorInfo
+import android.widget.TextView
 import androidx.core.widget.doAfterTextChanged
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.youngsu.daeriledger.R
@@ -270,23 +271,49 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         }
     }
 
-    /** 카드를 길게 눌렀을 때 — 내 화면에서 숨기기, 없어진 곳 신고(5명 이상이면 공용 삭제), 내 콜밭 삭제 */
+    /** 카드를 길게 눌렀을 때 — 누를 수 있는 카드 버튼으로 내 화면에서 숨기기 · 없어진 곳 신고 · 내 콜밭 삭제 */
     private fun showSpotActions(spot: Hotspot) {
-        val labels = ArrayList<String>()
-        labels.add("내 화면에서만 숨기기")
-        labels.add("없어진 곳 신고 (5명 이상이면 모든 기사님 화면에서 숨김)")
-        if (spot.mine) labels.add("내 콜밭 삭제")
-        MaterialAlertDialogBuilder(activity)
-            .setTitle(spot.name)
-            .setItems(labels.toTypedArray()) { _, which ->
-                when (which) {
-                    0 -> confirmHide(spot)
-                    1 -> confirmReportRemoved(spot)
-                    else -> confirmDeleteMySpot(spot)
-                }
-            }
-            .setNegativeButton("닫기", null)
-            .show()
+        val container = LayoutInflater.from(activity)
+            .inflate(R.layout.dialog_spot_actions, null, false)
+        val title = container.findViewById<TextView>(R.id.actionTitle)
+        val subtitle = container.findViewById<TextView>(R.id.actionSubtitle)
+        val hideAction = container.findViewById<View>(R.id.hideAction)
+        val reportAction = container.findViewById<View>(R.id.reportAction)
+        val deleteAction = container.findViewById<View>(R.id.deleteAction)
+        val closeAction = container.findViewById<View>(R.id.closeAction)
+
+        title.text = spot.name
+        val sub = listOfNotNull(
+            spot.area.takeIf { it.isNotBlank() },
+            spot.source.takeIf { it.isNotBlank() },
+            if (spot.mine) "내 콜밭" else null
+        ).joinToString(" · ")
+        if (sub.isBlank()) {
+            subtitle.visibility = View.GONE
+        } else {
+            subtitle.visibility = View.VISIBLE
+            subtitle.text = sub
+        }
+        deleteAction.visibility = if (spot.mine) View.VISIBLE else View.GONE
+
+        val dialog = MaterialAlertDialogBuilder(activity)
+            .setView(container)
+            .create()
+
+        hideAction.setOnClickListener {
+            dialog.dismiss()
+            confirmHide(spot)
+        }
+        reportAction.setOnClickListener {
+            dialog.dismiss()
+            confirmReportRemoved(spot)
+        }
+        deleteAction.setOnClickListener {
+            dialog.dismiss()
+            confirmDeleteMySpot(spot)
+        }
+        closeAction.setOnClickListener { dialog.dismiss() }
+        dialog.show()
     }
 
     /** 내가 추가한 콜밭을 목록에서 지운다 (기록 통계에는 영향 없음) */
