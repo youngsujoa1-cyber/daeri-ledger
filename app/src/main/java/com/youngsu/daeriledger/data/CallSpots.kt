@@ -6,10 +6,11 @@ import com.youngsu.daeriledger.R
 /**
  * 앱이 보여 주는 전체 콜밭.
  *  - [Hotspots.CURATED] : 직접 정리한 기본 콜밭(피크 시간대·특징 메모 포함)
- *  - res/raw/callspots.tsv : 기사님이 쓰시는 카카오맵 공개 즐겨찾기 3개 그룹
- *    (`대리 콜 포인트1` · `대리 콜 포인트2` · `탁송 발주`)에서 중복을 정리해 옮긴 목록
+ *  - res/raw/callspots.tsv : 기사님이 쓰시는 카카오맵 공개 즐겨찾기 그룹
+ *    (`기사 추천` = 예전 `대리 콜 포인트1`·`2` 통합, `탁송 발주`)에서 중복을 정리해 옮긴 목록
  *
  * 파일은 처음 한 번만 읽고 이후에는 같은 목록을 돌려준다. (1,500곳 남짓, 수 ms)
+ * 내가 직접 추가한 콜밭은 DB(my_spots)에 들어 있어 [Hotspots.fromMySpot] 으로 목록에 합쳐 쓴다.
  */
 object CallSpots {
 
@@ -49,7 +50,8 @@ object CallSpots {
                                 lng = lng,
                                 peak = "",
                                 tip = p[7],
-                                source = p[1]
+                                // 예전 파일(`콜포인트1`·`콜포인트2`)도 `기사 추천` 하나로 읽는다
+                                source = Hotspots.normalizeSource(p[1])
                             )
                         )
                     }

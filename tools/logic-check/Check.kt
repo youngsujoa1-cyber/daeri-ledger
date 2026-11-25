@@ -1,5 +1,6 @@
 import com.youngsu.daeriledger.data.DcbBackup
 import com.youngsu.daeriledger.data.Hotspots
+import com.youngsu.daeriledger.data.MySpot
 import com.youngsu.daeriledger.data.PaymentType
 import com.youngsu.daeriledger.data.Payout
 import com.youngsu.daeriledger.data.Platforms
@@ -168,19 +169,19 @@ fun main() {
     expect("callspots.tsv 존재", tsv.isFile, true)
     val rows = if (tsv.isFile) tsv.readLines(Charsets.UTF_8).filter { it.isNotBlank() } else emptyList()
     val cols = rows.map { it.split('\t') }
-    expect("카카오 콜밭 수", cols.size, 1262)
+    expect("카카오 콜밭 수(콜포인트1 464 + 2 441)", cols.size, 905)
     expect("카카오 콜밭 8칸", cols.all { it.size == 8 }, true)
     expect("카카오 콜밭 id 중복 없음", cols.map { it[0] }.distinct().size, cols.size)
     expect("카카오 콜밭 이름·지역 채움", cols.all { it[2].isNotBlank() && it[3].isNotBlank() && it[4].isNotBlank() }, true)
-    expect("카카오 콜밭 출처 값", cols.all { it[1] in listOf("콜포인트1", "콜포인트2", "탁송") }, true)
+    expect("카카오 콜밭 출처 값", cols.all { it[1] == "기사 추천" }, true)
     expect("카카오 콜밭 시·도 값", cols.all { it[3] in Hotspots.CITIES }, true)
     val kLat = cols.map { it[5].toDouble() }
     val kLng = cols.map { it[6].toDouble() }
     expect("카카오 콜밭 좌표 범위(한국)",
         kLat.all { it in 33.0..38.9 } && kLng.all { it in 124.0..132.0 }, true)
-    expect("콜포인트1 수", cols.count { it[1] == "콜포인트1" }, 464)
-    expect("콜포인트2 수", cols.count { it[1] == "콜포인트2" }, 441)
-    expect("탁송 수", cols.count { it[1] == "탁송" }, 357)
+    // v1.0.15 — 탁송 콜밭은 목록에서 뺐다 (기본 318 + 기사 추천 905 = 1,223곳)
+    expect("탁송 콜밭 없음", cols.none { it[1] == "탁송" }, true)
+    expect("콜밭 전체 수(기본 318 + 905)", spots.size + cols.size, 1223)
     // 같은 이름이 200m 안에 두 번 있으면 안 된다
     var nearDup = ""
     var nearMin = Double.MAX_VALUE
@@ -202,6 +203,43 @@ fun main() {
         if (Hotspots.distanceKm(kLat[k], kLng[k], c.lat, c.lng) * 1000 < 300) clash = "${cols[k][2]} ↔ ${c.name}"
     }
     expect("기본 콜밭과 300m 같은 이름 겹침 없음", clash, "")
+
+    // v1.0.15 — `콜포인트1`·`콜포인트2` 를 `기사 추천` 하나로 합치고, 출처 칩은 없애고 한 목록으로
+    expect("예전 출처 이름 정리(콜포인트1)", Hotspots.normalizeSource("콜포인트1"), "기사 추천")
+    expect("예전 출처 이름 정리(콜포인트2)", Hotspots.normalizeSource("콜포인트2"), "기사 추천")
+    expect("중간 이름 정리(기사님들 포인트)", Hotspots.normalizeSource("기사님들 포인트"), "기사 추천")
+    expect("출처 이름 그대로", Hotspots.normalizeSource("기사 추천"), "기사 추천")
+    expect("탁송 출처는 그대로", Hotspots.normalizeSource("탁송"), "탁송")
+    expect("구분 대리 → 출처", Hotspots.sourceFor(ServiceType.DAERI), "기사 추천")
+    expect("구분 탁송 → 출처", Hotspots.sourceFor(ServiceType.TAKSONG), "탁송")
+    expect("시·도 찾기(서울)", Hotspots.cityOfArea("서울 강남구 역삼동"), "서울")
+    expect("시·도 찾기(경기)", Hotspots.cityOfArea("경기 성남시 분당구 정자동"), "경기")
+    expect("시·도 찾기(정식 이름)", Hotspots.cityOfArea("경상남도 창원시"), "경남")
+    expect("시·도 찾기(없음)", Hotspots.cityOfArea("정자역"), "")
+
+    // v1.0.15 — 내가 추가한 콜밭이 콜밭 목록 항목으로 바뀌는지
+    val myDaeri = Hotspots.fromMySpot(
+        MySpot(
+            id = 7, name = "정자역 사거리", lat = 37.3665, lng = 127.1085,
+            peak = "23:00~02:00", memo = "2차 골목", createdAt = 1,
+            service = ServiceType.DAERI, area = "경기 성남시 분당구 정자동"
+        )
+    )
+    expect("내 콜밭 id", myDaeri.id, "my-7")
+    expect("내 콜밭 출처(대리)", myDaeri.source, "기사 추천")
+    expect("내 콜밭 표시", myDaeri.mine, true)
+    expect("내 콜밭 이름", myDaeri.name, "정자역 사거리")
+    expect("내 콜밭 시·도", myDaeri.city, "경기")
+    expect("내 콜밭 피크", myDaeri.peak, "23:00~02:00")
+    expect("내 콜밭 메모", myDaeri.tip, "2차 골목")
+    expect("내 콜밭 좌표 있음", myDaeri.hasLocation, true)
+    expect("내 콜밭 검색(이름)", myDaeri.matches("정자"), true)
+    expect("내 콜밭 검색(배지)", myDaeri.matches("내 콜밭"), true)
+    val myTaksong = Hotspots.fromMySpot(
+        MySpot(id = 8, name = "KCar 분당", service = ServiceType.TAKSONG)
+    )
+    expect("내 콜밭 출처(탁송)", myTaksong.source, "탁송")
+    expect("좌표 없는 내 콜밭", myTaksong.hasLocation, false)
 
     // 달력 그리드 터치 판정 (CalendarMonthView 가 쓰는 계산 — 눌린 칸 = 그려진 칸)
     val nov = YearMonth.of(2026, 11)

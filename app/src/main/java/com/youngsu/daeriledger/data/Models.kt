@@ -148,7 +148,7 @@ data class PlatformStat(
     val effectiveFeeRate: Double get() = if (gross == 0) 0.0 else fees * 100.0 / gross
 }
 
-/** 사용자가 직접 저장한 콜밭. lat/lng 가 없으면(위치 권한 거부 등) 이름만 저장된다. */
+/** 사용자가 직접 추가한 콜밭. lat/lng 가 없으면(위치 권한 거부 등) 이름만 저장된다. */
 data class MySpot(
     val id: Long = 0L,
     val name: String,
@@ -156,7 +156,11 @@ data class MySpot(
     val lng: Double? = null,
     val peak: String = "",
     val memo: String = "",
-    val createdAt: Long = 0L
+    val createdAt: Long = 0L,
+    /** 구분 — 대리 / 탁송 (콜밭 목록에서 어느 출처에 함께 보일지 정해진다) */
+    val service: ServiceType = ServiceType.DAERI,
+    /** 시·도/지역 또는 주소 (예: `서울 강남구 역삼동`) */
+    val area: String = ""
 ) {
     val hasLocation: Boolean get() = lat != null && lng != null
 }

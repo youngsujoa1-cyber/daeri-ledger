@@ -191,6 +191,8 @@ class BackupManager(
                 sp.lng?.let { put("lng", it) }
                 put("peak", sp.peak)
                 put("memo", sp.memo)
+                put("service", sp.service.id)
+                put("area", sp.area)
                 put("createdAt", sp.createdAt)
             })
         }
@@ -308,7 +310,9 @@ class BackupManager(
                         lng = if (o.has("lng")) o.optDouble("lng") else null,
                         peak = o.optString("peak"),
                         memo = o.optString("memo"),
-                        createdAt = o.optLong("createdAt")
+                        createdAt = o.optLong("createdAt"),
+                        service = ServiceType.from(o.optString("service")),
+                        area = o.optString("area")
                     )
                 )
                 existingSpotNames.add(name)

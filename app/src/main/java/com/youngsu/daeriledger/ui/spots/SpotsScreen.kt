@@ -8,6 +8,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import androidx.core.widget.doAfterTextChanged
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.youngsu.daeriledger.R
 import com.youngsu.daeriledger.data.CallSpots
 import com.youngsu.daeriledger.data.Hotspot
@@ -32,9 +33,9 @@ import kotlin.math.roundToInt
 /**
  * 콜밭 화면.
  *  - 위치가 있으면 가까운 순으로 정렬한 콜밭 목록 + 길찾기
- *  - 출처(기본·콜포인트1·콜포인트2·탁송)와 시·도로 걸러 보고, 이름·주소로 검색
- *  - 현장에 가 보니 없어진 곳은 카드를 길게 눌러 숨긴다 (되돌리기 가능)
- *  - 이미 저장해 둔 콜밭은 따로 모아 보여준다 (새로 저장하는 기능은 없음)
+ *  - 출처 칩 없이 **하나의 콜밭 목록** — 시·도 칩으로 걸러 보고, 이름·주소로 검색
+ *  - 현장에 가 보니 없어진 곳은 카드를 길게 눌러 숨기거나(내 콜밭은 삭제) 한다 (되돌리기 가능)
+ *  - `+ 콜밭 추가` 로 내가 다니는 콜밭을 직접 넣는다 (구분·지역·피크·메모, GPS/주소로 좌표)
  */
 class SpotsScreen(private val activity: MainActivity) : Screen {
 
@@ -42,7 +43,6 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
     override val view: View get() = binding.root
 
     private var cityFilter: String? = null
-    private var sourceFilter: String? = null
     private var searchQuery: String = ""
 
     private companion object {
@@ -55,7 +55,7 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
     private var savedSpots: List<MySpot> = emptyList()
     private var spotStats: List<SpotStat> = emptyList()
 
-    /** 전체 콜밭 (기본 + 카카오맵 즐겨찾기) — 처음 한 번만 읽는다 */
+    /** 전체 콜밭 (기본 + 기사 추천 + 탁송) + 내가 추가한 콜밭 — 새로고침마다 다시 만든다 */
     private var spotList: List<Hotspot> = emptyList()
     private var hiddenIds: Set<String> = emptySet()
 
@@ -66,6 +66,7 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
     init {
         binding.locationAction.setOnClickListener { onLocationAction() }
         binding.locationCard.setOnClickListener { onLocationAction() }
+        binding.addSpotButton.setOnClickListener { showAddSpotDialog() }
         binding.spotSearch.doAfterTextChanged { text ->
             val query = text?.toString().orEmpty()
             if (query != searchQuery) {
@@ -97,10 +98,10 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         val today = BizTime.businessDayOfNow(activity.settings.cutoffHour)
         savedSpots = activity.repo.allSpots()
         spotStats = activity.repo.spotStats(today.minusDays(89), today, limit = 20)
-        spotList = CallSpots.all(activity)
+        // 기본·기사 추천·탁송 콜밭 + 내가 추가한 콜밭(DB)을 한 목록으로
+        spotList = CallSpots.all(activity) + savedSpots.map { Hotspots.fromMySpot(it) }
         hiddenIds = activity.settings.hiddenSpotIds
 
-        buildSourceChips()
         buildRegionChips()
         updateHiddenInfo()
         renderSavedSpots()
@@ -171,16 +172,6 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
 
     // ------------------------------------------------------------- 필터
 
-    /** 출처 칩 — 전체 / 기본 / 콜포인트1 / 콜포인트2 / 탁송 */
-    private fun buildSourceChips() {
-        val allId = "all"
-        val items = listOf(allId to "전체") + Hotspots.SOURCES.map { it.first to it.second }
-        binding.sourceChips.setChips(items, sourceFilter ?: allId) { id ->
-            sourceFilter = if (id == allId) null else id
-            renderNearby()
-        }
-    }
-
     private fun buildRegionChips() {
         val items = listOf("" to "전체") + Hotspots.CITIES.map { it to it }
         binding.regionChips.setChips(items, cityFilter ?: "") { id ->
@@ -194,30 +185,29 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
             val query = searchQuery.trim()
             val list = spotList.filter {
                 (cityFilter == null || it.city == cityFilter) &&
-                    (sourceFilter == null || it.source == sourceFilter) &&
                     it.id !in hiddenIds &&
                     it.matches(query)
             }
             val loc = userLocation
             return if (loc != null) {
-                list.map { it to Hotspots.distanceKm(loc.latitude, loc.longitude, it.lat, it.lng) }
+                // 좌표를 저장하지 않은 콜밭은 거리 계산에서 빠지므로 목록 맨 뒤로 보낸다
+                list.map { it to (distanceOf(it) ?: Double.MAX_VALUE) }
                     .sortedBy { it.second }
                     .map { it.first }
             } else {
-                list.sortedWith(compareBy({ sourceOrder(it.source) }, { Hotspots.CITIES.indexOf(it.city) }, { it.name }))
+                // 위치를 모를 때: 내 콜밭 → 시·도 순 → 이름 순
+                list.sortedWith(
+                    compareBy(
+                        { !it.mine },
+                        { Hotspots.CITIES.indexOf(it.city).let { i -> if (i < 0) Hotspots.CITIES.size else i } },
+                        { it.name }
+                    )
+                )
             }
         }
 
-    /** 위치 정보가 없을 때 정렬용 — 기본 콜밭을 먼저, 그 다음 출처별 */
-    private fun sourceOrder(source: String): Int {
-        val index = Hotspots.SOURCES.indexOfFirst { it.first == source }
-        return if (index < 0) Hotspots.SOURCES.size else index
-    }
-
-    private fun sourceLabel(source: String?): String =
-        Hotspots.SOURCES.firstOrNull { it.first == (source ?: "") }?.second ?: ""
-
     private fun distanceOf(spot: Hotspot): Double? {
+        if (!spot.hasLocation) return null
         val loc = userLocation ?: return null
         return Hotspots.distanceKm(loc.latitude, loc.longitude, spot.lat, spot.lng)
     }
@@ -231,6 +221,35 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         } else {
             binding.hiddenInfo.visibility = View.VISIBLE
             binding.hiddenInfo.text = "숨긴 콜밭 ${count}곳 · 되돌리기"
+        }
+    }
+
+    /** 카드를 길게 눌렀을 때 — 숨기기, 내가 추가한 콜밭이면 삭제도 고를 수 있다 */
+    private fun showSpotActions(spot: Hotspot) {
+        val labels = if (spot.mine) arrayOf("목록에서 숨기기", "내 콜밭 삭제")
+        else arrayOf("목록에서 숨기기")
+        MaterialAlertDialogBuilder(activity)
+            .setTitle(spot.name)
+            .setItems(labels) { _, which ->
+                if (which == 0) confirmHide(spot) else confirmDeleteMySpot(spot)
+            }
+            .setNegativeButton("닫기", null)
+            .show()
+    }
+
+    /** 내가 추가한 콜밭을 목록에서 지운다 (기록 통계에는 영향 없음) */
+    private fun confirmDeleteMySpot(spot: Hotspot) {
+        val id = spot.id.removePrefix("my-").toLongOrNull() ?: return
+        Dialogs.confirm(
+            activity,
+            "내 콜밭 삭제",
+            "‘${spot.name}’을(를) 지울까요? 기록 통계에는 영향이 없어요.",
+            positive = "삭제",
+            destructive = true
+        ) {
+            activity.repo.deleteSpot(id)
+            activity.toast("‘${spot.name}’ 삭제했어요")
+            refresh()
         }
     }
 
@@ -282,12 +301,23 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         savedSpots.forEach { spot ->
             val b = ItemMySpotBinding.inflate(LayoutInflater.from(activity), binding.savedSpotsColumn, false)
             b.spotName.text = spot.name
-            val peakText = if (spot.peak.isBlank()) "피크 시간 미입력" else "피크 ${spot.peak}"
-            b.spotMeta.text = listOf(peakText, if (spot.hasLocation) "위치 저장됨" else "이름만 저장")
-                .joinToString(" · ")
-            if (spot.memo.isBlank()) b.spotMemo.visibility = View.GONE else {
+            val peakText = if (spot.peak.isBlank()) "피크 미입력" else "피크 ${spot.peak}"
+            b.spotMeta.text = listOf(
+                spot.service.label,
+                peakText,
+                if (spot.hasLocation) "위치 저장됨" else "이름만 저장"
+            ).joinToString(" · ")
+            // 주소·거리 한 줄 + 메모 한 줄 (둘 다 없으면 숨김)
+            val where = listOfNotNull(
+                spot.area.takeIf { it.isNotBlank() },
+                distanceOf(Hotspots.fromMySpot(spot))?.let { Hotspots.formatDistance(it) }
+            ).joinToString(" · ")
+            val memoLines = listOfNotNull(where.takeIf { it.isNotBlank() }, spot.memo.takeIf { it.isNotBlank() })
+            if (memoLines.isEmpty()) {
+                b.spotMemo.visibility = View.GONE
+            } else {
                 b.spotMemo.visibility = View.VISIBLE
-                b.spotMemo.text = spot.memo
+                b.spotMemo.text = memoLines.joinToString("\n")
             }
             b.navigateButton.setOnClickListener { navigate(spot.name, spot.lat, spot.lng) }
             b.deleteButton.setOnClickListener {
@@ -306,6 +336,20 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         }
     }
 
+    // ------------------------------------------------------ 콜밭 추가
+
+    /** `+ 콜밭 추가` — 장소명·구분·지역·피크·메모를 받아 내 콜밭으로 저장한다 */
+    private fun showAddSpotDialog() {
+        AddSpotDialog.show(activity) {
+            // 방금 추가한 콜밭이 바로 보이도록 검색·출처·지역 필터를 ‘전체’로 돌리고 맨 위로
+            searchQuery = ""
+            binding.spotSearch.setText("")
+            cityFilter = null
+            refresh()
+            binding.spotsScroll.smoothScrollTo(0, 0)
+        }
+    }
+
     // ------------------------------------------------------ 콜밭 목록
 
     private fun renderNearby() {
@@ -318,9 +362,8 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         binding.nearbyCountText.text = "${list.size}곳"
         binding.spotsSubtitle.text = when {
             query.isNotEmpty() -> "‘$query’ 검색 결과 · 콜밭 참고 정보"
-            sourceFilter != null -> "${sourceLabel(sourceFilter)} 콜밭 · 가까운 순 참고 정보"
             userLocation != null -> "내 위치에서 가까운 순 · 콜밭 ${spotList.size}곳"
-            else -> "콜밭 ${list.size}곳 · 출처·지역으로 골라 보기"
+            else -> "콜밭 ${list.size}곳 · 지역으로 골라 보기"
         }
 
         if (list.isEmpty()) {
@@ -347,17 +390,29 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
             val hotspot = list[index]
             val b = ItemHotspotBinding.inflate(inflater, binding.nearbyColumn, false)
             b.spotName.text = hotspot.name
-            b.spotArea.text = hotspot.area
-
-            // 출처 배지 — 기본 콜밭은 배지 없이, 즐겨찾기에서 온 곳만 표시
-            if (hotspot.source.isBlank()) {
-                b.spotBadge.visibility = View.GONE
+            if (hotspot.area.isBlank()) {
+                b.spotArea.visibility = View.GONE
             } else {
-                b.spotBadge.visibility = View.VISIBLE
-                b.spotBadge.text = hotspot.source
-                val taksong = hotspot.source == "탁송"
-                b.spotBadge.setBackgroundResource(if (taksong) R.drawable.bg_tag_blue else R.drawable.bg_tag_amber)
-                b.spotBadge.setTextColor(activity.color(if (taksong) R.color.chart_bar else R.color.accent))
+                b.spotArea.visibility = View.VISIBLE
+                b.spotArea.text = hotspot.area
+            }
+
+            // 출처 배지 — 기본 콜밭은 배지 없이, 기사 추천·탁송·내 콜밭만 표시
+            when {
+                hotspot.mine -> {
+                    b.spotBadge.visibility = View.VISIBLE
+                    b.spotBadge.text = "내 콜밭"
+                    b.spotBadge.setBackgroundResource(R.drawable.bg_pill_accent)
+                    b.spotBadge.setTextColor(activity.color(R.color.accent))
+                }
+                hotspot.source.isBlank() -> b.spotBadge.visibility = View.GONE
+                else -> {
+                    b.spotBadge.visibility = View.VISIBLE
+                    b.spotBadge.text = hotspot.source
+                    val taksong = hotspot.source == Hotspots.SOURCE_TAKSONG
+                    b.spotBadge.setBackgroundResource(if (taksong) R.drawable.bg_tag_blue else R.drawable.bg_tag_amber)
+                    b.spotBadge.setTextColor(activity.color(if (taksong) R.color.chart_bar else R.color.accent))
+                }
             }
 
             if (hotspot.hasPeak) {
@@ -393,7 +448,7 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
             b.navigateButton.setOnClickListener { navigate(hotspot.name, hotspot.lat, hotspot.lng) }
             b.root.setOnClickListener { navigate(hotspot.name, hotspot.lat, hotspot.lng) }
             b.root.setOnLongClickListener {
-                confirmHide(hotspot)
+                showSpotActions(hotspot)
                 true
             }
             binding.nearbyColumn.addView(b.root)
@@ -421,7 +476,6 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
     }
 
     // -------------------------------------------------------------- 길찾기
-
     private fun navigate(name: String, lat: Double?, lng: Double?) {
         val uri = if (lat != null && lng != null) {
             Uri.parse("geo:$lat,$lng?q=$lat,$lng(${Uri.encode(name)})")

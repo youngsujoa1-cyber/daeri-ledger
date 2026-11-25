@@ -597,6 +597,8 @@ class LedgerRepository(context: Context) {
             if (spot.lng != null) put(LedgerDb.C_LNG, spot.lng) else putNull(LedgerDb.C_LNG)
             put(LedgerDb.C_PEAK, spot.peak)
             put(LedgerDb.C_MEMO, spot.memo)
+            put(LedgerDb.C_SERVICE, spot.service.id)
+            put(LedgerDb.C_AREA, spot.area)
             put(LedgerDb.C_CREATED, if (spot.createdAt == 0L) System.currentTimeMillis() else spot.createdAt)
         }
         return if (spot.id == 0L) {
@@ -625,7 +627,9 @@ class LedgerRepository(context: Context) {
                         else c.getDouble(c.getColumnIndexOrThrow(LedgerDb.C_LNG)),
                         peak = c.getString(c.getColumnIndexOrThrow(LedgerDb.C_PEAK)),
                         memo = c.getString(c.getColumnIndexOrThrow(LedgerDb.C_MEMO)),
-                        createdAt = c.getLong(c.getColumnIndexOrThrow(LedgerDb.C_CREATED))
+                        createdAt = c.getLong(c.getColumnIndexOrThrow(LedgerDb.C_CREATED)),
+                        service = ServiceType.from(c.getString(c.getColumnIndexOrThrow(LedgerDb.C_SERVICE))),
+                        area = c.getString(c.getColumnIndexOrThrow(LedgerDb.C_AREA))
                     )
                 )
             }

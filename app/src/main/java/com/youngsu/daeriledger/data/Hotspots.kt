@@ -19,17 +19,25 @@ data class Hotspot(
     val lng: Double,
     val peak: String,
     val tip: String,
-    /** 어디서 온 콜밭인지 — "" = 기본(직접 정리), "콜포인트1"·"콜포인트2"·"탁송" = 카카오맵 즐겨찾기 */
-    val source: String = ""
+    /**
+     * 어디서 온 콜밭인지 — "" = 기본(직접 정리),
+     * "기사 추천" = 기사님들이 모아 둔 카카오맵 즐겨찾기(예전 콜포인트1·2 통합), "탁송" = 탁송 발주
+     */
+    val source: String = "",
+    /** 내가 직접 추가한 콜밭인지 — 카드에 `내 콜밭` 배지로 표시된다 */
+    val mine: Boolean = false
 ) {
     /** 피크 시간대 정보가 있는 곳(직접 정리한 콜밭)만 true */
     val hasPeak: Boolean get() = peak.isNotBlank()
+
+    /** 좌표를 저장하지 않고 이름만 저장한 콜밭 — 거리 계산·거리순 정렬에서 빠진다 */
+    val hasLocation: Boolean get() = lat != 0.0 || lng != 0.0
 
     /** 검색어가 이름·지역·시·특징 중 어디에든 들어 있는지 (공백으로 여러 낱말 AND) */
     fun matches(query: String): Boolean {
         val q = query.trim()
         if (q.isEmpty()) return true
-        val haystack = "$name $area $city $tip $source"
+        val haystack = "$name $area $city $tip $source" + if (mine) " 내 콜밭" else ""
         return q.split(" ", "\t").filter { it.isNotBlank() }.all { haystack.contains(it, ignoreCase = true) }
     }
 }
@@ -3259,13 +3267,74 @@ object Hotspots {
         return String.format(java.util.Locale.KOREA, "%.0fkm", km)
     }
 
-    /** 콜밭 출처 필터 — (값, 화면에 보이는 이름) */
-    val SOURCES: List<Pair<String, String>> = listOf(
-        "" to "기본",
-        "콜포인트1" to "콜포인트1",
-        "콜포인트2" to "콜포인트2",
-        "탁송" to "탁송"
+    /** 콜밭 출처 — 화면에는 구분 칩 없이 하나의 콜밭 목록으로 보이고, 카드 배지만 다르다 */
+    const val SOURCE_DRIVER = "기사 추천"
+    const val SOURCE_TAKSONG = "탁송"
+
+    /**
+     * `구분`(대리/탁송)에 맞는 콜밭 출처.
+     * 대리로 추가한 콜밭은 `기사 추천` 목록에, 탁송으로 추가한 콜밭은 `탁송` 목록에 함께 보인다.
+     * (v1.0.15 부터 출처 칩은 없어지고 한 목록으로 합쳐진다)
+     */
+    fun sourceFor(service: ServiceType): String =
+        if (service == ServiceType.TAKSONG) SOURCE_TAKSONG else SOURCE_DRIVER
+
+    /** 예전 이름(`콜포인트1`·`콜포인트2`·`기사님들 포인트`)도 `기사 추천`으로 읽는다 — 저장된 자료 호환용 */
+    fun normalizeSource(source: String): String = when {
+        source.startsWith("콜포인트") -> SOURCE_DRIVER
+        source == "기사님들 포인트" -> SOURCE_DRIVER
+        else -> source
+    }
+
+    /** 시·도 별칭 — 지역 칸에 적힌 글에서 시·도를 찾을 때 쓴다 */
+    private val CITY_ALIASES: List<Pair<String, String>> = listOf(
+        "서울특별시" to "서울", "서울" to "서울",
+        "경기도" to "경기", "경기" to "경기",
+        "인천광역시" to "인천", "인천" to "인천",
+        "부산광역시" to "부산", "부산" to "부산",
+        "대구광역시" to "대구", "대구" to "대구",
+        "대전광역시" to "대전", "대전" to "대전",
+        "광주광역시" to "광주", "광주" to "광주",
+        "울산광역시" to "울산", "울산" to "울산",
+        "세종특별자치시" to "세종", "세종" to "세종",
+        "충청북도" to "충북", "충북" to "충북",
+        "충청남도" to "충남", "충남" to "충남",
+        "강원특별자치도" to "강원", "강원도" to "강원", "강원" to "강원",
+        "전북특별자치도" to "전북", "전라북도" to "전북", "전북" to "전북",
+        "전라남도" to "전남", "전남" to "전남",
+        "경상북도" to "경북", "경북" to "경북",
+        "경상남도" to "경남", "경남" to "경남",
+        "제주특별자치도" to "제주", "제주도" to "제주", "제주" to "제주"
     )
+
+    /** 지역·주소 글에서 시·도 찾기 — "서울 강남구 역삼동" → "서울", 못 찾으면 "" */
+    fun cityOfArea(text: String): String {
+        val t = text.replace(" ", "")
+        if (t.isEmpty()) return ""
+        return CITY_ALIASES.firstOrNull { t.contains(it.first) }?.second ?: ""
+    }
+
+    /**
+     * 내가 추가한 콜밭([MySpot])을 콜밭 목록 항목으로.
+     *  - 대리 → `기사 추천`, 탁송 → `탁송` 목록에 함께 보인다
+     *  - 좌표를 저장하지 않았으면 lat/lng = 0.0 (거리 계산에서 빠진다)
+     */
+    fun fromMySpot(spot: MySpot): Hotspot {
+        val areaText = spot.area.trim()
+        val city = cityOfArea(areaText).ifBlank { cityOfArea(spot.name) }
+        return Hotspot(
+            id = "my-${spot.id}",
+            name = spot.name,
+            area = areaText,
+            city = city,
+            lat = spot.lat ?: 0.0,
+            lng = spot.lng ?: 0.0,
+            peak = spot.peak,
+            tip = spot.memo,
+            source = sourceFor(spot.service),
+            mine = true
+        )
+    }
 
     /** 이름으로 대략적인 좌표 찾기 (내 콜밭 저장·표시용) */
     fun findByName(name: String, spots: List<Hotspot>): Hotspot? {

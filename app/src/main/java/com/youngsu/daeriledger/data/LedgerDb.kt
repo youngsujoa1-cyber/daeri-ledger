@@ -5,7 +5,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
 /**
- * 로컬 SQLite 저장소. 운행(rides)·지출(expenses)·휴무일(off_days) 세 테이블.
+ * 로컬 SQLite 저장소. 운행(rides)·지출(expenses)·휴무일(off_days)·내 콜밭(my_spots) 네 테이블.
  * business_day 는 'yyyy-MM-dd' 문자열로 저장해 정렬·범위 조회가 쉽다.
  */
 class LedgerDb(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_VERSION) {
@@ -16,8 +16,10 @@ class LedgerDb(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_V
         /**
          * v2: 휴무일(off_days) 테이블 추가 — 기존 v1 데이터는 그대로 둔다.
          * v3: 운행에 경유지(via_place) 칸 추가 — 기존 기록은 빈 문자열로 남는다.
+         * v4: 내 콜밭(my_spots)에 구분(service)·지역(area) 칸 추가 — 예전에 저장한 콜밭은
+         *     `대리`·빈 지역으로 남고 이름·좌표·피크·메모는 그대로다.
          */
-        const val DB_VERSION = 3
+        const val DB_VERSION = 4
 
         const val T_RIDES = "rides"
         const val T_EXPENSES = "expenses"
@@ -43,6 +45,7 @@ class LedgerDb(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_V
         const val C_LAT = "lat"
         const val C_LNG = "lng"
         const val C_PEAK = "peak"
+        const val C_AREA = "area"
         const val C_SETTLED = "settled"
         const val C_CREATED = "created_at"
         const val C_CATEGORY = "category"
@@ -105,7 +108,9 @@ class LedgerDb(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_V
                 $C_LNG REAL,
                 $C_PEAK TEXT NOT NULL DEFAULT '',
                 $C_MEMO TEXT NOT NULL DEFAULT '',
-                $C_CREATED INTEGER NOT NULL DEFAULT 0
+                $C_CREATED INTEGER NOT NULL DEFAULT 0,
+                $C_SERVICE TEXT NOT NULL DEFAULT 'daeri',
+                $C_AREA TEXT NOT NULL DEFAULT ''
             )
             """.trimIndent()
         )
@@ -118,6 +123,18 @@ class LedgerDb(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB_V
         // v2 → v3: 운행에 경유지 칸만 더한다. ALTER TABLE ADD COLUMN 이라 기존 행은
         // 다시 쓰지 않고, 11,876건이 그대로 남은 채 새 칸만 빈 문자열로 채워진다.
         if (oldVersion < 3) addViaColumn(db)
+        // v3 → v4: 내 콜밭에 구분·지역 칸만 더한다. 저장해 둔 콜밭 이름·좌표·피크·메모는 그대로.
+        if (oldVersion < 4) addSpotColumns(db)
+    }
+
+    /** 내 콜밭에 구분(service)·지역(area) 칸 — 이미 있으면 건너뛴다 */
+    private fun addSpotColumns(db: SQLiteDatabase) {
+        if (!hasColumn(db, T_SPOTS, C_SERVICE)) {
+            db.execSQL("ALTER TABLE $T_SPOTS ADD COLUMN $C_SERVICE TEXT NOT NULL DEFAULT 'daeri'")
+        }
+        if (!hasColumn(db, T_SPOTS, C_AREA)) {
+            db.execSQL("ALTER TABLE $T_SPOTS ADD COLUMN $C_AREA TEXT NOT NULL DEFAULT ''")
+        }
     }
 
     /** 경유지 칸 — 이미 있으면 건너뛴다(새로 만든 DB나 다시 올린 경우에도 안전) */

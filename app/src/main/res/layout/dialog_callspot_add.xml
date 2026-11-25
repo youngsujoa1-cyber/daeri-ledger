@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 콜밭 추가 다이얼로그: 장소명(필수) · 구분(대리/탁송) · 지역/주소 · 현재 위치 또는 주소로 좌표 · 피크 · 메모 -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="22dp"
+    android:paddingTop="6dp"
+    android:paddingBottom="4dp">
+
+    <EditText
+        android:id="@+id/spotNameInput"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:background="@drawable/bg_amount_field"
+        android:hint="장소명 (필수, 예: 우리 동네 사거리)"
+        android:imeOptions="actionNext"
+        android:importantForAutofill="no"
+        android:inputType="text"
+        android:maxLength="30"
+        android:paddingHorizontal="14dp"
+        android:textColor="@color/text_primary"
+        android:textColorHint="@color/text_tertiary"
+        android:textSize="15sp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            style="@style/Text.Daeri.Label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="10dp"
+            android:text="구분" />
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/spotServiceChips"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:chipSpacingHorizontal="6dp"
+            app:singleLine="true"
+            app:singleSelection="true" />
+    </LinearLayout>
+
+    <EditText
+        android:id="@+id/spotAreaInput"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_amount_field"
+        android:hint="시·도/지역 또는 주소 (예: 서울 강남구 역삼동)"
+        android:imeOptions="actionNext"
+        android:importantForAutofill="no"
+        android:inputType="text"
+        android:maxLength="60"
+        android:paddingHorizontal="14dp"
+        android:textColor="@color/text_primary"
+        android:textColorHint="@color/text_tertiary"
+        android:textSize="15sp" />
+
+    <com.google.android.material.materialswitch.MaterialSwitch
+        android:id="@+id/useLocationSwitch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:minHeight="48dp"
+        android:text="현재 GPS 위치 쓰기"
+        android:textColor="@color/text_primary"
+        android:textSize="14sp" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/findAddressButton"
+        style="@style/Widget.Daeri.Button.Tonal"
+        android:layout_width="match_parent"
+        android:layout_height="46dp"
+        android:minHeight="46dp"
+        android:text="주소로 위치 찾기"
+        android:textSize="13sp"
+        app:icon="@drawable/ic_route"
+        app:iconSize="16dp" />
+
+    <TextView
+        android:id="@+id/locationValueText"
+        style="@style/Text.Daeri.Label"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="위치 없음 — 이름만 저장돼요"
+        android:textSize="11sp" />
+
+    <EditText
+        android:id="@+id/spotPeakInput"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_amount_field"
+        android:hint="피크 시간 (선택, 예: 23:00~02:00)"
+        android:imeOptions="actionNext"
+        android:importantForAutofill="no"
+        android:inputType="text"
+        android:maxLength="30"
+        android:paddingHorizontal="14dp"
+        android:textColor="@color/text_primary"
+        android:textColorHint="@color/text_tertiary"
+        android:textSize="15sp" />
+
+    <EditText
+        android:id="@+id/spotMemoInput"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_amount_field"
+        android:hint="메모 (선택, 예: 2차 골목, 대기 10분)"
+        android:imeOptions="actionDone"
+        android:importantForAutofill="no"
+        android:inputType="text"
+        android:maxLength="60"
+        android:paddingHorizontal="14dp"
+        android:textColor="@color/text_primary"
+        android:textColorHint="@color/text_tertiary"
+        android:textSize="15sp" />
+
+</LinearLayout>

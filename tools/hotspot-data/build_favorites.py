@@ -4,7 +4,7 @@
 원본: tools/hotspot-data/kakao/*.json  (카카오맵 favorite/list API 응답 그대로)
   - callpoint2_6111389.json  '대리 콜 포인트2' 446곳
   - callpoint1_1688555.json  '대리 콜 포인트1' 473곳
-  - taksong_1648350.json     '탁송 발주'       360곳
+  (taksong_1648350.json '탁송 발주' 360곳은 v1.0.15 에서 목록에서 뺐다)
 
 1) 좌표: API가 주는 lat/lon(WGS84)을 우선 쓰고, 없는 항목은 x/y(WCONGNAMUL)를
    wcong2.W.cong 변환으로 바꾼다. 변환 정확도는 lat/lon이 같이 있는 804건으로 검증한다.
@@ -27,10 +27,10 @@ HOTSPOTS_KT = os.path.join(ROOT, "app/src/main/java/com/youngsu/daeriledger/data
 sys.path.insert(0, os.path.join(ROOT, "..", "..", "work", "kakaomap"))
 import wcong2  # noqa: E402  (좌표 변환 모듈)
 
+# v1.0.15: 탁송 발주 그룹은 콜밭 목록에서 뺐다 (대리 콜밭만 남긴다).
 SOURCES = [
-    ("kakao/callpoint2_6111389.json", "콜포인트2"),
-    ("kakao/callpoint1_1688555.json", "콜포인트1"),
-    ("kakao/taksong_1648350.json", "탁송"),
+    ("kakao/callpoint2_6111389.json", "기사 추천"),
+    ("kakao/callpoint1_1688555.json", "기사 추천"),
 ]
 
 CITY_ALIAS = {
