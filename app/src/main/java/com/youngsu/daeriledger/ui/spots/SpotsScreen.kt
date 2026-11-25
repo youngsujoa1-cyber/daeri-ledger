@@ -21,7 +21,6 @@ import com.youngsu.daeriledger.data.SpotPublicState
 import com.youngsu.daeriledger.data.SpotStat
 import com.youngsu.daeriledger.databinding.ItemEmptyBinding
 import com.youngsu.daeriledger.databinding.ItemHotspotBinding
-import com.youngsu.daeriledger.databinding.ItemMySpotBinding
 import com.youngsu.daeriledger.databinding.ScreenSpotsBinding
 import com.youngsu.daeriledger.location.LocationHelper
 import com.youngsu.daeriledger.ui.MainActivity
@@ -114,7 +113,6 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
 
         buildRegionChips()
         updateHiddenInfo()
-        renderSavedSpots()
         renderNearby()
         updateLocationCard()
         maybeLocate()
@@ -408,54 +406,6 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
             updateHiddenInfo()
             renderNearby()
             activity.toast("숨긴 콜밭 ${count}곳을 다시 보이게 했어요")
-        }
-    }
-
-    // -------------------------------------------------- 저장해 둔 콜밭
-
-    private fun renderSavedSpots() {
-        binding.savedSpotsColumn.removeAllViews()
-        if (savedSpots.isEmpty()) {
-            binding.savedSection.visibility = View.GONE
-            return
-        }
-        binding.savedSection.visibility = View.VISIBLE
-        binding.savedCountText.text = "${savedSpots.size}곳"
-        savedSpots.forEach { spot ->
-            val b = ItemMySpotBinding.inflate(LayoutInflater.from(activity), binding.savedSpotsColumn, false)
-            b.spotName.text = spot.name
-            val peakText = if (spot.peak.isBlank()) "피크 미입력" else "피크 ${spot.peak}"
-            b.spotMeta.text = listOf(
-                spot.service.label,
-                peakText,
-                if (spot.hasLocation) "위치 저장됨" else "이름만 저장"
-            ).joinToString(" · ")
-            // 주소·거리 한 줄 + 메모 한 줄 (둘 다 없으면 숨김)
-            val where = listOfNotNull(
-                spot.area.takeIf { it.isNotBlank() },
-                distanceOf(Hotspots.fromMySpot(spot))?.let { Hotspots.formatDistance(it) }
-            ).joinToString(" · ")
-            val memoLines = listOfNotNull(where.takeIf { it.isNotBlank() }, spot.memo.takeIf { it.isNotBlank() })
-            if (memoLines.isEmpty()) {
-                b.spotMemo.visibility = View.GONE
-            } else {
-                b.spotMemo.visibility = View.VISIBLE
-                b.spotMemo.text = memoLines.joinToString("\n")
-            }
-            b.navigateButton.setOnClickListener { navigate(spot.name, spot.lat, spot.lng) }
-            b.deleteButton.setOnClickListener {
-                Dialogs.confirm(
-                    activity,
-                    "콜밭 삭제",
-                    "‘${spot.name}’을(를) 저장 목록에서 지울까요? 기록 통계에는 영향이 없어요.",
-                    positive = "삭제",
-                    destructive = true
-                ) {
-                    activity.repo.deleteSpot(spot.id)
-                    refresh()
-                }
-            }
-            binding.savedSpotsColumn.addView(b.root)
         }
     }
 

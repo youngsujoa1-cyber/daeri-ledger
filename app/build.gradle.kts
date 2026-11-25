@@ -32,8 +32,8 @@ android {
         applicationId = "com.youngsu.daeriledger"
         minSdk = 26
         targetSdk = 35
-        versionCode = 21
-        versionName = "1.0.20"
+        versionCode = 22
+        versionName = "1.0.21"
 
         // 키가 비어 있으면 앱은 공용 제보를 조용히 건너뛰고 로컬 콜밭만 쓴다
         buildConfigField("String", "FIREBASE_API_KEY", "\"$firebaseApiKey\"")

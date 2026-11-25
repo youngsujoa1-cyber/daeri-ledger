@@ -176,46 +176,7 @@
                 android:textSize="11sp"
                 android:visibility="gone" />
 
-            <!-- 내가 저장한 콜밭 -->
-            <LinearLayout
-                android:id="@+id/savedSection"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:visibility="gone">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:paddingHorizontal="18dp"
-                    android:paddingTop="22dp"
-                    android:paddingBottom="4dp">
-
-                    <TextView
-                        style="@style/Text.Daeri.Section"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="내가 추가한 콜밭" />
-
-                    <TextView
-                        android:id="@+id/savedCountText"
-                        style="@style/Text.Daeri.Label"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:id="@+id/savedSpotsColumn"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical" />
-            </LinearLayout>
-
-            <!-- 주요 콜밭 -->
+            <!-- 주요 콜밭 — 내가 추가한 콜밭도 `내 콜밭` 배지로 여기 함께 보인다 (v1.0.21: 위쪽 별도 섹션 제거) -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -266,7 +227,7 @@
                 android:layout_marginHorizontal="18dp"
                 android:layout_marginTop="18dp"
                 android:lineSpacingExtra="3dp"
-                android:text="* 콜밭 정보는 지역 특성과 기사님들이 모아 둔 지도 즐겨찾기를 정리한 참고 자료이며, 카카오T·로지 등 플랫폼의 실시간 콜 수량이 아닙니다.&#10;* 없어진 곳은 카드를 길게 눌러 ‘내 화면에서만 숨기기’ 또는 ‘없어진 곳 신고’를 할 수 있어요. 신고는 같은 자리에서 5명 이상 모이면 모든 기사님 화면에서 숨겨지고, 내 화면에서는 바로 숨겨집니다.&#10;* 기사님들이 5명 이상 제보한 곳은 ‘기사 제보’ 로 목록에 함께 보입니다."
+                android:text="* 콜밭 정보는 지역 특성과 기사님들이 모아 둔 지도 즐겨찾기를 정리한 참고 자료이며, 카카오T·로지 등 플랫폼의 실시간 콜 수량이 아닙니다.&#10;* 없어진 곳은 카드를 길게 눌러 ‘내 화면에서만 숨기기’ 또는 ‘없어진 곳 신고’를 할 수 있어요. 신고는 같은 자리에서 5명 이상 모이면 모든 기사님 화면에서 숨겨지고, 내 화면에서는 바로 숨겨집니다.&#10;* 기사님들이 5명 이상 제보한 곳은 ‘기사 제보’ 로 목록에 함께 보입니다.&#10;* 내가 추가한 콜밭(‘내 콜밭’ 배지)은 카드를 길게 눌러 삭제할 수 있어요."
                 android:textColor="@color/text_tertiary"
                 android:textSize="11sp" />
 
