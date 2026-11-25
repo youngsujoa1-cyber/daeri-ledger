@@ -40,12 +40,20 @@ internal object SpotsMapPage {
   html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:#E9EEF3; -webkit-tap-highlight-color:transparent; }
   #map { position:absolute; left:0; top:0; width:100%; height:100%; }
 
-  /* 콜밭 핀 — 아래로 뾰족한 물방울 모양 (내 콜밭 앰버 · 그 밖 민트) */
+  /* 콜밭 핀 — 아래로 뾰족한 물방울 모양 (내 콜밭 앰버 · 그 밖 민트)
+     카카오맵 위에서 한눈에 보이도록 18px · 흰 테두리 · 가운데 흰 점 */
   .pin {
-    position:relative; width:16px; height:16px;
+    display:block; box-sizing:border-box;
+    position:relative; width:18px; height:18px;
     border:2px solid #FFFFFF; border-radius:50% 50% 50% 0;
     transform:rotate(-45deg); transform-origin:50% 50%;
-    box-shadow:0 1px 4px rgba(0,0,0,0.4); cursor:pointer;
+    box-shadow:0 1px 4px rgba(0,0,0,0.45); cursor:pointer;
+  }
+  /* 가운데 흰 점 — 앰버·민트 어느 쪽이든 점이 또렷하다 (회전해도 가운데라 그대로) */
+  .pin::after {
+    content:''; position:absolute; left:50%; top:50%;
+    width:6px; height:6px; margin:-3px 0 0 -3px;
+    border-radius:50%; background:#FFFFFF;
   }
   .pin.mine { background:#FFB020; }
   .pin.basic { background:#2FBFB0; }
@@ -71,7 +79,7 @@ internal object SpotsMapPage {
 
 <script>
   var map = null, ready = false, failed = false, bootTries = 0;
-  var pins = [], me = null;
+  var pins = [], me = null, pendingSpots = null;
 
   function jReady() { try { Bridge.onReady(); } catch (e) {} }
   function jError(m) { try { Bridge.onError(String(m)); } catch (e) {} }
@@ -95,11 +103,23 @@ internal object SpotsMapPage {
    * 앱이 넘긴 콜밭 좌표를 핀으로 찍는다. json = [{i, lat, lng, mine}]
    *  - 앱에서 이미 걸러 둔 목록(지역 칩 · 검색 · 숨김)만 넘어온다 — 지도는 그리기만 한다.
    *  - 갱신할 때마다 이전 핀은 지도에서 떼어 낸다(쌓이지 않는다).
+   *  - 넘어오는 모양은 **배열 그대로**와 **JSON 문자열** 둘 다 받는다.
+   *    (`evaluateJavascript("setSpots([...])")` 는 배열 객체, `setSpots("[...]")` 는 문자열.
+   *     v1.0.21 은 배열에 무조건 JSON.parse 를 해 "[object Object]" 가 되어 핀이 하나도 안 찍혔다.)
    */
   function setSpots(json) {
-    if (!map) return;
-    var arr = [];
-    try { arr = JSON.parse(json) || []; } catch (e) { arr = []; }
+    var arr;
+    if (Array.isArray(json)) {
+      arr = json;
+    } else if (typeof json === 'string') {
+      try { arr = JSON.parse(json) || []; } catch (e) { arr = []; }
+    } else {
+      arr = [];
+    }
+    if (!Array.isArray(arr)) arr = [];
+    // 지도가 아직 만들어지기 전에 들어오면 기억해 두었다가 init 에서 찍는다
+    if (!map) { pendingSpots = arr; return; }
+    pendingSpots = null;
     clearPins();
     for (var k = 0; k < arr.length; k++) {
       (function (s) {
@@ -175,6 +195,7 @@ internal object SpotsMapPage {
     // 빈 지도를 누르면 앱이 핀 카드를 닫는다
     kakao.maps.event.addListener(map, 'click', function () { jMapClick(); });
     ready = true;
+    if (pendingSpots) setSpots(pendingSpots);
     jReady();
   }
 

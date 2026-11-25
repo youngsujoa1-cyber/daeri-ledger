@@ -625,7 +625,12 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
                     .put("mine", spot.mine)
             )
         }
-        binding.mapWeb.evaluateJavascript("setSpots($array)", null)
+        // 배열을 그대로 넣으면 JS 쪽에 배열 객체로 가고, 문자열로 넣으면 JSON.parse 가 받는다.
+        // 어느 쪽이든 setSpots 가 처리하지만, 따옴표로 감싸 넘겨야 이름·따옴표가 섞여도 안전하다.
+        binding.mapWeb.evaluateJavascript(
+            "setSpots(${JSONObject.quote(array.toString())})",
+            null
+        )
         binding.mapPinCard.visibility = View.GONE
         mapPinTarget = null
     }
