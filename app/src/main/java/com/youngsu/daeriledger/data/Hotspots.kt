@@ -29,7 +29,9 @@ data class Hotspot(
     /** 공용 제보 콜밭이면 서로 다른 기기(=기사님) 수, 아니면 0 */
     val reporters: Int = 0,
     /** 공용 제보 마지막 시각(ms) — 0이면 없음 */
-    val lastAt: Long = 0L
+    val lastAt: Long = 0L,
+    /** 운영자(관리자)가 5명 대기 없이 바로 올린 콜밭이면 true (v1.0.23) */
+    val admin: Boolean = false
 ) {
     /** 피크 시간대 정보가 있는 곳(직접 정리한 콜밭)만 true */
     val hasPeak: Boolean get() = peak.isNotBlank()
@@ -3361,7 +3363,8 @@ object Hotspots {
             tip = spot.note,
             source = SOURCE_CLOUD,
             reporters = spot.reporters,
-            lastAt = spot.lastAt
+            lastAt = spot.lastAt,
+            admin = spot.admin
         )
     }
 

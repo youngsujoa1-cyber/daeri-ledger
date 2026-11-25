@@ -46,6 +46,14 @@ object SpotCloud {
     /** 키가 없는 빌드(예: 새로 받은 소스)에서는 서버 호출을 건너뛰고 로컬 목록만 쓴다 */
     private val enabled: Boolean get() = API_KEY.isNotBlank()
 
+    /**
+     * 운영자(관리자) 제보를 알아보는 기기 해시 — `BuildConfig.ADMIN_PASS` 로만 만들어진다.
+     * 암호가 없는 오픈소스 빌드에서는 null 이라 운영자 제보를 만들지도, 알아보지도 못한다.
+     */
+    val adminHash: String?
+        get() = BuildConfig.ADMIN_PASS.takeIf { it.isNotBlank() }
+            ?.let { SpotAggregator.adminDeviceHash(it) }
+
     private const val COLLECTION = "spot_reports"
     private const val BASE =
         "https://firestore.googleapis.com/v1/projects/$PROJECT_ID/databases/(default)/documents"
@@ -84,11 +92,18 @@ object SpotCloud {
         address: String = "",
         note: String = "",
         kind: String = SpotAggregator.KIND_SPOT,
+        admin: Boolean = false,
         onDone: (Boolean, String) -> Unit
     ) {
         val app = context.applicationContext
         if (!enabled) {
             main.post { onDone(false, "공용 제보 설정이 없는 빌드예요. 최신 앱으로 다시 설치해 주세요.") }
+            return
+        }
+        // 운영자 제보는 기기 해시 자리에 운영자 해시를 넣는다 (암호가 없는 빌드는 운영자 제보 불가)
+        val reporter = if (admin) adminHash else deviceHash(app)
+        if (reporter.isNullOrBlank()) {
+            main.post { onDone(false, "이 빌드에는 운영자 암호가 없어요.") }
             return
         }
         Thread {
@@ -103,7 +118,7 @@ object SpotCloud {
                         put("lng", num(lng))
                         put("address", str(trimTo(address, 200)))
                         put("note", str(trimTo(note, 300)))
-                        put("deviceHash", str(deviceHash(app)))
+                        put("deviceHash", str(reporter))
                         put("createdAt", ts(System.currentTimeMillis()))
                     })
                 }
@@ -111,10 +126,15 @@ object SpotCloud {
                 when {
                     code in 200..299 -> {
                         ok = true
-                        msg = if (kind == SpotAggregator.KIND_REMOVED) {
-                            "없어진 곳으로 신고했어요. 5명 이상 모이면 모든 기사님 화면에서 숨겨져요."
-                        } else {
-                            "제보를 올렸어요. 같은 자리에서 5명 이상 모이면 모든 기사님께 공용 콜밭으로 보여요."
+                        msg = when {
+                            kind == SpotAggregator.KIND_REMOVED && admin ->
+                                "👑 운영자 삭제 — 5명 대기 없이 모든 기사님 앱에서 바로 사라져요."
+                            kind == SpotAggregator.KIND_REMOVED ->
+                                "없어진 곳으로 신고했어요. 5명 이상 모이면 모든 기사님 화면에서 숨겨져요."
+                            admin ->
+                                "👑 운영자 공개 — 5명 대기 없이 모든 기사님 앱에 바로 올렸어요."
+                            else ->
+                                "제보를 올렸어요. 같은 자리에서 5명 이상 모이면 모든 기사님께 공용 콜밭으로 보여요."
                         }
                         cacheAt = 0L                     // 다음 조회 때 새로 받는다
                     }
@@ -146,6 +166,28 @@ object SpotCloud {
         onDone = onDone
     )
 
+    /**
+     * 👑 운영자 즉시 삭제 — 운영자 해시를 달고 `kind = "삭제"` 한 건을 올린다.
+     * 앱 집계가 이 한 건만으로 그 반경 150m 의 기본·기사 추천·공용 제보 콜밭을 모두 숨긴다.
+     */
+    fun reportAdminRemoved(
+        context: Context,
+        name: String,
+        lat: Double,
+        lng: Double,
+        address: String = "",
+        onDone: (Boolean, String) -> Unit
+    ) = submit(
+        context = context,
+        name = name,
+        lat = lat,
+        lng = lng,
+        address = address,
+        kind = SpotAggregator.KIND_REMOVED,
+        admin = true,
+        onDone = onDone
+    )
+
     // ---------------------------------------------------------------- 공용 콜밭 받기
 
     /**
@@ -169,7 +211,7 @@ object SpotCloud {
         Thread {
             var result: SpotPublicState = cache
             try {
-                result = SpotAggregator.aggregate(fetchRecent())
+                result = SpotAggregator.aggregate(fetchRecent(), adminHash)
                 cache = result
                 cacheAt = System.currentTimeMillis()
                 lastError = null

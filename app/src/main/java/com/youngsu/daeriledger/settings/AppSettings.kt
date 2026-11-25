@@ -28,6 +28,7 @@ class AppSettings private constructor(context: Context) {
         private const val KEY_LAST_SERVICE = "last_service"
         private const val KEY_TIP_PCT = "fee_pct_tip"
         private const val KEY_HIDDEN_SPOTS = "hidden_spot_ids"
+        private const val KEY_ADMIN_MODE = "admin_mode"
 
         @Volatile private var instance: AppSettings? = null
         fun get(context: Context): AppSettings =
@@ -120,4 +121,15 @@ class AppSettings private constructor(context: Context) {
     var hiddenSpotIds: Set<String>
         get() = prefs.getStringSet(KEY_HIDDEN_SPOTS, emptySet())?.toSet() ?: emptySet()
         set(value) = prefs.edit().putStringSet(KEY_HIDDEN_SPOTS, HashSet(value)).apply()
+
+    /**
+     * 운영자(관리자) 모드 — 설정 화면 맨 아래 버전을 5번 누르고 암호를 맞히면 켜진다(v1.0.23).
+     *
+     * 켜져 있으면 `+ 콜밭 추가` 로 올린 콜밭이 5명 대기 없이 모든 기사님 앱에 바로 공개되고,
+     * 콜밭 카드를 길게 눌러 `전체에서 바로 삭제` 를 할 수 있다. 다시 5번 누르거나 설정의
+     * `운영자 모드` 줄에서 끕니다. 암호(`BuildConfig.ADMIN_PASS`)는 local.properties 에만 있다.
+     */
+    var isAdminMode: Boolean
+        get() = prefs.getBoolean(KEY_ADMIN_MODE, false)
+        set(value) = prefs.edit().putBoolean(KEY_ADMIN_MODE, value).apply()
 }

@@ -24,6 +24,14 @@ val kakaoJsKey: String =
         ?: System.getenv("KAKAO_JS_KEY")
         ?: ""
 
+// 운영자(관리자) 모드 암호 — 콜밭 등록·삭제를 5명 대기 없이 바로 반영하는 잠금 해제 열쇠.
+// 소스에 적지 않고 local.properties(저장소 제외)의 `ADMIN_PASS=...` 에서만 읽어 BuildConfig 로 넣는다.
+// 값이 비어 있는 오픈소스 빌드에서는 설정 화면 버전을 5번 눌러도 운영자 모드가 켜지지 않는다.
+val adminPass: String =
+    localProperties.getProperty("ADMIN_PASS")
+        ?: System.getenv("ADMIN_PASS")
+        ?: ""
+
 android {
     namespace = "com.youngsu.daeriledger"
     compileSdk = 35
@@ -32,14 +40,17 @@ android {
         applicationId = "com.youngsu.daeriledger"
         minSdk = 26
         targetSdk = 35
-        versionCode = 23
-        versionName = "1.0.22"
+        versionCode = 24
+        versionName = "1.0.23"
 
         // 키가 비어 있으면 앱은 공용 제보를 조용히 건너뛰고 로컬 콜밭만 쓴다
         buildConfigField("String", "FIREBASE_API_KEY", "\"$firebaseApiKey\"")
 
         // 키가 비어 있으면 지도 피커는 OpenStreetMap 타일 지도로 폴백한다
         buildConfigField("String", "KAKAO_JS_KEY", "\"$kakaoJsKey\"")
+
+        // 비어 있으면 운영자 모드 잠금 해제가 아예 되지 않는다 (오픈소스 빌드 안전장치)
+        buildConfigField("String", "ADMIN_PASS", "\"$adminPass\"")
 
         vectorDrawables {
             useSupportLibrary = true

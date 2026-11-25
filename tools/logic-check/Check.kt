@@ -719,6 +719,116 @@ fun main() {
     val unknownKind = spots(5).map { it.copy(kind = "") }
     expect("kind 빈 값 = 등록으로 집계", SpotAggregator.aggregate(unknownKind).added.size, 1)
 
+    // ============================================================ 👑 운영자 모드 (v1.0.23)
+    // 운영자 해시가 달린 제보 한 건은 5명을 기다리지 않고 바로 공개·삭제된다
+    val adminHash = SpotAggregator.adminDeviceHash("test-pass")
+    expect("운영자 해시 길이", adminHash.length, 32)
+    expect("운영자 해시 앞자리", adminHash.startsWith("adm"), true)
+    expect("운영자 해시 고정", adminHash, SpotAggregator.adminDeviceHash("test-pass"))
+    expect("다른 암호 = 다른 해시", adminHash == SpotAggregator.adminDeviceHash("test-pass2"), false)
+    fun adminReport(
+        kind: String = SpotAggregator.KIND_SPOT,
+        lat: Double = lat0,
+        lng: Double = lng0,
+        name: String = "운영자 콜밭",
+        minutesAgo: Long = 0L
+    ) = SpotReport(
+        name = name,
+        lat = lat,
+        lng = lng,
+        address = "서울 강남구 테헤란로",
+        note = "",
+        deviceHash = adminHash,
+        createdAt = 1_700_000_000_000L - minutesAgo * 60_000L,
+        kind = kind
+    )
+
+    // (1) 운영자 등록 1건 = 바로 공개 (기사 수 1)
+    val adminSpot = SpotAggregator.aggregate(listOf(adminReport()), null)
+    expect("운영자 등록인데 암호 없는 빌드는 못 알아봄", adminSpot.added.size, 0)
+    val adminPublic = SpotAggregator.aggregate(listOf(adminReport()), adminHash)
+    expect("운영자 1건 바로 공개", adminPublic.added.size, 1)
+    expect("운영자 공개 표식", adminPublic.added.firstOrNull()?.admin, true)
+    expect("운영자 공개 기사 수", adminPublic.added.firstOrNull()?.reporters, 1)
+    expect("운영자 공개도 삭제 목록에는 안 들어감", adminPublic.removed.size, 0)
+
+    // (2) 운영자 1 + 일반 4 = 5명, 운영자 표식 유지
+    val adminMixed = SpotAggregator.aggregate(spots(4) + adminReport(minutesAgo = 1), adminHash)
+    expect("운영자+일반4 공개 수", adminMixed.added.size, 1)
+    expect("운영자+일반4 기사 수", adminMixed.added.firstOrNull()?.reporters, 5)
+    expect("운영자+일반4 표식", adminMixed.added.firstOrNull()?.admin, true)
+
+    // (3) 운영자 삭제 1건 = 바로 사라짐 (5명 대기 없음)
+    val adminGone = SpotAggregator.aggregate(listOf(adminReport(SpotAggregator.KIND_REMOVED)), adminHash)
+    expect("운영자 1건 바로 삭제", adminGone.removed.size, 1)
+    expect("운영자 삭제 표식", adminGone.removed.firstOrNull()?.admin, true)
+    expect("운영자 삭제 자리 숨김", SpotAggregator.isRemoved(lat0, lng0, adminGone.removed), true)
+    expect("암호 없는 빌드는 운영자 삭제도 못 알아봄",
+        SpotAggregator.aggregate(listOf(adminReport(SpotAggregator.KIND_REMOVED)), null).removed.size, 0)
+
+    // (4) 운영자 삭제가 일반 5명 등록과 같거나 더 새로우면 삭제가 이긴다 (반경 150m)
+    val adminOverFive = SpotAggregator.aggregate(
+        spots(5) + adminReport(SpotAggregator.KIND_REMOVED), adminHash
+    )
+    expect("운영자 삭제 vs 5명 등록 → 공개 0", adminOverFive.added.size, 0)
+    expect("운영자 삭제 vs 5명 등록 → 삭제 1", adminOverFive.removed.size, 1)
+
+    // (5) 운영자 삭제도 반경 150m 밖이면 5명 등록 유지
+    val adminFar = SpotAggregator.aggregate(
+        spots(5) + adminReport(SpotAggregator.KIND_REMOVED, lat = lat0 + 0.003), adminHash
+    )
+    expect("330m 밖 운영자 삭제 → 공개 유지", adminFar.added.size, 1)
+    expect("330m 밖 운영자 삭제 → 삭제 1", adminFar.removed.size, 1)
+
+    // (6) 5명 삭제보다 운영자 공개가 더 새로우면 공개가 이긴다
+    val oldRemovals = removals(5).map { it.copy(createdAt = it.createdAt - 600_000L) }
+    val adminBeat5 = SpotAggregator.aggregate(oldRemovals + adminReport(), adminHash)
+    expect("5명 삭제 vs 새 운영자 공개 → 공개 1", adminBeat5.added.size, 1)
+    expect("5명 삭제 vs 새 운영자 공개 → 표식", adminBeat5.added.firstOrNull()?.admin, true)
+    expect("5명 삭제 vs 새 운영자 공개 → 삭제 풀림", adminBeat5.removed.size, 0)
+
+    // (7) 운영자 삭제 + 운영자 공개가 같은 자리 → 더 새 공개가 이긴다
+    val adminBoth = SpotAggregator.aggregate(
+        listOf(adminReport(SpotAggregator.KIND_REMOVED, minutesAgo = 5), adminReport()), adminHash
+    )
+    expect("운영자 삭제+공개 → 공개 1", adminBoth.added.size, 1)
+    expect("운영자 삭제+공개 → 삭제 0", adminBoth.removed.size, 0)
+
+    // (7-2) 오래된 운영자 삭제는 그 뒤에 온 기사 5명 등록을 막지 않는다
+    val revived = SpotAggregator.aggregate(
+        listOf(adminReport(SpotAggregator.KIND_REMOVED, minutesAgo = 60)) + spots(5), adminHash
+    )
+    expect("1시간 전 운영자 삭제 → 새 5명 공개", revived.added.size, 1)
+    expect("1시간 전 운영자 삭제 → 삭제 풀림", revived.removed.size, 0)
+    // 반대로 운영자 삭제가 5명 등록보다 새로우면 공개되지 않는다
+    val killedAgain = SpotAggregator.aggregate(
+        spots(5).map { it.copy(createdAt = it.createdAt - 600_000L) } +
+            adminReport(SpotAggregator.KIND_REMOVED), adminHash
+    )
+    expect("새 운영자 삭제 → 5명 공개 0", killedAgain.added.size, 0)
+    expect("새 운영자 삭제 → 삭제 1", killedAgain.removed.size, 1)
+
+    // (8) 암호를 아는 집계에서도 일반 5명 기준은 그대로
+    val normalWithAdmin = SpotAggregator.aggregate(spots(5), adminHash)
+    expect("암호 있는 집계의 일반 5명", normalWithAdmin.added.size, 1)
+    expect("암호 있는 집계의 일반 5명 표식", normalWithAdmin.added.firstOrNull()?.admin, false)
+    expect("일반 4명은 여전히 미노출", SpotAggregator.aggregate(spots(4), adminHash).added.size, 0)
+
+    // (9) 운영자 해시 판정 도우미
+    expect("운영자 제보 판정", SpotAggregator.isAdminReport(adminReport(), adminHash), true)
+    expect("일반 제보는 운영자 아님", SpotAggregator.isAdminReport(report(1), adminHash), false)
+    expect("암호 없으면 아님", SpotAggregator.isAdminReport(adminReport(), null), false)
+    expect("반경 150m 안 운영자 삭제",
+        SpotAggregator.adminRemovalNear(
+            listOf(adminReport(SpotAggregator.KIND_REMOVED)),
+            lat0 + 0.0011, lng0, adminHash
+        ), true)
+    expect("반경 330m 밖 운영자 삭제",
+        SpotAggregator.adminRemovalNear(
+            listOf(adminReport(SpotAggregator.KIND_REMOVED)),
+            lat0 + 0.003, lng0, adminHash
+        ), false)
+
     // (12) 공용 콜밭 -> 목록 항목 (기사 제보 배지·기자 수·마지막 제보)
     val publicSpot = PublicSpot(
         name = "테헤란로 콜밭",

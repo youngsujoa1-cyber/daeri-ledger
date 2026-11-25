@@ -1,14 +1,18 @@
 package com.youngsu.daeriledger.ui.settings
 
+import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.NumberPicker
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
+import com.youngsu.daeriledger.BuildConfig
 import com.youngsu.daeriledger.R
 import com.youngsu.daeriledger.data.Payout
 import com.youngsu.daeriledger.data.PlatformDef
@@ -34,6 +38,10 @@ class SettingsScreen(private val activity: MainActivity) : Screen {
     override val view: View get() = binding.root
 
     private val settings: AppSettings get() = activity.settings
+
+    /** 설정 맨 아래 버전을 연속으로 누른 횟수 — 5번이면 운영자 모드 잠금 해제(v1.0.23) */
+    private var versionTaps = 0
+    private var lastVersionTapAt = 0L
 
     override fun refresh() {
         val column = binding.settingsColumn
@@ -195,13 +203,22 @@ class SettingsScreen(private val activity: MainActivity) : Screen {
 
         // -------------------------------------------------------------- 정보
         section("정보")
+        // 운영자 모드가 켜져 있으면 여기서 바로 확인·해제한다 (버전을 다시 5번 눌러도 꺼진다)
+        if (settings.isAdminMode) {
+            row(
+                icon = R.drawable.ic_check,
+                title = "👑 운영자 모드",
+                subtitle = "콜밭 등록·삭제가 5명 대기 없이 모든 기사님 앱에 바로 반영돼요",
+                value = "켜짐"
+            ) { confirmAdminOff() }
+        }
         row(
             icon = R.drawable.ic_info,
             title = "앱 버전",
             subtitle = "대리장부 · 대리운전 순수익 장부",
             value = appVersionLabel(),
-            clickable = false
-        )
+            showChevron = false
+        ) { onVersionTap() }
         row(
             icon = R.drawable.ic_info,
             title = "광고",
@@ -259,6 +276,7 @@ class SettingsScreen(private val activity: MainActivity) : Screen {
         subtitle: String,
         value: String,
         clickable: Boolean = true,
+        showChevron: Boolean = clickable,
         onClick: (() -> Unit)? = null
     ) {
         val b = ItemSettingRowBinding.inflate(LayoutInflater.from(activity), binding.settingsColumn, false)
@@ -266,15 +284,93 @@ class SettingsScreen(private val activity: MainActivity) : Screen {
         b.rowTitle.text = title
         if (subtitle.isBlank()) b.rowSubtitle.visibility = View.GONE else b.rowSubtitle.text = subtitle
         if (value.isBlank()) b.rowValue.visibility = View.GONE else b.rowValue.text = value
+        if (!showChevron) b.rowChevron.visibility = View.GONE else b.rowChevron.visibility = View.VISIBLE
         if (!clickable) {
-            b.rowChevron.visibility = View.GONE
             b.rowRoot.isClickable = false
             b.rowIconFrame.background = activity.getDrawable(R.drawable.bg_circle)
         } else {
-            b.rowChevron.visibility = View.VISIBLE
             b.rowRoot.setOnClickListener { onClick?.invoke() }
         }
         binding.settingsColumn.addView(b.root)
+    }
+
+    // ------------------------------------------------------- 운영자 모드 (v1.0.23)
+
+    /**
+     * 앱 버전을 연속 5번 누르면 운영자 모드 잠금 해제 창을 띄운다.
+     * 2초 넘게 쉬면 횟수가 0으로 돌아간다 — 일반 사용자가 우연히 여러 번 눌러도 걸리지 않는다.
+     */
+    private fun onVersionTap() {
+        val now = System.currentTimeMillis()
+        if (now - lastVersionTapAt > 2_000L) versionTaps = 0
+        lastVersionTapAt = now
+        versionTaps++
+        if (versionTaps < 5) return
+        versionTaps = 0
+        if (settings.isAdminMode) confirmAdminOff() else promptAdminPass()
+    }
+
+    /** 운영자 암호 입력 창 — `BuildConfig.ADMIN_PASS` 와 맞으면 운영자 모드를 켠다 */
+    private fun promptAdminPass() {
+        if (BuildConfig.ADMIN_PASS.isBlank()) {
+            activity.toast("이 빌드에는 운영자 암호가 없어요")
+            return
+        }
+        val input = EditText(activity).apply {
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+            hint = "운영자 암호"
+            setSingleLine()
+            importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO
+            setTextColor(activity.color(R.color.text_primary))
+            setHintTextColor(activity.color(R.color.text_tertiary))
+            setPadding(activity.dp(18f), activity.dp(12f), activity.dp(18f), activity.dp(12f))
+            background = activity.getDrawable(R.drawable.bg_amount_field)
+        }
+        val box = FrameLayout(activity).apply {
+            setPadding(activity.dp(20f), activity.dp(6f), activity.dp(20f), 0)
+        }
+        box.addView(
+            input,
+            ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, activity.dp(52f))
+        )
+
+        val dialog = MaterialAlertDialogBuilder(activity)
+            .setTitle("👑 운영자 모드 잠금 해제")
+            .setMessage("콜밭을 5명 대기 없이 바로 공개·삭제할 수 있는 모드입니다. 운영자 암호를 입력해 주세요.")
+            .setView(box)
+            .setNegativeButton("취소", null)
+            .setPositiveButton("확인", null)
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(activity.color(R.color.accent))
+            dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(activity.color(R.color.text_secondary))
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                if (input.text.toString().trim() == BuildConfig.ADMIN_PASS) {
+                    settings.isAdminMode = true
+                    dialog.dismiss()
+                    refresh()
+                    activity.toast("👑 운영자 모드를 켰어요 — 콜밭 등록·삭제가 바로 반영돼요")
+                } else {
+                    input.setText("")
+                    activity.toast("암호가 맞지 않아요")
+                }
+            }
+        }
+        dialog.show()
+    }
+
+    /** 운영자 모드 끄기 — 다시 일반 5명 기준으로 돌아간다 */
+    private fun confirmAdminOff() {
+        Dialogs.confirm(
+            activity,
+            "운영자 모드 끄기",
+            "콜밭 등록은 다시 5명 이상 모여야 공개되고, 삭제도 5명 기준으로 돌아갑니다.",
+            positive = "끄기"
+        ) {
+            settings.isAdminMode = false
+            refresh()
+            activity.toast("운영자 모드를 껐어요")
+        }
     }
 
     private fun platformRow(platform: PlatformDef) {

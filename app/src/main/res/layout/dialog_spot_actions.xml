@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 콜밭 카드 길게 누르기 — 누를 수 있는 카드 버튼 목록 (숨기기 / 없어진 곳 신고 / 내 콜밭 삭제) -->
+<!-- 콜밭 카드 길게 누르기 — 누를 수 있는 카드 버튼 목록 (숨기기 / 없어진 곳 신고 / 👑 운영자 전체 삭제 / 내 콜밭 삭제) -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
@@ -143,7 +143,61 @@
             android:textSize="18sp" />
     </LinearLayout>
 
-    <!-- 3) 내 콜밭 삭제 (내가 추가한 콜밭일 때만) -->
+    <!-- 3) 👑 운영자: 전체에서 바로 삭제 (운영자 모드일 때만) -->
+    <LinearLayout
+        android:id="@+id/adminDeleteAction"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/bg_spot_action_danger"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="13dp"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="12dp"
+            android:text="👑"
+            android:textSize="21sp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="운영자: 전체에서 바로 삭제"
+                android:textColor="@color/loss"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="5명 대기 없이 모든 기사님 앱에서 지금 바로 사라져요"
+                android:textColor="@color/text_secondary"
+                android:textSize="11.5sp" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="›"
+            android:textColor="@color/text_tertiary"
+            android:textSize="18sp" />
+    </LinearLayout>
+
+    <!-- 4) 내 콜밭 삭제 (내가 추가한 콜밭일 때만) -->
     <LinearLayout
         android:id="@+id/deleteAction"
         android:layout_width="match_parent"

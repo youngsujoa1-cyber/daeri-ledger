@@ -56,6 +56,8 @@ import kotlin.math.roundToInt
  *    (신고는 서버로 가고, 같은 자리에서 5명 이상 모이면 모든 기사님 화면에서 숨겨진다 — 내 화면은 바로 숨김)
  *  - `+ 콜밭 추가` 로 내가 다니는 콜밭을 직접 넣는다 (구분·지역·피크·메모, GPS/지도로 좌표). 좌표가 있으면 서버에도 제보한다
  *  - 기사님들이 **5명 이상** 제보한 공용 콜밭은 `기사 제보` 배지로 목록에 함께 보인다 (5분 캐시, 실패하면 로컬 목록만)
+ *  - **👑 운영자 모드 (v1.0.23)**: 설정에서 5번 탭 + 암호로 켜면 `+ 콜밭 추가` 가 5명 대기 없이 바로 전체 공개되고,
+ *    카드를 길게 눌러 `운영자: 전체에서 바로 삭제` 로 기본·기사 추천·공용 제보 콜밭을 모두 지울 수 있다
  */
 class SpotsScreen(private val activity: MainActivity) : Screen {
 
@@ -302,7 +304,7 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         val cloudGone = cloudState.removed.size
         val parts = ArrayList<String>()
         if (count > 0) parts.add("숨긴 콜밭 ${count}곳 · 되돌리기")
-        if (cloudGone > 0) parts.add("기사님 신고로 숨긴 자리 ${cloudGone}곳")
+        if (cloudGone > 0) parts.add("신고로 숨긴 자리 ${cloudGone}곳")
         if (parts.isEmpty()) {
             binding.hiddenInfo.visibility = View.GONE
         } else {
@@ -319,6 +321,7 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         val subtitle = container.findViewById<TextView>(R.id.actionSubtitle)
         val hideAction = container.findViewById<View>(R.id.hideAction)
         val reportAction = container.findViewById<View>(R.id.reportAction)
+        val adminDeleteAction = container.findViewById<View>(R.id.adminDeleteAction)
         val deleteAction = container.findViewById<View>(R.id.deleteAction)
         val closeAction = container.findViewById<View>(R.id.closeAction)
 
@@ -335,6 +338,8 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
             subtitle.text = sub
         }
         deleteAction.visibility = if (spot.mine) View.VISIBLE else View.GONE
+        // 👑 운영자 모드일 때만 — 기본·기사 추천·공용 제보 콜밭 어떤 것이든 전체에서 바로 지운다
+        adminDeleteAction.visibility = if (activity.settings.isAdminMode) View.VISIBLE else View.GONE
 
         val dialog = MaterialAlertDialogBuilder(activity)
             .setView(container)
@@ -347,6 +352,10 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         reportAction.setOnClickListener {
             dialog.dismiss()
             confirmReportRemoved(spot)
+        }
+        adminDeleteAction.setOnClickListener {
+            dialog.dismiss()
+            confirmAdminDelete(spot)
         }
         deleteAction.setOnClickListener {
             dialog.dismiss()
@@ -429,6 +438,46 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         }
     }
 
+    /**
+     * 👑 운영자: 전체에서 바로 삭제 — 운영자 모드에서만 보이는 카드 버튼.
+     *
+     * 위치가 있는 콜밭이면 서버에 운영자 해시를 단 `삭제` 제보를 한 건 올려, 같은 자리(반경 150m)의
+     * 기본·기사 추천·공용 제보 콜밭이 모든 기사님 앱에서 5명 대기 없이 바로 사라진다.
+     * 위치가 없어 다른 기기로 알릴 수 없으면 이 화면에서만 숨긴다.
+     */
+    private fun confirmAdminDelete(spot: Hotspot) {
+        if (!spot.hasLocation) {
+            Dialogs.confirm(
+                activity,
+                "👑 운영자: 전체에서 바로 삭제",
+                "‘${spot.name}’은(는) 위치 정보가 없어 다른 기사님께 알릴 수 없어요.\n" +
+                    "내 화면에서만 숨길까요?",
+                positive = "내 화면에서 숨기기",
+                destructive = true
+            ) {
+                hideLocally(spot, "‘${spot.name}’ 숨김")
+            }
+            return
+        }
+        Dialogs.confirm(
+            activity,
+            "👑 운영자: 전체에서 바로 삭제",
+            "‘${spot.name}’을(를) 모든 기사님 앱에서 지금 바로 지울까요?\n\n" +
+                "이 자리 반경 150m 안의 기본·기사 추천·공용 제보 콜밭이 5명 신고를 기다리지 않고 바로 사라집니다.",
+            positive = "전체에서 삭제",
+            destructive = true
+        ) {
+            activity.toast("‘${spot.name}’ 전체 삭제하는 중…")
+            SpotCloud.reportAdminRemoved(
+                activity, spot.name, spot.lat, spot.lng, address = spot.area
+            ) { ok, msg ->
+                activity.toast(msg)
+                // 방금 삭제한 자리가 목록·지도에서도 바로 사라지도록 서버 상태를 다시 받는다
+                if (ok) loadCloud(force = true)
+            }
+        }
+    }
+
     private fun confirmRestoreHidden() {
         val count = hiddenIds.size
         if (count == 0) {
@@ -460,9 +509,12 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
             searchQuery = ""
             binding.spotSearch.setText("")
             cityFilter = null
-            // 좌표가 있으면 서버에도 제보해 다른 기사님과 나눈다 (같은 자리 5명 이상이면 공용 콜밭)
+            // 좌표가 있으면 서버에도 제보해 다른 기사님과 나눈다
+            //  - 일반: 같은 자리 5명 이상이면 공용 콜밭
+            //  - 👑 운영자 모드: 5명을 기다리지 않고 바로 전체 공개 (v1.0.23)
             val lat = spot.lat
             val lng = spot.lng
+            val admin = activity.settings.isAdminMode
             if (lat != null && lng != null) {
                 SpotCloud.submit(
                     activity,
@@ -470,8 +522,16 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
                     lat,
                     lng,
                     address = spot.area,
-                    note = spot.memo
-                ) { ok, msg -> if (ok) activity.toast(msg) }
+                    note = spot.memo,
+                    admin = admin
+                ) { ok, msg ->
+                    if (ok) {
+                        activity.toast(msg)
+                        if (admin) loadCloud(force = true)   // 바로 공용 목록·지도에 반영
+                    }
+                }
+            } else if (admin) {
+                activity.toast("위치가 없어 전체 공개는 건너뛰었어요 — 내 콜밭으로만 저장했어요")
             }
             refresh()
             binding.spotsScroll.smoothScrollTo(0, 0)
@@ -796,9 +856,16 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
                 }
                 hotspot.source == Hotspots.SOURCE_CLOUD -> {
                     b.spotBadge.visibility = View.VISIBLE
-                    b.spotBadge.text = Hotspots.SOURCE_CLOUD
-                    b.spotBadge.setBackgroundResource(R.drawable.bg_tag_blue)
-                    b.spotBadge.setTextColor(activity.color(R.color.chart_bar))
+                    if (hotspot.admin) {
+                        // 👑 운영자가 5명 대기 없이 바로 올린 콜밭
+                        b.spotBadge.text = "👑 운영자"
+                        b.spotBadge.setBackgroundResource(R.drawable.bg_pill_accent)
+                        b.spotBadge.setTextColor(activity.color(R.color.accent))
+                    } else {
+                        b.spotBadge.text = Hotspots.SOURCE_CLOUD
+                        b.spotBadge.setBackgroundResource(R.drawable.bg_tag_blue)
+                        b.spotBadge.setTextColor(activity.color(R.color.chart_bar))
+                    }
                 }
                 hotspot.source.isBlank() -> b.spotBadge.visibility = View.GONE
                 else -> {
@@ -872,6 +939,11 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
 
     /** 기사님 제보 콜밭 카드의 한 줄 — `기사 5명 제보 · 10분 전` (제보 콜밭이 아니면 빈 문자열) */
     private fun cloudMeta(hotspot: Hotspot): String {
+        if (hotspot.admin) {
+            val time = timeAgo(hotspot.lastAt)
+            val who = if (hotspot.reporters > 1) "👑 운영자 등록 · 기사 ${hotspot.reporters}명 제보" else "👑 운영자 등록"
+            return if (time.isBlank()) who else "$who · $time"
+        }
         if (hotspot.reporters <= 0) return ""
         val time = timeAgo(hotspot.lastAt)
         return if (time.isBlank()) "기사 ${hotspot.reporters}명 제보"
