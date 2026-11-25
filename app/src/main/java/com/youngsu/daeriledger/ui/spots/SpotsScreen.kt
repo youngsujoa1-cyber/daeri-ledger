@@ -130,6 +130,7 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         binding.spotSearch.setOnEditorActionListener { field, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH || actionId == EditorInfo.IME_ACTION_DONE) {
                 field.hideKeyboard()
+                centerMapOnFilter()
                 true
             } else {
                 false
@@ -256,6 +257,8 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         binding.regionChips.setChips(items, cityFilter ?: "") { id ->
             cityFilter = id.ifBlank { null }
             renderNearby()
+            // 지역을 골랐으면 지도도 그 지역으로 — 안 그러면 핀이 화면 밖에 있다
+            centerMapOnFilter()
         }
     }
 
@@ -720,6 +723,13 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
             String.format(Locale.US, "moveTo(%.6f, %.6f, %d)", lat, lng, SpotsMapPage.DEFAULT_LEVEL),
             null
         )
+    }
+
+    /** 지역 칩을 고르거나 검색을 마쳤을 때 — 지도를 그 결과의 첫 콜밭으로 옮긴다 */
+    private fun centerMapOnFilter() {
+        if (!mapReady || !mapStarted) return
+        val first = filteredHotspots.firstOrNull { it.hasLocation } ?: return
+        moveMap(first.lat, first.lng)
     }
 
     // ------------------------------------------------------ 콜밭 목록
