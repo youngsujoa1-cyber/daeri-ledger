@@ -157,6 +157,17 @@
             android:minHeight="54dp"
             android:text="이 위치 선택"
             android:textSize="16sp" />
+
+        <!-- OSM 타일 이용 정책이 요구하는 출처 표기 -->
+        <TextView
+            android:id="@+id/attributionText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="end"
+            android:text="지도 데이터 © OpenStreetMap 기여자"
+            android:textColor="@color/text_tertiary"
+            android:textSize="10sp" />
     </LinearLayout>
 
 </FrameLayout>
