@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 콜밭 지도 카드의 지도 영역 — 둥근 모서리로 잘리는 틀 (WebView 를 담는다) -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#E9EEF3" />
+    <corners android:radius="14dp" />
+</shape>

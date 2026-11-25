@@ -176,6 +176,210 @@
                 android:textSize="11sp"
                 android:visibility="gone" />
 
+            <!-- 콜밭 지도 (v1.0.21) — 카카오맵에 콜밭을 핀으로 (지역 · 검색 필터를 따라간다) -->
+            <LinearLayout
+                android:id="@+id/mapCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="18dp"
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_card_soft"
+                android:orientation="vertical"
+                android:padding="8dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="4dp"
+                    android:paddingBottom="6dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="콜밭 지도"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/mapCountLabel"
+                        style="@style/Text.Daeri.Label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="6dp"
+                        android:text="" />
+
+                    <TextView
+                        android:id="@+id/mapMyLocation"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="6dp"
+                        android:text="내 위치"
+                        android:textColor="@color/accent"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/mapToggle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="?attr/selectableItemBackground"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="6dp"
+                        android:text="크게"
+                        android:textColor="@color/accent"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <FrameLayout
+                    android:id="@+id/mapFrame"
+                    android:layout_width="match_parent"
+                    android:layout_height="240dp"
+                    android:background="@drawable/bg_map_frame"
+                    android:clipToOutline="true">
+
+                    <WebView
+                        android:id="@+id/mapWeb"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent" />
+
+                    <TextView
+                        android:id="@+id/mapLoading"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="#E9EEF3"
+                        android:gravity="center"
+                        android:text="지도를 불러오는 중…"
+                        android:textColor="#5A6A7B"
+                        android:textSize="12sp" />
+
+                    <!-- 카카오맵을 못 띄웠을 때 — 앱은 그대로 쓰고 다시 시도할 수 있다 -->
+                    <LinearLayout
+                        android:id="@+id/mapErrorBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="#E9EEF3"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:padding="16dp"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:id="@+id/mapErrorText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:gravity="center"
+                            android:lineSpacingExtra="2dp"
+                            android:text="카카오맵을 불러오지 못했어요.&#10;아래 콜밭 목록으로도 볼 수 있어요."
+                            android:textColor="#5A6A7B"
+                            android:textSize="12sp" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/mapRetryButton"
+                            style="@style/Widget.Daeri.Button.Tonal"
+                            android:layout_width="wrap_content"
+                            android:layout_height="40dp"
+                            android:layout_marginTop="8dp"
+                            android:minHeight="40dp"
+                            android:text="다시 시도"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <!-- 핀을 누르면 지도 아래쪽에 뜨는 카드 -->
+                    <LinearLayout
+                        android:id="@+id/mapPinCard"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="bottom"
+                        android:layout_margin="8dp"
+                        android:background="@drawable/bg_card_soft"
+                        android:elevation="6dp"
+                        android:orientation="vertical"
+                        android:padding="12dp"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:id="@+id/mapPinName"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/text_primary"
+                            android:textSize="15sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/mapPinMeta"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="12sp" />
+
+                        <TextView
+                            android:id="@+id/mapPinMemo"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:ellipsize="end"
+                            android:maxLines="2"
+                            android:textColor="@color/text_tertiary"
+                            android:textSize="12sp"
+                            android:visibility="gone" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/mapPinRoute"
+                                style="@style/Widget.Daeri.Button.Tonal"
+                                android:layout_width="wrap_content"
+                                android:layout_height="40dp"
+                                android:minHeight="40dp"
+                                android:paddingHorizontal="14dp"
+                                android:text="길찾기"
+                                android:textSize="12sp"
+                                app:icon="@drawable/ic_route"
+                                app:iconSize="15dp" />
+
+                            <TextView
+                                android:id="@+id/mapPinClose"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:background="?attr/selectableItemBackground"
+                                android:paddingHorizontal="10dp"
+                                android:paddingVertical="8dp"
+                                android:text="닫기"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </FrameLayout>
+
+                <TextView
+                    android:id="@+id/mapAttribution"
+                    style="@style/Text.Daeri.Label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:paddingHorizontal="4dp"
+                    android:text="지도 © Kakao Corp. · 핀을 누르면 이름·피크·메모가 떠요"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
             <!-- 주요 콜밭 — 내가 추가한 콜밭도 `내 콜밭` 배지로 여기 함께 보인다 (v1.0.21: 위쪽 별도 섹션 제거) -->
             <LinearLayout
                 android:layout_width="match_parent"

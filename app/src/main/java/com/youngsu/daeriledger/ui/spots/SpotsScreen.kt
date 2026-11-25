@@ -1,15 +1,25 @@
 package com.youngsu.daeriledger.ui.spots
 
+import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.location.Location
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import android.widget.TextView
 import androidx.core.widget.doAfterTextChanged
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.youngsu.daeriledger.BuildConfig
 import com.youngsu.daeriledger.R
 import com.youngsu.daeriledger.data.CallSpots
 import com.youngsu.daeriledger.data.Hotspot
@@ -25,12 +35,17 @@ import com.youngsu.daeriledger.databinding.ScreenSpotsBinding
 import com.youngsu.daeriledger.location.LocationHelper
 import com.youngsu.daeriledger.ui.MainActivity
 import com.youngsu.daeriledger.ui.Screen
+import com.youngsu.daeriledger.ui.widget.SpotMapView
 import com.youngsu.daeriledger.util.BizTime
 import com.youngsu.daeriledger.util.Dialogs
 import com.youngsu.daeriledger.util.color
+import com.youngsu.daeriledger.util.dp
 import com.youngsu.daeriledger.util.hideKeyboard
 import com.youngsu.daeriledger.util.setChips
 import com.youngsu.daeriledger.util.toast
+import org.json.JSONArray
+import org.json.JSONObject
+import java.util.Locale
 import kotlin.math.roundToInt
 
 /**
@@ -54,11 +69,30 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         /** 한 번에 그리는 카드 수 — 1,500곳 넘는 목록을 한꺼번에 inflate 하지 않기 위한 값 */
         const val PAGE_SIZE = 40
         const val SEARCH_PAGE_SIZE = 60
+
+        /** 지도에 한꺼번에 찍는 핀 수 — 1,200곳을 다 올리면 지도가 버벅인다 */
+        const val MAP_MAX_PINS = 200
+        const val MAP_TIMEOUT_MS = 9_000L
+        const val MAP_HEIGHT_DP = 240f
+        const val MAP_HEIGHT_BIG_DP = 460f
     }
     private var userLocation: Location? = null
     private var locating = false
     private var savedSpots: List<MySpot> = emptyList()
     private var spotStats: List<SpotStat> = emptyList()
+
+    // --- 콜밭 지도 (카카오맵 WebView) ---
+    private var mapConfigured = false
+    private var mapStarted = false
+    private var mapReady = false
+    private var mapExpanded = false
+    private var mapCenteredOnMe = false
+    /** 지도에 지금 찍혀 있는 핀 목록 — 핀 인덱스로 콜밭을 찾는다 */
+    private var mapSpots: List<Hotspot> = emptyList()
+    private var mapPinTarget: Hotspot? = null
+    private val mapHandler = Handler(Looper.getMainLooper())
+    private val mapPushJob = Runnable { pushMapSpots() }
+    private val mapTimeoutJob = Runnable { showMapError() }
 
     /** 전체 콜밭 (기본 + 기사 추천) + 내가 추가한 콜밭 + 기사님 제보 콜밭 — 새로고침마다 다시 만든다 */
     private var spotList: List<Hotspot> = emptyList()
@@ -101,6 +135,7 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
                 false
             }
         }
+        setupMap()
     }
 
     override fun refresh() {
@@ -116,6 +151,8 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         renderNearby()
         updateLocationCard()
         maybeLocate()
+        // 지도는 처음 한 번만 띄우고, 이후에는 핀만 새로 찍는다
+        loadMap()
         // 서버 제보는 비동기로 — 네트워크가 안 되면 조용히 로컬 목록만 유지한다
         loadCloud()
     }
@@ -160,6 +197,7 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
             userLocation = location
             updateLocationCard()
             renderNearby()
+            onMapLocation(location)
         }
     }
 
@@ -178,6 +216,7 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
                     userLocation = location
                     updateLocationCard()
                     renderNearby()
+                    onMapLocation(location)
                     if (location == null) activity.toast("위치를 찾지 못했어요. 지역별로 볼 수 있어요")
                 }
             }
@@ -436,6 +475,253 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         }
     }
 
+    // ------------------------------------------------------------- 콜밭 지도
+
+    /**
+     * 지도 카드 — 카카오맵 WebView 를 준비한다. (`KAKAO_JS_KEY` 가 없는 빌드에서는 카드 자체를 숨김)
+     *  - 지도 위에서 드래그·줌할 때 바깥 `NestedScrollView` 가 터치를 가로채지 않도록 막는다
+     *  - 카카오맵을 못 띄우면 안내와 `다시 시도`를 보여 줌 — 목록·앱은 그대로
+     */
+    @SuppressLint("SetJavaScriptEnabled")
+    private fun setupMap() {
+        if (BuildConfig.KAKAO_JS_KEY.isBlank()) {
+            binding.mapCard.visibility = View.GONE
+            return
+        }
+        binding.mapWeb.settings.apply {
+            javaScriptEnabled = true
+            domStorageEnabled = true
+            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            cacheMode = WebSettings.LOAD_DEFAULT
+            setSupportZoom(false)
+            builtInZoomControls = false
+            displayZoomControls = false
+            useWideViewPort = false
+            loadWithOverviewMode = false
+            javaScriptCanOpenWindowsAutomatically = false
+            allowFileAccess = false
+            allowContentAccess = false
+            mediaPlaybackRequiresUserGesture = true
+            setGeolocationEnabled(false)
+        }
+        binding.mapWeb.setBackgroundColor(activity.color(R.color.bg))
+        if (BuildConfig.DEBUG) WebView.setWebContentsDebuggingEnabled(true)
+        binding.mapWeb.webViewClient = object : WebViewClient() {
+            override fun onReceivedError(
+                view: WebView,
+                request: WebResourceRequest,
+                error: WebResourceError
+            ) {
+                if (request.isForMainFrame) showMapError()
+            }
+        }
+        binding.mapWeb.addJavascriptInterface(
+            SpotsMapBridge(
+                main = mapHandler,
+                ready = { onMapReady() },
+                spotClick = { index -> onMapPinTapped(index) },
+                mapClick = { binding.mapPinCard.visibility = View.GONE },
+                error = { showMapError() }
+            ),
+            "Bridge"
+        )
+        // 지도를 만질 때 바깥 스크롤이 가로채지 않게 (ACTION_DOWN 에서 바로 막아야 드래그·줌이 산다)
+        binding.mapWeb.setOnTouchListener { _, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE ->
+                    binding.spotsScroll.requestDisallowInterceptTouchEvent(true)
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL ->
+                    binding.spotsScroll.requestDisallowInterceptTouchEvent(false)
+            }
+            false
+        }
+        binding.mapToggle.setOnClickListener { toggleMapSize() }
+        binding.mapMyLocation.setOnClickListener { centerMapOnMe() }
+        binding.mapRetryButton.setOnClickListener { loadMap(force = true) }
+        binding.mapPinClose.setOnClickListener { binding.mapPinCard.visibility = View.GONE }
+        binding.mapPinRoute.setOnClickListener {
+            mapPinTarget?.let { navigate(it.name, it.lat, it.lng) }
+        }
+        mapConfigured = true
+    }
+
+    /** 지도 페이지를 (다시) 띄운다 — 처음 한 번만 불러오고, `다시 시도`일 때만 다시 부른다 */
+    private fun loadMap(force: Boolean = false) {
+        if (!mapConfigured) return
+        if (mapStarted && !force) return
+        mapStarted = true
+        mapReady = false
+        binding.mapWeb.visibility = View.VISIBLE
+        binding.mapLoading.visibility = View.VISIBLE
+        binding.mapErrorBox.visibility = View.GONE
+        binding.mapPinCard.visibility = View.GONE
+        val lat = userLocation?.latitude
+            ?: filteredHotspots.firstOrNull { it.hasLocation }?.lat
+            ?: SpotMapView.DEFAULT_LAT
+        val lng = userLocation?.longitude
+            ?: filteredHotspots.firstOrNull { it.hasLocation }?.lng
+            ?: SpotMapView.DEFAULT_LNG
+        binding.mapWeb.loadDataWithBaseURL(
+            KakaoMapPage.BASE_URL,
+            SpotsMapPage.html(BuildConfig.KAKAO_JS_KEY, lat, lng, SpotsMapPage.DEFAULT_LEVEL),
+            "text/html",
+            "UTF-8",
+            null
+        )
+        mapHandler.removeCallbacks(mapTimeoutJob)
+        mapHandler.postDelayed(mapTimeoutJob, MAP_TIMEOUT_MS)
+    }
+
+    private fun onMapReady() {
+        mapReady = true
+        mapHandler.removeCallbacks(mapTimeoutJob)
+        binding.mapLoading.visibility = View.GONE
+        binding.mapErrorBox.visibility = View.GONE
+        binding.mapWeb.visibility = View.VISIBLE
+        pushMapSpots()
+        userLocation?.let { loc ->
+            setMapMe(loc.latitude, loc.longitude)
+            if (!mapCenteredOnMe) {
+                mapCenteredOnMe = true
+                moveMap(loc.latitude, loc.longitude)
+            }
+        }
+    }
+
+    /** 카카오맵을 못 띄웠다 — 앱은 멈추지 않고 안내와 `다시 시도`만 보여 준다 */
+    private fun showMapError() {
+        mapHandler.removeCallbacks(mapTimeoutJob)
+        if (mapReady) return
+        binding.mapLoading.visibility = View.GONE
+        binding.mapWeb.visibility = View.GONE
+        binding.mapPinCard.visibility = View.GONE
+        binding.mapErrorBox.visibility = View.VISIBLE
+        binding.mapCountLabel.text = ""
+    }
+
+    /** 필터·검색이 바뀔 때마다 핀을 다시 계산한다 (연속 입력·필터 탭을 묶어서 한 번에) */
+    private fun scheduleMapPush() {
+        if (!mapConfigured || !mapStarted) return
+        mapHandler.removeCallbacks(mapPushJob)
+        mapHandler.postDelayed(mapPushJob, 180)
+    }
+
+    /** 지금 목록(지역 칩·검색·숨김 반영)의 콜밭을 지도에 핀으로 찍는다 */
+    private fun pushMapSpots() {
+        if (!mapReady) return
+        val spots = mapPinsFor(filteredHotspots)
+        mapSpots = spots
+        binding.mapCountLabel.text = "${spots.size}곳"
+        val array = JSONArray()
+        spots.forEachIndexed { index, spot ->
+            array.put(
+                JSONObject()
+                    .put("i", index)
+                    .put("lat", spot.lat)
+                    .put("lng", spot.lng)
+                    .put("mine", spot.mine)
+            )
+        }
+        binding.mapWeb.evaluateJavascript("setSpots($array)", null)
+        binding.mapPinCard.visibility = View.GONE
+        mapPinTarget = null
+    }
+
+    /**
+     * 지도에 올릴 콜밭 — 좌표가 있는 곳만, **최대 [MAP_MAX_PINS]곳**.
+     * 목록이 이미 거리순으로 정렬되어 있으니(위치를 모를 땐 내 콜밭 먼저) 앞에서부터 집는다.
+     */
+    private fun mapPinsFor(list: List<Hotspot>): List<Hotspot> {
+        val withCoords = list.filter { it.hasLocation }
+        if (withCoords.size <= MAP_MAX_PINS) return withCoords
+        val mine = withCoords.filter { it.mine }
+        val others = withCoords.filterNot { it.mine }
+        return mine + others.take((MAP_MAX_PINS - mine.size).coerceAtLeast(0))
+    }
+
+    /** 핀을 눌렀을 때 — 지도 아래쪽에 이름·피크·메모·길찾기 카드를 띄운다 */
+    private fun onMapPinTapped(index: Int) {
+        val spot = mapSpots.getOrNull(index) ?: return
+        mapPinTarget = spot
+        binding.mapPinName.text = spot.name
+        val meta = listOfNotNull(
+            spot.area.takeIf { it.isNotBlank() },
+            if (spot.mine) "내 콜밭" else spot.source.takeIf { it.isNotBlank() },
+            if (spot.hasPeak) "피크 ${spot.peak}" else null,
+            distanceOf(spot)?.let { Hotspots.formatDistance(it) }
+        ).joinToString(" · ")
+        if (meta.isBlank()) {
+            binding.mapPinMeta.visibility = View.GONE
+        } else {
+            binding.mapPinMeta.visibility = View.VISIBLE
+            binding.mapPinMeta.text = meta
+        }
+        if (spot.tip.isBlank()) {
+            binding.mapPinMemo.visibility = View.GONE
+        } else {
+            binding.mapPinMemo.visibility = View.VISIBLE
+            binding.mapPinMemo.text = spot.tip
+        }
+        binding.mapPinCard.visibility = View.VISIBLE
+    }
+
+    /** 지도를 크게/작게 — 지도 영역 높이만 바꾸고 카카오맵에 다시 그리라고 알린다 */
+    private fun toggleMapSize() {
+        mapExpanded = !mapExpanded
+        binding.mapFrame.layoutParams = binding.mapFrame.layoutParams.apply {
+            height = activity.dp(if (mapExpanded) MAP_HEIGHT_BIG_DP else MAP_HEIGHT_DP)
+        }
+        binding.mapToggle.text = if (mapExpanded) "작게" else "크게"
+        binding.mapWeb.evaluateJavascript("relayout()", null)
+    }
+
+    /** `내 위치` — 지금 위치를 다시 찾아 지도 중심과 파란 점을 옮긴다 */
+    private fun centerMapOnMe() {
+        if (!activity.hasLocationPermission()) {
+            activity.requestLocationPermission()
+            activity.toast("위치 권한을 허용한 뒤 ‘내 위치’를 다시 눌러 주세요")
+            return
+        }
+        LocationHelper.request(activity) { location ->
+            if (location == null) {
+                activity.toast("지금 위치를 찾지 못했어요 — 지도를 직접 움직여 주세요")
+                return@request
+            }
+            userLocation = location
+            updateLocationCard()
+            renderNearby()
+            mapCenteredOnMe = true
+            setMapMe(location.latitude, location.longitude)
+            moveMap(location.latitude, location.longitude)
+        }
+    }
+
+    /** 위치를 처음 찾았을 때 — 파란 점을 찍고, 아직 내 위치로 옮긴 적이 없으면 중심도 옮긴다 */
+    private fun onMapLocation(location: Location?) {
+        if (location == null || !mapReady) return
+        setMapMe(location.latitude, location.longitude)
+        if (!mapCenteredOnMe) {
+            mapCenteredOnMe = true
+            moveMap(location.latitude, location.longitude)
+        }
+    }
+
+    private fun setMapMe(lat: Double, lng: Double) {
+        if (!mapReady) return
+        binding.mapWeb.evaluateJavascript(
+            String.format(Locale.US, "setMe(%.6f, %.6f)", lat, lng),
+            null
+        )
+    }
+
+    private fun moveMap(lat: Double, lng: Double) {
+        if (!mapReady) return
+        binding.mapWeb.evaluateJavascript(
+            String.format(Locale.US, "moveTo(%.6f, %.6f, %d)", lat, lng, SpotsMapPage.DEFAULT_LEVEL),
+            null
+        )
+    }
+
     // ------------------------------------------------------ 콜밭 목록
 
     private fun renderNearby() {
@@ -446,6 +732,7 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         renderedCount = 0
 
         binding.nearbyCountText.text = "${list.size}곳"
+        scheduleMapPush()
         binding.spotsSubtitle.text = when {
             query.isNotEmpty() -> "‘$query’ 검색 결과 · 콜밭 참고 정보"
             userLocation != null -> "내 위치에서 가까운 순 · 콜밭 ${spotList.size}곳"
