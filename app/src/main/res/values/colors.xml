@@ -29,5 +29,7 @@
     <color name="note">#8A6516</color>
     <color name="divider">#E7EDF4</color>
     <color name="scrim">#66000000</color>
+    <!-- 지도(밝은 OSM 타일) 위 버튼 테두리 — 흰 지도에 묻히지 않게 어두운 반투명 -->
+    <color name="map_control_stroke">#5C3A4A5C</color>
     <color name="ic_launcher_background">#0F141B</color>
 </resources>

@@ -26,9 +26,8 @@ import java.util.Locale
  * `+ 콜밭 추가` 다이얼로그.
  *
  *  - 장소명(필수) · 구분(대리/탁송) · 시·도/지역 또는 주소 · 피크 · 메모를 받아
- *  - **현재 GPS 위치 쓰기** 스위치로 지금 위치를, **주소로 위치 찾기**(Android Geocoder)로
- *    찾은 좌표를, **🗺️ 지도에서 위치 고르기**(OpenStreetMap 지도 피커)로 골라 넣은 좌표를 저장한다.
- *    좌표 없이 이름만 저장해도 된다.
+ *  - **현재 GPS 위치 쓰기** 스위치로 지금 위치를, **🗺️ 지도에서 위치 고르기**(OpenStreetMap 지도 피커)로
+ *    골라 넣은 좌표를 저장한다. 좌표 없이 이름만 저장해도 된다.
  *  - 저장한 콜밭은 DB(my_spots)에 남아 콜밭 목록·검색·거리순 정렬·길찾기·숨기기에 그대로 쓰이고,
  *    JSON 백업에도 함께 들어간다.
  */
@@ -43,7 +42,6 @@ object AddSpotDialog {
         val serviceChips = container.findViewById<ChipGroup>(R.id.spotServiceChips)
         val locationSwitch = container.findViewById<MaterialSwitch>(R.id.useLocationSwitch)
         val mapButton = container.findViewById<MaterialButton>(R.id.pickOnMapButton)
-        val findButton = container.findViewById<MaterialButton>(R.id.findAddressButton)
         val locationValue = container.findViewById<TextView>(R.id.locationValueText)
 
         var service = ServiceType.DAERI
@@ -89,7 +87,7 @@ object AddSpotDialog {
             LocationHelper.request(activity) { location ->
                 if (location == null) {
                     locationSwitch.isChecked = false
-                    activity.toast("위치를 찾지 못했어요. 주소로 찾아보세요")
+                    activity.toast("위치를 찾지 못했어요 — 지도에서 직접 골라 주세요")
                     showLocation()
                 } else {
                     lat = location.latitude
@@ -145,33 +143,6 @@ object AddSpotDialog {
                 else -> {
                     val last = LocationHelper.lastKnown(activity)
                     pickOnMap(last?.latitude, last?.longitude)
-                }
-            }
-        }
-
-        // 주소로 위치 찾기 (Android Geocoder)
-        findButton.setOnClickListener {
-            val query = areaInput.text.toString().trim()
-            if (query.isEmpty()) {
-                areaInput.error = "주소나 지역 이름을 먼저 적어 주세요"
-                areaInput.requestFocus()
-                return@setOnClickListener
-            }
-            if (!Geocoder.isPresent()) {
-                activity.toast("이 폰에서는 주소 검색을 쓸 수 없어요 — 현재 GPS 위치를 켜 주세요")
-                return@setOnClickListener
-            }
-            locationValue.text = "‘$query’ 위치를 찾는 중…"
-            locationSwitch.isChecked = false
-            lookupPlace(activity, query) { found ->
-                if (found == null) {
-                    locationValue.text = "위치 없음 — 이름만 저장돼요"
-                    activity.toast("‘$query’ 위치를 찾지 못했어요. 다른 이름으로 해보세요")
-                } else {
-                    lat = found.first
-                    lng = found.second
-                    placeLabel = null
-                    showLocation()
                 }
             }
         }

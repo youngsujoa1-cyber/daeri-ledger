@@ -4,8 +4,6 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.ColorMatrix
-import android.graphics.ColorMatrixColorFilter
 import android.graphics.Paint
 import android.graphics.RectF
 import android.util.AttributeSet
@@ -35,7 +33,8 @@ import kotlin.math.tan
  *  - 화면 **정중앙에 고정 핀**이 떠 있고, 핀 끝이 지도의 어느 지점을 가리키는지 위경도로 돌려준다.
  *  - 핀 위치가 바뀌면 [onMove] 로 알리고, 손을 뗀 뒤 잠잠해지면 `settled = true` 로 한 번 더 알린다
  *    (주소 찾기는 그때 한 번만 하면 된다).
- *  - 다크 테마에서는 밝은 OSM 타일을 밤 지도처럼 어둡게 바꿔 그린다.
+ *  - 다크 테마에서도 OSM 표준 컬러 타일을 **그대로** 그린다(색 반전 없음). 도로·공원·물·건물·지명이
+ *    선명하게 보이는 대신 지도가 밝아지므로, 핀과 위에 얹는 버튼은 어두운 테두리·그림자로 대비를 준다.
  */
 class SpotMapView @JvmOverloads constructor(
     context: Context,
@@ -74,28 +73,39 @@ class SpotMapView @JvmOverloads constructor(
     val centerLat: Double get() = worldYToLat(centerY)
     val centerLng: Double get() = worldXToLon(centerX)
 
-    private val night = (resources.configuration.uiMode and
-        android.content.res.Configuration.UI_MODE_NIGHT_MASK) ==
-        android.content.res.Configuration.UI_MODE_NIGHT_YES
-
     private val tilePaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
         isDither = true
-        colorFilter = if (night) ColorMatrixColorFilter(darkMatrix()) else null
+        // 색 행렬을 걸지 않는다 — OSM 타일 고유 색을 그대로 살린다
+        colorFilter = null
     }
 
+    /** 타일을 아직 못 받았을 때 깔리는 바탕 — 밝은 지도와 같은 톤 */
     private val backdropPaint = Paint().apply {
-        color = if (night) Color.parseColor("#141B24") else Color.parseColor("#E9EEF3")
+        color = Color.parseColor("#E9EEF3")
     }
 
     private val gridPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeWidth = 1f * density
-        color = if (night) Color.parseColor("#1E2833") else Color.parseColor("#DCE4EC")
+        color = Color.parseColor("#D6DFE9")
     }
 
     private val accent = ContextCompat.getColor(context, R.color.accent)
-    private val pinOutline = if (night) Color.parseColor("#F2F6FA") else Color.WHITE
+
+    /** 밝은 지도 위에서도 핀이 묻히지 않게 두르는 어두운 반투명 테두리 */
+    private val haloPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 2f * density
+        color = Color.parseColor("#59000000")
+    }
+    private val pinOutline = Color.WHITE
     private val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#40000000")
+    }
+    private val stemShadowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.ROUND
+        strokeWidth = 5.5f * density
         color = Color.parseColor("#40000000")
     }
     private val stemPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -318,19 +328,26 @@ class SpotMapView @JvmOverloads constructor(
             shadowPaint
         )
 
-        // 기둥
+        // 기둥 — 밝은 도로 위에서도 보이게 어두운 밑선을 먼저 깐다
+        canvas.drawLine(
+            tipX, tipY - 2f * density,
+            tipX, headCy + headR * 0.7f,
+            stemShadowPaint
+        )
         canvas.drawLine(
             tipX, tipY - 2f * density,
             tipX, headCy + headR * 0.7f,
             stemPaint
         )
 
-        // 머리
+        // 머리 — 흰 테두리 바깥에 어두운 반투명 테두리를 한 겹 둘러 밝은 지도·건물 위에서도 떠 보이게
+        canvas.drawCircle(tipX, headCy, headR + 4.5f * density, haloPaint)
         canvas.drawCircle(tipX, headCy, headR + 1.5f * density, headRingPaint)
         canvas.drawCircle(tipX, headCy, headR, headPaint)
         canvas.drawCircle(tipX, headCy, headR * 0.34f, headDotPaint)
 
         // 핀 끝 점
+        canvas.drawCircle(tipX, tipY, 4.6f * density, haloPaint)
         canvas.drawCircle(tipX, tipY, 3.2f * density, headRingPaint)
         canvas.drawCircle(tipX, tipY, 2.4f * density, headPaint)
     }
@@ -354,24 +371,4 @@ class SpotMapView @JvmOverloads constructor(
 
     private fun worldYToLat(y: Double): Double =
         atan(sinh(PI * (1.0 - 2.0 * y))) * 180.0 / PI
-
-    /** 밝은 OSM 타일을 밤 지도처럼 바꾸는 색 행렬(채도↓ → 밝기 반전 → 살짝 푸르게) */
-    private fun darkMatrix(): ColorMatrix {
-        val sat = ColorMatrix().apply { setSaturation(0.18f) }
-        val tintR = 0.90f
-        val tintG = 0.95f
-        val tintB = 1.08f
-        val a = 0.71f
-        val b = 0.66f
-        val dark = ColorMatrix(
-            floatArrayOf(
-                -b * 0.299f * tintR, -b * 0.587f * tintR, -b * 0.114f * tintR, 0f, a * tintR * 255f,
-                -b * 0.299f * tintG, -b * 0.587f * tintG, -b * 0.114f * tintG, 0f, a * tintG * 255f,
-                -b * 0.299f * tintB, -b * 0.587f * tintB, -b * 0.114f * tintB, 0f, a * tintB * 255f,
-                0f, 0f, 0f, 1f, 0f
-            )
-        )
-        sat.postConcat(dark)
-        return sat
-    }
 }
