@@ -85,14 +85,15 @@ object SpotAggregator {
 
     /**
      * 운영자 제보임을 알아보는 기기 해시 — `local.properties` 의 `ADMIN_PASS` 로만 만들어진다.
-     * 서버 규칙이 deviceHash 를 8~64자 문자열로만 받으므로 **32자**로 맞춘다(일반 기기 해시와 같은 길이).
+     * 일반 기기 해시와 **같은 형식(소문자 16진수 32자)** 으로 만들어, 서버 규칙(8~64자 문자열)을
+     * 그대로 통과하게 한다. 암호가 다르면 값이 달라 일반 기기 해시와 섞이지 않는다.
      */
     fun adminDeviceHash(pass: String): String {
         val digest = MessageDigest.getInstance("SHA-256")
             .digest(("daeri-admin|$pass").toByteArray(StandardCharsets.UTF_8))
         val sb = StringBuilder(32)
         for (b in digest) sb.append(String.format("%02x", b))
-        return "adm" + sb.substring(0, 29)
+        return sb.substring(0, 32)
     }
 
     /** 이 제보가 운영자 해시를 단 운영자 제보인지 */

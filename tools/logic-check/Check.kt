@@ -723,7 +723,7 @@ fun main() {
     // 운영자 해시가 달린 제보 한 건은 5명을 기다리지 않고 바로 공개·삭제된다
     val adminHash = SpotAggregator.adminDeviceHash("test-pass")
     expect("운영자 해시 길이", adminHash.length, 32)
-    expect("운영자 해시 앞자리", adminHash.startsWith("adm"), true)
+    expect("운영자 해시는 16진수", adminHash.all { it in "0123456789abcdef" }, true)
     expect("운영자 해시 고정", adminHash, SpotAggregator.adminDeviceHash("test-pass"))
     expect("다른 암호 = 다른 해시", adminHash == SpotAggregator.adminDeviceHash("test-pass2"), false)
     fun adminReport(
