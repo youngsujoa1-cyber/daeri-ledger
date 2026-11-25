@@ -138,8 +138,8 @@ class SettingsScreen(private val activity: MainActivity) : Screen {
             Dialogs.amount(
                 activity, "고용·산재·세금 (3.3%)", "%",
                 String.format(Locale.KOREA, "%.1f", settings.employmentInsurancePercent),
-                hint = "예: 1.0 (매출의 1%)",
-                presets = listOf("0" to "0%", "0.5" to "0.5%", "1" to "1%", "1.5" to "1.5%"),
+                hint = "예: 3.3 (매출의 3.3%)",
+                presets = listOf("0" to "0%", "0.5" to "0.5%", "1" to "1%", "3.3" to "3.3%"),
                 allowDecimal = true
             ) { value ->
                 val percent = value.replace(",", ".").toDoubleOrNull()
