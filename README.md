@@ -5,7 +5,7 @@
 
 - 패키지: `com.youngsu.daeriledger` (debug: `com.youngsu.daeriledger.debug`)
 - 버전: 1.0.24 (versionCode 25)
-- minSdk 26 / targetSdk 35, Kotlin 2.0.21, AGP 8.7.3, Material 3
+- minSdk 26 / targetSdk 36 (Android 16, Play 신규 앱 요구 — 2026-08-31부터), compileSdk 36, Kotlin 2.0.21, AGP 8.7.3, Material 3
 - 기본 테마: **다크** (야간 운행용 고대비), 라이트/시스템 전환 가능
 
 ## 핵심 기능
