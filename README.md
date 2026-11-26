@@ -4,7 +4,7 @@
 플랫폼 수수료와 건당 보험료를 정확히 빼서 "손에 남는 돈"을 보여주고, 영업일 기준(새벽 콜)으로 장부를 묶는다.
 
 - 패키지: `com.youngsu.daeriledger` (debug: `com.youngsu.daeriledger.debug`)
-- 버전: 1.0.24 (versionCode 25)
+- 버전: 1.0.25 (versionCode 26)
 - minSdk 26 / targetSdk 36 (Android 16, Play 신규 앱 요구 — 2026-08-31부터), compileSdk 36, Kotlin 2.0.21, AGP 8.7.3, Material 3
 - 기본 테마: **다크** (야간 운행용 고대비), 라이트/시스템 전환 가능
 
@@ -60,6 +60,14 @@
 - **타 앱 백업 가져오기**: 대리 가계부(`dcb_teras.zip` / `.db`)의 T_CALL·T_CASH 를 읽어 운행 기록으로 옮깁니다 (중복 자동 제거, 한 트랜잭션 벌크 저장). 원본의 `CALL_OFF_CHK = 1` 행은 그날 일하지 않았다는 표시라 **휴무일**로 함께 가져옵니다
 - AdMob 하단 배너: **debug 빌드는 Google 공식 테스트 ID, release 빌드는 실제 ID** — `ads/AdConfig.kt` 가 `BuildConfig.DEBUG` 로 갈라지고, 앱 ID는 `app/build.gradle.kts` 의 `manifestPlaceholders["admobAppId"]`(debug 테스트 ID / release 실제 ID)로 들어갑니다
 - **통계 탭 전면 광고**: 통계 탭에 들어갈 때 전면 광고 1회, **3분 쿨다운**(첫 진입은 바로). 앱 시작 시 미리 받아 두고 닫히면 다음 광고를 미리 받음. 광고가 없거나 오프라인이면 기다리게 하지 않고 통계 화면을 그대로 보여줌 (`ads/InterstitialHelper.kt`)
+
+## 앱 아이콘 (v1.0.25)
+
+블랙·골드 3D 아이콘(`downloads/daeri-icon-v3-3.png`)을 런처 아이콘으로 씁니다.
+
+- `mipmap-mdpi`~`xxxhdpi/ic_launcher_foreground.png` — 적응형 아이콘 앞면(108dp). 원본에서 가장 먼 밝은 픽셀(동전 오른쪽 아래)이 중앙에서 **33dp**가 되도록 축소해, 핸들과 동전이 **66dp 안전 영역** 안에 들어옵니다(원형·스쿼클 마스크에서 72dp 경계까지 2dp 이상 여유). 남는 바깥은 원본 가장자리에서 샘플링한 배경색 `#010206`(`ic_launcher_background`)으로 채워 이음매가 없습니다.
+- `ic_launcher.png` / `ic_launcher_round.png` — API 26 미만 레거시용 풀블리드(둥근 모서리·원형) 아이콘
+- 생성기: `python3 tools/icon-build/make_icons.py [--preview]` — 스토어 아이콘(`downloads/play-daeri-ledger/icon-512.png` 512×512)과 마스터(`downloads/daeri-ledger-icon.png` 1024×1024)도 함께 만듭니다. `--preview` 는 `downloads/icon-preview/` 에 원형·스쿼클 마스크 미리보기를 남깁니다.
 
 ## 빌드
 
