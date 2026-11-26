@@ -58,7 +58,7 @@
 ### 7. 백업 · 광고
 - Room 대신 표준 SQLite(직접 스키마) + SAF 기반 **CSV 내보내기**, **JSON 백업/복원**(설정·콜밭(구분·지역 포함)·**휴무일**·**경유지** 포함). DB v4 — 기존 11,876건과 저장해 둔 콜밭은 `ALTER TABLE ADD COLUMN` 마이그레이션으로 그대로 남고 새 칸만 기본값으로 채워집니다
 - **타 앱 백업 가져오기**: 대리 가계부(`dcb_teras.zip` / `.db`)의 T_CALL·T_CASH 를 읽어 운행 기록으로 옮깁니다 (중복 자동 제거, 한 트랜잭션 벌크 저장). 원본의 `CALL_OFF_CHK = 1` 행은 그날 일하지 않았다는 표시라 **휴무일**로 함께 가져옵니다
-- AdMob 하단 배너: Google 공식 테스트 ID, `ads/AdConfig.kt` + `AndroidManifest.xml` 두 곳만 교체하면 실제 광고로 전환
+- AdMob 하단 배너: **debug 빌드는 Google 공식 테스트 ID, release 빌드는 실제 ID** — `ads/AdConfig.kt` 가 `BuildConfig.DEBUG` 로 갈라지고, 앱 ID는 `app/build.gradle.kts` 의 `manifestPlaceholders["admobAppId"]`(debug 테스트 ID / release 실제 ID)로 들어갑니다
 - **통계 탭 전면 광고**: 통계 탭에 들어갈 때 전면 광고 1회, **3분 쿨다운**(첫 진입은 바로). 앱 시작 시 미리 받아 두고 닫히면 다음 광고를 미리 받음. 광고가 없거나 오프라인이면 기다리게 하지 않고 통계 화면을 그대로 보여줌 (`ads/InterstitialHelper.kt`)
 
 ## 빌드
@@ -112,7 +112,7 @@ ADMIN_PASS=여기에_운영자_모드_암호
 ```
 app/src/main/java/com/youngsu/daeriledger/
 ├── DaeriLedgerApp.kt          # 테마 모드 적용, AdMob 초기화
-├── ads/                       # AdConfig(테스트 ID), AdManager(배너), InterstitialHelper(통계 탭 전면 광고)
+├── ads/                       # AdConfig(debug 테스트 ID / release 실제 ID), AdManager(배너), InterstitialHelper(통계 탭 전면 광고)
 ├── data/                      # SQLite 스키마(운행·지출·휴무일·내 콜밭)·저장소, 모델, 콜밭 목록, 공용 제보(SpotCloud·SpotAggregate), CSV/JSON 백업
 ├── location/LocationHelper.kt # 마지막 위치/단발 위치 요청
 ├── settings/AppSettings.kt    # 수수료·보험료·영업일·목표·테마
@@ -126,10 +126,21 @@ app/src/main/java/com/youngsu/daeriledger/
 └── util/                      # 영업일·금액 포맷, 공통 UI 유틸
 ```
 
-## 광고 교체 방법
-1. `ads/AdConfig.kt`의 `USE_TEST_ADS = false`, `BANNER_UNIT_ID`를 실제 단위 ID로 변경
-2. `ads/AdConfig.kt`의 `PROD_INTERSTITIAL_UNIT_ID`를 AdMob 에서 만든 **전면 광고 단위 ID** 로 변경
-3. `AndroidManifest.xml`의 `com.google.android.gms.ads.APPLICATION_ID`를 실제 앱 ID로 변경
+## 광고 ID (적용 완료)
+| 빌드 | 앱 ID | 배너 단위 | 전면 단위 |
+| --- | --- | --- | --- |
+| debug | `ca-app-pub-3940256099942544~3347511713` (테스트) | `…/6300978111` (테스트) | `…/1033173712` (테스트) |
+| release | `ca-app-pub-4832055633016363~1323543030` | `…/9174112899` | `…/1809758654` |
+
+값은 `ads/AdConfig.kt`(단위 ID, `BuildConfig.DEBUG` 분기)와 `app/build.gradle.kts` 의 `manifestPlaceholders`(앱 ID)에 있습니다.
+
+## release 빌드 (Play 스토어용 `.aab`)
+업로드 키스토어는 저장소 밖 `projects/keystores/` 에 두고 `keystore.properties` 로 읽습니다(둘 다 저장소에 올리지 않음).
+
+```bash
+JAVA_HOME=… GRADLE_USER_HOME=… ./gradlew bundleRelease --offline
+# 결과: app/build/outputs/bundle/release/app-release.aab
+```
 
 ## 참고
 - 콜밭 정보는 지역 특성과 기사님들의 지도 즐겨찾기를 정리한 참고 자료이며, 카카오T·로지 등 플랫폼의 실시간 콜 수량이 아닙니다.

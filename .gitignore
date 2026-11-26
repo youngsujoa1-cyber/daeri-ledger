@@ -19,6 +19,7 @@ tools/logic-check/out/
 # Signing
 *.keystore
 *.jks
+keystore.properties
 
 # IDE
 .idea/

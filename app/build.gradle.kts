@@ -32,6 +32,16 @@ val adminPass: String =
         ?: System.getenv("ADMIN_PASS")
         ?: ""
 
+// 업로드 키스토어(Play App Signing) — 저장소 밖(projects/keystores)에 두고 keystore.properties 로만 읽는다.
+// 파일이 없으면 release 빌드는 서명 없이 만들어지고(로컬 배포용 아님), 저장소에는 아무 키도 들어가지 않는다.
+val keystorePropertiesFile: File? = listOf(
+    rootProject.file("../keystores/keystore.properties"),
+    rootProject.file("keystore.properties")
+).firstOrNull { it.exists() }
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile != null) keystorePropertiesFile.inputStream().use { load(it) }
+}
+
 android {
     namespace = "com.youngsu.daeriledger"
     compileSdk = 35
@@ -42,6 +52,9 @@ android {
         targetSdk = 35
         versionCode = 25
         versionName = "1.0.24"
+
+        // AdMob 앱 ID — 기본(debug)은 Google 공식 테스트 ID, release 는 buildTypes 에서 실제 ID 로 바꾼다.
+        manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
 
         // 키가 비어 있으면 앱은 공용 제보를 조용히 건너뛰고 로컬 콜밭만 쓴다
         buildConfigField("String", "FIREBASE_API_KEY", "\"$firebaseApiKey\"")
@@ -54,6 +67,22 @@ android {
 
         vectorDrawables {
             useSupportLibrary = true
+        }
+    }
+
+    signingConfigs {
+        if (keystorePropertiesFile != null) {
+            create("release") {
+                val storeFileName = keystoreProperties.getProperty("storeFile")
+                val candidates = listOf(
+                    rootProject.file(storeFileName),
+                    keystorePropertiesFile.parentFile.resolve(storeFileName)
+                )
+                storeFile = candidates.firstOrNull { it.exists() }
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
         }
     }
 
@@ -70,8 +99,11 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // TODO(PlayStore): add your own signingConfig here (upload key / keystore).
-            // signingConfig = signingConfigs.getByName("release")
+            // Play 스토어 업로드용 서명 — keystore.properties 가 있을 때만 붙는다.
+            signingConfigs.findByName("release")?.let { signingConfig = it }
+
+            // release 빌드는 실제 AdMob 앱 ID (대리장부) 사용
+            manifestPlaceholders["admobAppId"] = "ca-app-pub-4832055633016363~1323543030"
         }
     }
 

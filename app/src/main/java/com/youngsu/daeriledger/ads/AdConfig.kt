@@ -1,9 +1,12 @@
 package com.youngsu.daeriledger.ads
 
+import com.youngsu.daeriledger.BuildConfig
+
 /**
  * 광고 설정을 한 곳에 모아 둔다.
- * 지금은 Google 공식 테스트 ID를 쓰고, 실제 서비스로 바꿀 때
- * 이 파일과 AndroidManifest.xml 의 APPLICATION_ID 만 교체하면 된다.
+ *
+ * - debug 빌드: Google 공식 테스트 ID (실기기에서 눌러도 계정에 문제 없음)
+ * - release 빌드: AdMob 에 등록한 실제 ID (Play 스토어 배포용)
  */
 object AdConfig {
 
@@ -16,19 +19,21 @@ object AdConfig {
     /** Google 공식 테스트 전면(Interstitial) 단위 ID */
     const val TEST_INTERSTITIAL_UNIT_ID = "ca-app-pub-3940256099942544/1033173712"
 
-    /**
-     * 출시용 전면 광고 단위 ID 자리.
-     * AdMob 에서 '대리장부 전면 광고'(Interstitial) 단위를 만든 뒤 이 값을 실제 ID 로 바꾼다.
-     * (아직 만들지 않았으므로 0 으로 채운 자리 표시자)
-     */
-    const val PROD_INTERSTITIAL_UNIT_ID = "ca-app-pub-4832055633016363/0000000000"
+    /** 실제 AdMob 앱 ID (대리장부) — release 빌드의 APPLICATION_ID 값과 같다. */
+    const val PROD_APP_ID = "ca-app-pub-4832055633016363~1323543030"
 
-    /** 출시 전 false 로 바꾸고 BANNER_UNIT_ID 를 실제 단위 ID 로 교체한다. */
-    const val USE_TEST_ADS: Boolean = true
+    /** 실제 배너 단위 ID — `대리장부 하단 배너` (하단 고정) */
+    const val PROD_BANNER_UNIT_ID = "ca-app-pub-4832055633016363/9174112899"
+
+    /** 실제 전면 광고 단위 ID — `대리장부 전면 광고` (통계 탭 진입 시 3분 쿨다운) */
+    const val PROD_INTERSTITIAL_UNIT_ID = "ca-app-pub-4832055633016363/1809758654"
+
+    /** 테스트 광고 사용 여부 — debug 빌드에서만 true, release 빌드는 실제 ID 를 쓴다. */
+    val USE_TEST_ADS: Boolean = BuildConfig.DEBUG
 
     /** 하단 배너 단위 ID */
     val BANNER_UNIT_ID: String
-        get() = if (USE_TEST_ADS) TEST_BANNER_UNIT_ID else TEST_BANNER_UNIT_ID
+        get() = if (USE_TEST_ADS) TEST_BANNER_UNIT_ID else PROD_BANNER_UNIT_ID
 
     /** 전면 광고 단위 ID (통계 탭 진입 시) */
     fun interstitialUnitId(): String =
