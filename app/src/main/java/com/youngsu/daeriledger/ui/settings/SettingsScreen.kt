@@ -13,6 +13,7 @@ import com.google.android.material.chip.ChipGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.youngsu.daeriledger.BuildConfig
+import com.youngsu.daeriledger.ads.AdConfig
 import com.youngsu.daeriledger.R
 import com.youngsu.daeriledger.data.Payout
 import com.youngsu.daeriledger.data.PlatformDef
@@ -222,8 +223,8 @@ class SettingsScreen(private val activity: MainActivity) : Screen {
         row(
             icon = R.drawable.ic_info,
             title = "광고",
-            subtitle = "AdMob 배너 (지금은 Google 테스트 ID)",
-            value = "테스트",
+            subtitle = if (AdConfig.isTestMode()) "AdMob 배너 (지금은 Google 테스트 ID)" else "AdMob 배너 · 통계 탭 전면 광고",
+            value = if (AdConfig.isTestMode()) "테스트" else "게재 중",
             clickable = false
         )
         note("콜밭 정보는 지역 특성으로 정리한 참고 자료이며, 각 플랫폼의 실시간 콜 수량이 아닙니다.")
