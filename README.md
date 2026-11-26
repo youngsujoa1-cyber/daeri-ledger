@@ -75,8 +75,10 @@ GRADLE_USER_HOME=/workspace/buildenv/gradle-home HOME=/workspace \
 ### 검사
 
 ```bash
-# 순수 로직 (수수료·보험&세금·콜밭 데이터·집계·백업 변환)
-python3 tools/migration-check/check_migration.py
+# 순수 로직 (수수료·보험&세금·팁 역산·콜밭 데이터·집계·백업 변환)
+bash tools/logic-check/run.sh
+# DB 마이그레이션 (11,876건·기존 콜밭이 그대로인지)
+bash tools/migration-check/run.sh
 # 콜밭 지도 핀 — 실제 JavaScript 로 setSpots 200곳 → 핀 200개 확인 (pip install quickjs)
 python3 tools/map-pin-check/check_pins.py
 ```
@@ -141,6 +143,10 @@ app/src/main/java/com/youngsu/daeriledger/
 JAVA_HOME=… GRADLE_USER_HOME=… ./gradlew bundleRelease --offline
 # 결과: app/build/outputs/bundle/release/app-release.aab
 ```
+
+> 작업 환경 메모리가 작을 때(4GB 이하)는 R8 단계에서 Gradle 데몬이 죽을 수 있습니다.
+> 이때는 데몬 없이 워커 1개·힙을 줄여 돌립니다:
+> `./gradlew bundleRelease --offline --no-daemon --max-workers=1 -Dorg.gradle.parallel=false -Dkotlin.compiler.execution.strategy=in-process -Dorg.gradle.jvmargs="-Xmx700m -XX:MaxMetaspaceSize=300m"
 
 ## 참고
 - 콜밭 정보는 지역 특성과 기사님들의 지도 즐겨찾기를 정리한 참고 자료이며, 카카오T·로지 등 플랫폼의 실시간 콜 수량이 아닙니다.
