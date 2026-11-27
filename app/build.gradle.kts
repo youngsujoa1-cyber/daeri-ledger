@@ -24,6 +24,13 @@ val kakaoJsKey: String =
         ?: System.getenv("KAKAO_JS_KEY")
         ?: ""
 
+// 카카오 REST API 키(선택) — 없으면 앱이 이미 쓰는 JavaScript 키로 같은 coord2address 를 부른다.
+// JS 키는 카카오 SDK 와 같은 KA 헤더(등록 도메인 origin)가 있어야 통과한다.
+val kakaoRestKey: String =
+    localProperties.getProperty("KAKAO_REST_KEY")
+        ?: System.getenv("KAKAO_REST_KEY")
+        ?: ""
+
 // 운영자(관리자) 모드 암호 — 콜밭 등록·삭제를 5명 대기 없이 바로 반영하는 잠금 해제 열쇠.
 // 소스에 적지 않고 local.properties(저장소 제외)의 `ADMIN_PASS=...` 에서만 읽어 BuildConfig 로 넣는다.
 // 값이 비어 있는 오픈소스 빌드에서는 설정 화면 버전을 5번 눌러도 운영자 모드가 켜지지 않는다.
@@ -50,8 +57,8 @@ android {
         applicationId = "com.youngsu.daeriledger"
         minSdk = 26
         targetSdk = 36
-        versionCode = 28
-        versionName = "1.0.27"
+        versionCode = 29
+        versionName = "1.0.28"
 
         // AdMob 앱 ID — 기본(debug)은 Google 공식 테스트 ID, release 는 buildTypes 에서 실제 ID 로 바꾼다.
         manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
@@ -61,6 +68,9 @@ android {
 
         // 키가 비어 있으면 지도 피커는 OpenStreetMap 타일 지도로 폴백한다
         buildConfigField("String", "KAKAO_JS_KEY", "\"$kakaoJsKey\"")
+
+        // 비어 있으면 현위치 역지오코딩은 JS 키 + KA 헤더로 부른다 (v1.0.28)
+        buildConfigField("String", "KAKAO_REST_KEY", "\"$kakaoRestKey\"")
 
         // 비어 있으면 운영자 모드 잠금 해제가 아예 되지 않는다 (오픈소스 빌드 안전장치)
         buildConfigField("String", "ADMIN_PASS", "\"$adminPass\"")

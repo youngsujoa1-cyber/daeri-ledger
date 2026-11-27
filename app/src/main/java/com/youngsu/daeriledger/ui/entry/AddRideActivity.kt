@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
+import android.widget.EditText
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -22,11 +23,13 @@ import com.youngsu.daeriledger.data.LedgerRepository
 import com.youngsu.daeriledger.data.PaymentType
 import com.youngsu.daeriledger.data.Payout
 import com.youngsu.daeriledger.data.PlaceNamer
+import com.youngsu.daeriledger.data.PlaceTarget
 import com.youngsu.daeriledger.data.Platforms
 import com.youngsu.daeriledger.data.Ride
 import com.youngsu.daeriledger.data.RideSpotPing
 import com.youngsu.daeriledger.data.ServiceType
 import com.youngsu.daeriledger.databinding.ActivityAddRideBinding
+import com.youngsu.daeriledger.location.KakaoGeocoder
 import com.youngsu.daeriledger.location.LocationHelper
 import com.youngsu.daeriledger.settings.AppSettings
 import com.youngsu.daeriledger.util.BizTime
@@ -57,6 +60,9 @@ class AddRideActivity : AppCompatActivity() {
     private lateinit var settings: AppSettings
 
     private var rideId = 0L
+
+    /** `📍 현위치` 가 채울 칸 — 마지막으로 손댄 출발지·도착지·경유 (기본 출발지) */
+    private var locationTargetSlot = PlaceTarget.FROM
     private var timeMillis = System.currentTimeMillis()
     private var platformId = "kakao"
     private var service = ServiceType.DAERI
@@ -206,6 +212,7 @@ class AddRideActivity : AppCompatActivity() {
         })
         binding.advancedToggle.setOnClickListener { toggleAdvanced() }
         binding.currentLocationChip.setOnClickListener { useCurrentLocation() }
+        trackLocationTargets()
     }
 
     private fun simpleWatcher(action: () -> Unit) = object : TextWatcher {
@@ -373,50 +380,104 @@ class AddRideActivity : AppCompatActivity() {
                 toastLocationHelp()
                 return@request
             }
-            gpsFix = RideSpotPing.Fix(
-                lat = location.latitude,
-                lng = location.longitude,
-                atMillis = System.currentTimeMillis()
+            resolveNeighborhood(
+                RideSpotPing.Fix(
+                    lat = location.latitude,
+                    lng = location.longitude,
+                    atMillis = System.currentTimeMillis()
+                )
             )
-            resolveNeighborhood(location.latitude, location.longitude)
         }
     }
 
-    /** 좌표 → 동네 이름(정자동·역삼동…)을 기다렸다가 출발지 칸에 넣는다 (Geocoder 는 백그라운드에서) */
-    private fun resolveNeighborhood(lat: Double, lng: Double) {
+    /**
+     * `📍 현위치` 가 들어갈 칸 — 출발지·도착지·경유 중 마지막으로 손댄 칸 (기본 출발지, v1.0.28).
+     * 금액·메모를 누른 뒤에도 마지막으로 고른 위치 칸을 그대로 쓴다.
+     */
+    private fun trackLocationTargets() {
+        val slots = listOf(
+            binding.fromInput to PlaceTarget.FROM,
+            binding.toInput to PlaceTarget.TO,
+            binding.viaInput to PlaceTarget.VIA
+        )
+        for ((field, slot) in slots) {
+            field.onFocusChangeListener = View.OnFocusChangeListener { _, hasFocus ->
+                if (hasFocus) locationTargetSlot = slot
+            }
+            // 포커스가 그대로인 칸을 다시 눌러도 기억한다
+            field.setOnClickListener { locationTargetSlot = slot }
+        }
+    }
+
+    /** 지금 넣을 칸 — 3개 중 하나에 포커스가 있으면 그 칸, 아니면 마지막으로 손댄 칸 */
+    private fun locationTarget(): PlaceTarget {
+        val focused = when {
+            binding.fromInput.hasFocus() -> PlaceTarget.FROM
+            binding.toInput.hasFocus() -> PlaceTarget.TO
+            binding.viaInput.hasFocus() -> PlaceTarget.VIA
+            else -> null
+        }
+        return PlaceTarget.choose(focused, locationTargetSlot)
+    }
+
+    private fun locationField(slot: PlaceTarget): EditText = when (slot) {
+        PlaceTarget.TO -> binding.toInput
+        PlaceTarget.VIA -> binding.viaInput
+        PlaceTarget.FROM -> binding.fromInput
+    }
+
+    private fun locationLabel(slot: PlaceTarget): String = when (slot) {
+        PlaceTarget.TO -> "도착지"
+        PlaceTarget.VIA -> "경유"
+        PlaceTarget.FROM -> "출발지"
+    }
+
+    /**
+     * 좌표 → 동네 이름(정자동·역삼동·박곡리…)을 기다렸다가 **마지막으로 고른 위치 칸**에 넣는다 (백그라운드에서).
+     *
+     * 한국 Android `Geocoder` 는 도로명·시 단위만 주는 일이 많아 `성남시` 로 떨어졌다(v1.0.27 실기기).
+     * 그래서 **카카오 `coord2address`(동·리·가) → Android `Geocoder`** 순서로 시도한다.
+     * 콜밭 집계 좌표는 **출발지에 넣었을 때만** 남긴다 — 도착지·경유 좌표가 콜밭으로 새지 않게.
+     */
+    private fun resolveNeighborhood(fix: RideSpotPing.Fix) {
         Thread {
-            val name = runCatching {
-                val address = Geocoder(applicationContext, Locale.KOREAN)
-                    .getFromLocation(lat, lng, 1)
-                    ?.firstOrNull()
-                if (address == null) {
-                    null
-                } else {
-                    PlaceNamer.shortName(
-                        locality = address.locality,
-                        subLocality = address.subLocality,
-                        subAdminArea = address.subAdminArea,
-                        thoroughfare = address.thoroughfare,
-                        addressLines = (0..address.maxAddressLineIndex)
-                            .mapNotNull { address.getAddressLine(it) },
-                        adminArea = address.adminArea
-                    )
-                }
-            }.getOrNull()
+            val name = KakaoGeocoder.lookup(fix.lat, fix.lng) ?: geocoderName(fix.lat, fix.lng)
 
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
                 setLocating(false)
                 if (name.isNullOrBlank()) {
-                    toast("동네 이름을 못 찾았어요 — 출발지를 직접 적어 주세요")
+                    toast("동네 이름을 못 찾았어요 — 직접 적어 주세요")
                 } else {
-                    binding.fromInput.setText(name)
-                    binding.fromInput.setSelection(name.length)
-                    toast("현위치를 출발지에 넣었어요 · $name")
+                    val slot = locationTarget()
+                    val field = locationField(slot)
+                    field.setText(name)
+                    field.setSelection(name.length)
+                    locationTargetSlot = slot
+                    // 콜밭 집계 좌표는 출발지에 넣었을 때만 — 도착지·경유 좌표가 콜밭으로 새지 않게
+                    gpsFix = if (slot.keepsSpotFix) fix else null
+                    toast("현위치를 ${locationLabel(slot)}에 넣었어요 · $name")
                 }
             }
         }.start()
     }
+
+    /** 카카오가 답하지 않을 때의 마지막 수단 — 기기 `Geocoder` + {@link PlaceNamer} */
+    private fun geocoderName(lat: Double, lng: Double): String? = runCatching {
+        val address = Geocoder(applicationContext, Locale.KOREAN)
+            .getFromLocation(lat, lng, 1)
+            ?.firstOrNull()
+            ?: return@runCatching null
+        PlaceNamer.shortName(
+            locality = address.locality,
+            subLocality = address.subLocality,
+            subAdminArea = address.subAdminArea,
+            thoroughfare = address.thoroughfare,
+            addressLines = (0..address.maxAddressLineIndex)
+                .mapNotNull { address.getAddressLine(it) },
+            adminArea = address.adminArea
+        )
+    }.getOrNull()
 
     /** 버튼에 잠깐 `확인 중...` 을 보여 준다 */
     private fun setLocating(on: Boolean) {

@@ -1,9 +1,11 @@
 import com.youngsu.daeriledger.data.DcbBackup
 import com.youngsu.daeriledger.data.Hotspots
+import com.youngsu.daeriledger.data.KakaoReverse
 import com.youngsu.daeriledger.data.MySpot
 import com.youngsu.daeriledger.data.PaymentType
 import com.youngsu.daeriledger.data.Payout
 import com.youngsu.daeriledger.data.PlaceNamer
+import com.youngsu.daeriledger.data.PlaceTarget
 import com.youngsu.daeriledger.data.Platforms
 import com.youngsu.daeriledger.data.PublicSpot
 import com.youngsu.daeriledger.data.Ride
@@ -1017,6 +1019,81 @@ fun main() {
     expect("현위치: 공백만 있으면 null", PlaceNamer.shortName(locality = "   "), null)
     expect("현위치: 20자 제한",
         PlaceNamer.shortName(subLocality = "가".repeat(30) + "동")?.length, PlaceNamer.MAX_LEN)
+
+    // ===== v1.0.28 — 사용자: "출발지 등록할 때 현위치 누르면 동이나 리까지 등록해달라고" =====
+    // 리·가를 동네 단위로 추가하고, 읍·면 안의 리를 읍·면보다 먼저 고른다
+    expect("현위치: 리", PlaceNamer.shortName(locality = "보은군", addressLines = listOf("충북 보은군 속리산면 갈목리")), "갈목리")
+    expect("현위치: 읍+리 → 리",
+        PlaceNamer.shortName(locality = "가평군", subAdminArea = "청평읍",
+            addressLines = listOf("경기도 가평군 청평읍 청평리")), "청평리")
+    expect("현위치: 면+리 → 리",
+        PlaceNamer.shortName(subLocality = "백암면", addressLines = listOf("경기 용인시 처인구 백암면 박곡리 산 14")), "박곡리")
+    expect("현위치: 리 한 이름에 읍·면과 붙어 와도 리만",
+        PlaceNamer.shortName(candidates = listOf("백암면 박곡리", "경기 용인시 처인구 백암면 박곡리 산 14")), "박곡리")
+    expect("현위치: 리가 번지로 오면 읍",
+        PlaceNamer.shortName(addressLines = listOf("경기 용인시 처인구 백암면 123-4리")), "백암면")
+    expect("현위치: 번지 토큰은 리가 아니다",
+        PlaceNamer.shortName(addressLines = listOf("경기 용인시 처인구 123-4리")), "처인구")
+    expect("현위치: 리는 동보다 먼저",
+        PlaceNamer.shortName(candidates = listOf("화성시 동탄면 신리")), "신리")
+    expect("현위치: 가(번지 붙은 자리)", PlaceNamer.shortName(candidates = listOf("종로1가")), "종로1가")
+    expect("현위치: 가 — 주소 줄에서",
+        PlaceNamer.shortName(addressLines = listOf("서울특별시 종로구 종로1가 50")), "종로1가")
+    expect("현위치: 가 — 을지로3가",
+        PlaceNamer.shortName(addressLines = listOf("서울 중구 을지로3가 65-8")), "을지로3가")
+    expect("현위치: 번지가 없는 '가' 낱말은 동네가 아니다",
+        PlaceNamer.shortName(addressLines = listOf("서울특별시 중구 국가로 1")), "중구")
+    expect("현위치: 리도 동도 없으면 면",
+        PlaceNamer.shortName(locality = "가평군", addressLines = listOf("경기도 가평군 청평면")), "청평면")
+    expect("현위치: 리·동·가·읍·면 후보 우선순위",
+        PlaceNamer.shortName(candidates = listOf("박곡리", "백암면")), "박곡리")
+    expect("현위치: 동을 함께 주면 동이 먼저",
+        PlaceNamer.shortName(candidates = listOf("정자동", "성남시 분당구")), "정자동")
+
+    // ===== 카카오 coord2address (v1.0.28) =====
+    // 실기기에서 현위치가 '성남시' 로 떨어지던 문제 → 카카오가 주는 region_3depth_name 을 먼저 쓴다
+    expect("카카오 요청 좌표 순서(x=경도,y=위도)",
+        KakaoReverse.url(37.3665, 127.1085),
+        "https://dapi.kakao.com/v2/local/geo/coord2address.json?x=127.1085000&y=37.3665000&input_coord=WGS84")
+    expect("카카오 KA 헤더 origin", KakaoReverse.kaHeader(),
+        "sdk/1.0 os/javascript origin/https://youngsujoa1-cyber.github.io lang/ko-KR")
+    expect("카카오 Referer", KakaoReverse.REFERER,
+        "https://youngsujoa1-cyber.github.io/daeri-ledger/kakaomap.html")
+    // 2026-11-27 실제 응답 그대로 (정자동 · 백암면 박곡리 · 종로1가 · 을지로3가)
+    val kakaoJeongja = """{"meta":{"total_count":1},"documents":[{"road_address":null,"address":{"address_name":"경기 성남시 분당구 정자동 100-3","region_1depth_name":"경기","region_2depth_name":"성남시 분당구","region_3depth_name":"정자동","mountain_yn":"N","main_address_no":"100","sub_address_no":"3","zip_code":""}}]}"""
+    expect("카카오 응답 → 정자동", KakaoReverse.nameFromJson(kakaoJeongja), "정자동")
+    val kakaoBaegam = """{"meta":{"total_count":1},"documents":[{"road_address":null,"address":{"address_name":"경기 용인시 처인구 백암면 박곡리 산 14","region_1depth_name":"경기","region_2depth_name":"용인시 처인구","region_3depth_name":"백암면 박곡리","mountain_yn":"Y","main_address_no":"14","sub_address_no":"","zip_code":""}}]}"""
+    expect("카카오 응답 → 박곡리", KakaoReverse.nameFromJson(kakaoBaegam), "박곡리")
+    val kakaoJongno = """{"meta":{"total_count":1},"documents":[{"road_address":null,"address":{"address_name":"서울 종로구 종로1가 50","region_1depth_name":"서울","region_2depth_name":"종로구","region_3depth_name":"종로1가","mountain_yn":"N","main_address_no":"50","sub_address_no":"","zip_code":""}}]}"""
+    expect("카카오 응답 → 종로1가", KakaoReverse.nameFromJson(kakaoJongno), "종로1가")
+    val kakaoEuljiro = """{"meta":{"total_count":1},"documents":[{"road_address":{"address_name":"서울특별시 중구 을지로 117","region_1depth_name":"서울특별시","region_2depth_name":"중구","region_3depth_name":"","road_name":"을지로","building_name":"","zone_no":"04561"},"address":{"address_name":"서울 중구 을지로3가 65-8","region_1depth_name":"서울","region_2depth_name":"중구","region_3depth_name":"을지로3가","mountain_yn":"N","main_address_no":"65","sub_address_no":"8","zip_code":""}}]}"""
+    expect("카카오 응답 → 을지로3가(도로명 말고 지번)", KakaoReverse.nameFromJson(kakaoEuljiro), "을지로3가")
+    expect("카카오: 결과 없음", KakaoReverse.nameFromJson("""{"meta":{"total_count":0},"documents":[]}"""), null)
+    expect("카카오: 빈 본문", KakaoReverse.nameFromJson(""), null)
+    expect("카카오: 깨진 본문", KakaoReverse.nameFromJson("<html>401</html>"), null)
+    expect("카카오: 오류 응답",
+        KakaoReverse.nameFromJson("""{"errorType":"AccessDeniedError","message":"domain mismatched"}"""), null)
+    expect("카카오: \\uXXXX 이스케이프 주소",
+        KakaoReverse.nameFromJson("""{"documents":[{"address":{"address_name":"경기 성남시 분당구 정자동 7","region_3depth_name":"\uC815\uC790\uB3D9"}}]}"""), "정자동")
+    expect("카카오: region_3depth 가 없으면 행정동",
+        KakaoReverse.nameOf(region3 = null, region3h = "정자동"), "정자동")
+    expect("카카오: 동·리가 없으면 구",
+        KakaoReverse.nameOf(region3 = "분당구", addressName = "경기 성남시 분당구"), "분당구")
+    expect("카카오: 아무것도 없으면 null", KakaoReverse.nameOf(null, null, null, null), null)
+    expect("카카오: 도로명만 있으면 시·도",
+        KakaoReverse.nameOf(region3 = null, roadName = "경기도 성남시 분당구 성남대로 393"), "분당구")
+
+    // ===== 현위치가 들어갈 칸 (v1.0.28) — 마지막으로 손댄 칸, 한 번도 안 골랐으면 출발지 =====
+    expect("현위치 칸: 아무것도 안 고름 → 출발지", PlaceTarget.choose(null, null), PlaceTarget.FROM)
+    expect("현위치 칸: 포커스가 이김", PlaceTarget.choose(PlaceTarget.TO, PlaceTarget.FROM), PlaceTarget.TO)
+    expect("현위치 칸: 포커스가 없으면 기억한 칸",
+        PlaceTarget.choose(null, PlaceTarget.VIA), PlaceTarget.VIA)
+    expect("현위치 칸: 버튼을 처음 누르면 출발지", PlaceTarget.choose(null, PlaceTarget.FROM), PlaceTarget.FROM)
+    expect("현위치 칸: 도착지에서 또 누르면 도착지", PlaceTarget.choose(null, PlaceTarget.TO), PlaceTarget.TO)
+    // 콜밭 집계 좌표는 출발지에 넣었을 때만 남긴다
+    expect("출발지 = 콜밭 좌표 남김", PlaceTarget.FROM.keepsSpotFix, true)
+    expect("도착지 = 콜밭 좌표 안 남김", PlaceTarget.TO.keepsSpotFix, false)
+    expect("경유 = 콜밭 좌표 안 남김", PlaceTarget.VIA.keepsSpotFix, false)
 
     // 잡아 둔 좌표를 저장할 때 그대로 쓰는 기준 — 30분이 지나면 새로 잡는다
     expect("현위치 좌표 10분 전 = 그대로 씀", RideSpotGate.fixUsable(now - 10 * 60_000L, now), true)

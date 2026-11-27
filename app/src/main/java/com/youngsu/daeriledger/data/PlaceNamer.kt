@@ -1,14 +1,16 @@
 package com.youngsu.daeriledger.data
 
 /**
- * Geocoder 가 준 행정구역 조각 → 대리운전 기사가 바로 알아보는 **짧은 동네 이름** (v1.0.27).
+ * Geocoder·카카오 `coord2address` 가 준 행정구역 조각 → 대리운전 기사가 바로 알아보는 **짧은 동네 이름** (v1.0.28).
  *
  * 운행 기록 화면의 `📍 현위치` 버튼이 잡은 좌표를 출발지 칸에 넣을 때 쓴다.
- * 도로명(`정자일로`)·건물명보다 **동/읍/면**을 먼저 고르고, 없으면 구·시를 쓴다.
+ * 도로명(`정자일로`)·건물명보다 **동·리·가·읍·면**을 먼저 고르고, 없으면 구·시를 쓴다.
  *
- *  - `성남시 분당구 정자동` → `정자동`
- *  - `성남시 분당구`          → `분당구`
- *  - `서울특별시`             → `서울`
+ *  - `성남시 분당구 정자동`     → `정자동`
+ *  - `용인시 처인구 백암면 박곡리` → `박곡리`   (읍·면보다 좁은 리를 먼저)
+ *  - `서울 종로구 종로1가`      → `종로1가`
+ *  - `성남시 분당구`            → `분당구`
+ *  - `서울특별시`               → `서울`
  *
  * Android 와 무관한 순수 로직이라 `tools/logic-check` 에서 그대로 검사한다.
  */
@@ -17,11 +19,24 @@ object PlaceNamer {
     /** 출발지 칸에 넣는 이름 최대 길이 — 입력칸이 좁아 길면 줄인다 */
     const val MAX_LEN = 20
 
-    /** 동네로 보는 접미사 */
-    private val DONG_SUFFIXES = listOf("동", "읍", "면")
+    /**
+     * 동네로 보는 접미사 — **좁은 단위가 앞**.
+     * `백암면 박곡리` 처럼 읍·면 안에 리가 들어 있으면 리를 고르고,
+     * `을지로3가` 처럼 번지가 붙은 `가` 이름은 동보다도 좁은 자리 이름이라 앞에 둔다.
+     */
+    private val DONG_UNITS: List<List<String>> = listOf(
+        listOf("리"),
+        listOf("동"),
+        listOf("가"),
+        listOf("읍"),
+        listOf("면")
+    )
 
-    /** 시·군·구·도로 끝나면 행정구역 이름으로 본다 */
-    private val DISTRICT_SUFFIXES = listOf("시", "군", "구", "도")
+    /** 시·군·구 — 도보다 좁다 */
+    private val DISTRICT_UNITS = listOf("시", "군", "구")
+
+    /** 시·도 — 마지막 대비책 */
+    private val SIDO_UNITS = listOf("도")
 
     /** 시·도 이름에서 떼어 내는 접미사 — `서울특별시` → `서울` (긴 것부터) */
     private val SIDO_SUFFIXES = listOf("특별자치시", "특별자치도", "특별시", "광역시", "특례시")
@@ -45,49 +60,58 @@ object PlaceNamer {
         addressLines: List<String> = emptyList(),
         adminArea: String? = null
     ): String? {
-        // 1) 동/읍/면 우선 — 주소 줄은 뒤쪽(가장 좁은 행정구역) 토큰부터 본다
-        val lineTokens = addressLines.asReversed().flatMap { tokens(it).asReversed() }
-        val candidates = listOfNotNull(subLocality, subAdminArea, thoroughfare) + lineTokens
-        for (raw in candidates) {
-            dongName(raw)?.let { return cut(it) }
-        }
-        // 2) 동/읍/면이 없으면 구·시 (좁은 쪽 먼저), 마지막으로 시·도
+        // 주소 줄은 뒤쪽(가장 좁은 행정구역)부터 본다
+        val lines = addressLines.asReversed()
+        val dongCandidates = listOfNotNull(subLocality, subAdminArea, thoroughfare) + lines
         val districtCandidates =
-            listOfNotNull(subLocality, subAdminArea) + lineTokens + listOfNotNull(locality, adminArea)
-        for (raw in districtCandidates) {
-            districtName(raw)?.let { return cut(it) }
-        }
-        return null
+            listOfNotNull(subLocality, subAdminArea) + lines + listOfNotNull(locality, adminArea)
+        return pick(dongCandidates, districtCandidates)
     }
 
     /** 주소 한 줄을 그대로 넣어도 같은 결과를 내는 편의 함수 */
     fun shortName(line: String): String? = shortName(addressLines = listOf(line))
 
+    /**
+     * 카카오 `coord2address` 처럼 **이미 동네 단위로 쪼개진 이름들**을 우선순위대로 넘길 때 쓴다.
+     * 앞에 있는 이름이 이기고(`region_3depth_name` → 행정동 → 지번 주소 → 도로명 주소),
+     * 한 이름 안에서는 뒤쪽(좁은) 토큰을 먼저 본다.
+     */
+    fun shortName(candidates: List<String>): String? = pick(candidates, candidates)
+
     // ------------------------------------------------------------ 내부 규칙
 
-    /** 동/읍/면으로 끝나는 토큰이면 동 이름까지만 돌려준다 (`정자동123-4` → `정자동`) */
-    private fun dongName(raw: String?): String? {
-        val token = tidy(raw) ?: return null
-        for (suffix in DONG_SUFFIXES) {
-            if (!token.endsWith(suffix)) continue
-            val head = token.substring(0, token.length - suffix.length)
-            // 번지·건물 번호만 붙은 토큰(`123-4동`)이나 접미사 하나(`동`)는 동네 이름이 아니다
-            if (head.isEmpty() || head.all { it.isDigit() || it == '-' || it == '.' }) continue
-            return token
+    /** 동네 단위(리 → 동 → 가 → 읍 → 면)를 먼저, 없으면 구·시, 마지막으로 시·도 */
+    private fun pick(dongCandidates: List<String>, districtCandidates: List<String>): String? {
+        for (units in DONG_UNITS) {
+            for (candidate in dongCandidates) {
+                val hit = tokens(candidate).lastOrNull { matchesUnit(it, units) } ?: continue
+                return cut(hit)
+            }
+        }
+        for (units in listOf(DISTRICT_UNITS, SIDO_UNITS)) {
+            for (candidate in districtCandidates) {
+                val hit = tokens(candidate).lastOrNull { matchesUnit(it, units) } ?: continue
+                return cut(sido(hit))
+            }
         }
         return null
     }
 
-    /** 시·군·구·도로 끝나는 행정구역만 골라 `서울특별시` → `서울`, `성남시 분당구` → `분당구` */
-    private fun districtName(raw: String?): String? {
-        val narrow = placed(tidy(raw) ?: return null)
-        if (narrow.length < 2) return null
-        if (DISTRICT_SUFFIXES.none { narrow.endsWith(it) }) return null
-        return sido(narrow)
+    /**
+     * 토큰이 그 단위로 끝나는지 — 번지·건물 번호만 붙은 토큰(`123-4동`, `123-4리`)과
+     * 접미사 하나짜리 토큰(`동`)은 동네 이름이 아니다.
+     * `가` 는 번지가 붙은 자리 이름만 인정한다(`종로1가`·`을지로3가` — `국가` 같은 낱말 방지).
+     */
+    private fun matchesUnit(token: String, units: List<String>): Boolean {
+        for (unit in units) {
+            if (!token.endsWith(unit)) continue
+            val head = token.substring(0, token.length - unit.length)
+            if (head.isEmpty() || head.all { it.isDigit() || it == '-' || it == '.' }) return false
+            if (unit == "가" && head.none { it.isDigit() }) return false
+            return true
+        }
+        return false
     }
-
-    /** `서울특별시 강남구` → `강남구` 처럼 가장 좁은 조각만 남긴다 */
-    private fun placed(name: String): String = name.substringAfterLast(' ').trim().ifEmpty { name }
 
     /** 시·도 접미사 정리 — `서울특별시` → `서울` */
     private fun sido(name: String): String {
@@ -102,11 +126,6 @@ object PlaceNamer {
     private fun cut(name: String): String =
         if (name.length <= MAX_LEN) name else name.take(MAX_LEN).trim()
 
-    private fun tidy(raw: String?): String? {
-        val value = raw?.trim()?.replace(SPACES, " ") ?: return null
-        return value.ifEmpty { null }
-    }
-
     private fun tokens(line: String): List<String> =
-        line.trim().split(SPACES).filter { it.isNotEmpty() }
+        line.trim().replace(SPACES, " ").split(" ").filter { it.isNotEmpty() }
 }

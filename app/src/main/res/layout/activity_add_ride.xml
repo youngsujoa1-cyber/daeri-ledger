@@ -193,28 +193,40 @@
 
             <!-- 출발 · 도착 · 경유 (항상 보임) — 적는 순서만 출발 → 도착 → 경유,
                  카드·목록에서는 늘 출발 → 경유 → 도착 순서로 보여 준다 -->
-            <LinearLayout
+            <TextView
+                style="@style/Text.Daeri.Section"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="18dp"
                 android:layout_marginBottom="8dp"
+                android:text="출발지 · 도착지 · 경유" />
+
+            <!-- 현위치 GPS — 출발지 칸 바로 위 왼쪽, 출발지 칸과 같은 너비 (v1.0.28) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="6dp"
                 android:orientation="horizontal">
 
-                <TextView
-                    style="@style/Text.Daeri.Section"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="출발지 · 도착지 · 경유" />
-
-                <!-- 현위치 GPS — 출발지 칸을 동네 이름으로 바로 채운다 (v1.0.27) -->
                 <com.google.android.material.chip.Chip
                     android:id="@+id/currentLocationChip"
                     style="@style/Widget.Daeri.Chip.Action"
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_gravity="center_vertical"
+                    android:layout_weight="1"
                     android:text="📍 현위치" />
+
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1" />
+
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1" />
             </LinearLayout>
 
             <LinearLayout

@@ -4,7 +4,7 @@
 플랫폼 수수료와 건당 보험료를 정확히 빼서 "손에 남는 돈"을 보여주고, 영업일 기준(새벽 콜)으로 장부를 묶는다.
 
 - 패키지: `com.youngsu.daeriledger` (debug: `com.youngsu.daeriledger.debug`)
-- 버전: 1.0.27 (versionCode 28)
+- 버전: 1.0.28 (versionCode 29)
 - minSdk 26 / targetSdk 36 (Android 16, Play 신규 앱 요구 — 2026-08-31부터), compileSdk 36, Kotlin 2.0.21, AGP 8.7.3, Material 3
 - 기본 테마: **다크** (야간 운행용 고대비), 라이트/시스템 전환 가능
 
@@ -27,7 +27,11 @@
 ### 3. 3초 입력
 플랫폼 칩 → 금액 칩(1.5·2·2.5·3·4·5만) → 저장. **출발지 · 도착지 · 경유** 순서로 적고(경유는 비워도 됨 · 카드에서는 늘 `출발 → 경유 → 도착` 순서로 보임), 팁·경유비, **특이사항**(대기비·경유·손님 요청 등)은 같은 화면에서 바로 적고, 건당 보험료만 `▾ 상세 입력 (건당 보험료)`를 펼쳐 고깁니다. 적어 둔 특이사항은 **오늘·달력·미수금 카드의 `카카오T [대리] [후불]` 배지 줄 오른쪽**에 바로 보여서, 카드를 열지 않아도 확인됩니다.
 
-**📍 현위치 (v1.0.27)** — `출발지 · 도착지 · 경유` 제목 줄 오른쪽의 **`📍 현위치`** 칩을 누르면 GPS 로 지금 자리를 잡아 **출발지 칸에 동네 이름을 바로 넣습니다**(`정자동`·`역삼동`·`청평면` 처럼 동/읍/면 우선, 없으면 `분당구`·`성남시`). 잡는 동안 버튼은 `확인 중...` 으로 바뀌고, 위치 권한이 없으면 그 자리에서 허락을 받으며, 3분 넘게 지난 마지막 좌표는 다른 동네일 수 있어 새로 잡고, 위치(GPS)가 꺼져 있거나 못 잡으면 토스트로 안내합니다. 넣은 이름은 그대로 고쳐 쓸 수 있고, 이때 잡은 좌표는 저장할 때 운행 GPS 집계에도 그대로 쓰입니다.
+**📍 현위치 (v1.0.28)** — `출발지 · 도착지 · 경유` 제목 줄 아래, **출발지 칸 바로 위 왼쪽**에 `📍 현위치` 칩이 있습니다. 누르면 GPS 로 지금 자리를 잡아 **동·리까지**(`정자동`·`역삼동`·`박곡리`·`종로1가` — 리 > 동 > 가 > 읍·면 > 시·군·구 순서) 넣습니다. 어느 칸에 들어갈지는 **출발지·도착지·경유 중 마지막으로 손댄 칸**(기본 출발지)이라, `도착지`를 눌러 둔 뒤 누르면 도착지에 들어갑니다(토스트가 `현위치를 도착지에 넣었어요 · 정자동` 처럼 알려 줌).
+
+- **동·리를 어떻게 찾나** — 한국 Android `Geocoder` 는 도로명·시 단위까지만 주는 일이 많아 v1.0.27 은 실기기에서 `성남시` 로 떨어졌습니다. 그래서 v1.0.28 은 **카카오 `coord2address` 를 먼저** 부르고(`region_3depth_name` — `정자동`, `백암면 박곡리`, `종로1가`), 카카오가 실패·미설정일 때만 기기 `Geocoder` + `PlaceNamer` 로 물러납니다. 카카오 인증은 `local.properties` 의 `KAKAO_REST_KEY`(있으면 정식 REST 인증)를 쓰고, 없으면 앱이 이미 쓰는 **JavaScript 키 + 등록 도메인 `KA` 헤더**(`KakaoReverse.kaHeader()`, origin `https://youngsujoa1-cyber.github.io`)로 같은 주소를 부릅니다. 응답 해석은 `KakaoReverse`(Android `org.json` 없이 자체 JSON 읽기)라 `tools/logic-check` 에서 실제 카카오 응답 그대로 검사합니다
+- **콜밭 집계 보호** — 현위치 좌표는 **출발지에 넣었을 때만** 저장 기록의 운행 GPS 집계에 씁니다. 도착지·경유에 넣은 좌표는 콜밭으로 모이지 않습니다(`PlaceTarget.keepsSpotFix`)
+- 잡는 동안 버튼은 `확인 중...` 으로 바뀌고, 위치 권한이 없으면 그 자리에서 허락을 받으며, 3분 넘게 지난 마지막 좌표는 다른 동네일 수 있어 새로 잡고, 위치(GPS)가 꺼져 있거나 못 잡으면 토스트로 안내합니다. 넣은 이름은 그대로 고쳐 쓸 수 있습니다
 
 ### 4. 지출 · 미수금
 셔틀비·대중교통·식대·프로그램비·월보험료·기타. 결제는 **현금 · 후불 · 미수금** 세 가지 — 손님에게 나중에 받는 카드·포인트 결제가 `후불`, 현장에서 받지 못한 콜이 `미수금`(미수금 화면에서 1탭 "입금 완료", 되돌리기 지원)입니다.
@@ -89,7 +93,7 @@ GRADLE_USER_HOME=/workspace/buildenv/gradle-home HOME=/workspace \
 ### 검사
 
 ```bash
-# 순수 로직 (수수료·보험&세금·팁 역산·콜밭 데이터·2명/50m 집계·시간대·몰아 올리기 필터·백업 변환)
+# 순수 로직 (수수료·보험&세금·팁 역산·콜밭 데이터·2명/50m 집계·시간대·몰아 올리기 필터·백업 변환·현위치 동/리/가·카카오 응답 해석)
 bash tools/logic-check/run.sh
 # DB 마이그레이션 (11,876건·기존 콜밭이 그대로인지)
 bash tools/migration-check/run.sh
@@ -107,6 +111,7 @@ Firebase 웹 API 키는 소스에 적지 않습니다. `local.properties`(저장
 sdk.dir=/workspace/buildenv/android-sdk
 FIREBASE_API_KEY=여기에_Firebase_웹_API_키
 KAKAO_JS_KEY=여기에_카카오_JavaScript_키
+KAKAO_REST_KEY=여기에_카카오_REST_API_키 (선택)
 ADMIN_PASS=여기에_운영자_모드_암호
 ```
 
@@ -123,13 +128,17 @@ ADMIN_PASS=여기에_운영자_모드_암호
 카카오 콘솔의 JavaScript 키 → JavaScript SDK 도메인에 그 주소가 등록되어 있어야 합니다.
 키가 비어 있으면 지도 피커는 OpenStreetMap 타일 지도로 동작합니다.
 
+현위치 동네 이름(v1.0.28)은 같은 카카오 앱의 **`coord2address`** 를 부릅니다. `KAKAO_REST_KEY` 가 있으면 그 키로,
+없으면 `KAKAO_JS_KEY` + 등록 도메인 `KA` 헤더(`origin/https://youngsujoa1-cyber.github.io`)로 부르고,
+둘 다 없거나 실패하면 Android `Geocoder` + `PlaceNamer` 로 폴백합니다.
+
 ## 구조
 
 ```
 app/src/main/java/com/youngsu/daeriledger/
 ├── DaeriLedgerApp.kt          # 테마 모드 적용, AdMob 초기화
 ├── ads/                       # AdConfig(debug 테스트 ID / release 실제 ID), AdManager(배너), InterstitialHelper(통계 탭 전면 광고)
-├── data/                      # SQLite 스키마(운행·지출·휴무일·내 콜밭)·저장소, 모델, 콜밭 목록, 공용 제보(SpotCloud·SpotAggregate), 현위치 동네 이름(PlaceNamer), CSV/JSON 백업
+├── data/                      # SQLite 스키마(운행·지출·휴무일·내 콜밭)·저장소, 모델, 콜밭 목록, 공용 제보(SpotCloud·SpotAggregate), 현위치 동네 이름(PlaceNamer·KakaoReverse·PlaceTarget), CSV/JSON 백업
 ├── location/LocationHelper.kt # 마지막 위치/단발 위치 요청
 ├── settings/AppSettings.kt    # 수수료·보험료·영업일·목표·테마
 ├── ui/
