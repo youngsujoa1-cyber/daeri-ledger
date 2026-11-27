@@ -108,7 +108,15 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // 화면이 다시 보이면(탭 전환·잠금 해제·다른 앱에서 복귀) 지금 탭을 새로 그린다 —
+        // 콜밭 화면은 이때 새 GPS 측정을 다시 건다 (v1.0.31)
         screens[currentTab]?.refresh()
+    }
+
+    override fun onPause() {
+        // 화면이 가려지면 화면이 켜 둔 GPS 감시를 멈춘다 — 백그라운드로 위치를 계속 받지 않는다
+        screens[currentTab]?.onPause()
+        super.onPause()
     }
 
     override fun onDestroy() {
@@ -127,6 +135,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun selectTab(itemId: Int) {
+        // 탭을 떠나는 화면은 GPS 감시를 멈춘다 (돌아오면 refresh 에서 다시 건다)
+        if (itemId != currentTab) screens[currentTab]?.onPause()
         currentTab = itemId
         val screen = screens.getOrPut(itemId) { createScreen(itemId) }
         if (binding.contentContainer.childCount == 1 &&

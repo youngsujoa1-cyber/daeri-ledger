@@ -14,6 +14,7 @@ import com.youngsu.daeriledger.data.ServiceType
 import com.youngsu.daeriledger.data.SpotAggregator
 import com.youngsu.daeriledger.data.SpotReport
 import com.youngsu.daeriledger.data.SpotTimeBands
+import com.youngsu.daeriledger.location.LocationPolicy
 import com.youngsu.daeriledger.ui.widget.CalendarGrid
 import com.youngsu.daeriledger.ui.widget.PressTracker
 import com.youngsu.daeriledger.util.BizTime
@@ -1184,6 +1185,61 @@ fun main() {
     expect("현위치 좌표 30분 전 = 그대로 씀", RideSpotGate.fixUsable(now - 30 * 60_000L, now), true)
     expect("현위치 좌표 31분 전 = 다시 잡음", RideSpotGate.fixUsable(now - 31 * 60_000L, now), false)
     expect("현위치 좌표 없음 = 다시 잡음", RideSpotGate.fixUsable(0L, now), false)
+
+    // ===== 콜밭 실시간 위치 갱신 (v1.0.31) =====
+    // ① 오래된 캐시(정자동)를 지금 위치로 믿지 않는다 — 기본 20초
+    expect("캐시 10초 전 = 지금 위치로 씀", LocationPolicy.isFresh(now - 10_000, now, LocationPolicy.DEFAULT_MAX_CACHE_AGE_MS), true)
+    expect("캐시 19초 전 = 지금 위치로 씀", LocationPolicy.isFresh(now - 19_000, now, LocationPolicy.DEFAULT_MAX_CACHE_AGE_MS), true)
+    expect("캐시 21초 전 = 새로 잰다", LocationPolicy.isFresh(now - 21_000, now, LocationPolicy.DEFAULT_MAX_CACHE_AGE_MS), false)
+    expect("캐시 3시간 전(정자동) = 새로 잰다", LocationPolicy.isFresh(now - 3 * 3_600_000L, now, LocationPolicy.DEFAULT_MAX_CACHE_AGE_MS), false)
+    expect("캐시 나이 제한 없음(-1) = 예전 방식대로 그대로 씀", LocationPolicy.isFresh(now - 3_600_000L, now, -1L), true)
+    expect("새로고침(0ms) = 캐시 안 믿음", LocationPolicy.isFresh(now - 1_000, now, 0L), false)
+    expect("시각 없는 좌표 = 안 씀", LocationPolicy.isFresh(0L, now, LocationPolicy.DEFAULT_MAX_CACHE_AGE_MS), false)
+    expect("기기 시계보다 5분 앞선 좌표 = 안 씀", LocationPolicy.isFresh(now + 300_000L, now, LocationPolicy.DEFAULT_MAX_CACHE_AGE_MS), false)
+    expect("좌표 나이(미래도 0)", LocationPolicy.ageMs(now + 5_000L, now), 0L)
+
+    // ② 제공자 하나만 고르지 않는다 — GPS·네트워크·융합을 함께
+    expect("제공자: GPS+네트워크", LocationPolicy.providers(gps = true, network = true), listOf("gps", "network"))
+    expect("제공자: 융합+GPS+네트워크", LocationPolicy.providers(gps = true, network = true, fused = true), listOf("fused", "gps", "network"))
+    expect("제공자: 네트워크만 켜짐", LocationPolicy.providers(gps = false, network = true), listOf("network"))
+    expect("제공자: 위치 서비스 꺼짐", LocationPolicy.providers(gps = false, network = false), emptyList<String>())
+
+    // ③ 새 측정 받기 — 늦게 온 옛 측정은 버리고, 부정확한 네트워크 좌표가 GPS 를 덮지 않게
+    expect("새 측정: 기존 없음 → 받는다", LocationPolicy.acceptFix(now, 20f, 0L, 0f), true)
+    expect("새 측정: 더 새 좌표 → 받는다", LocationPolicy.acceptFix(now, 30f, now - 5_000, 20f), true)
+    expect("새 측정: 1분 넘게 오래된 측정 → 버린다", LocationPolicy.acceptFix(now - 120_000, 15f, now, 20f), false)
+    expect("새 측정: 같은 순간 + 더 정확 → 받는다", LocationPolicy.acceptFix(now, 8f, now, 25f), true)
+    expect("새 측정: 같은 순간 + 조금 더 부정확(60m) → 허용(50m 여유)", LocationPolicy.acceptFix(now, 60f, now, 25f), true)
+    expect("새 측정: 같은 순간 + 많이 더 부정확(400m) → 버린다", LocationPolicy.acceptFix(now, 400f, now, 25f), false)
+    expect("새 측정: 5초 뒤 네트워크 800m(부정확) → 버린다", LocationPolicy.acceptFix(now + 5_000, 800f, now, 10f), false)
+    expect("새 측정: 40초 뒤 조금 부정확 → 받는다(정확한 옛 좌표에 머무르지 않음)", LocationPolicy.acceptFix(now + 40_000, 120f, now, 10f), true)
+    expect("정확도 모름(0) = 아주 나쁨", LocationPolicy.accuracyOf(0f), 999f)
+
+    // ④ 목록을 다시 그리는 기준 — 30m·30초
+    expect("다시 그리기: 첫 좌표", LocationPolicy.shouldRerender(37.5, 127.0, 0L, 37.5, 127.0, now), true)
+    expect("다시 그리기: 10m 이동 → 그대로", LocationPolicy.shouldRerender(37.5, 127.0, now, 37.50009, 127.0, now + 2_000), false)
+    expect("다시 그리기: 40m 이동 → 다시 그림", LocationPolicy.shouldRerender(37.5, 127.0, now, 37.50036, 127.0, now + 2_000), true)
+    expect("다시 그리기: 안 움직여도 31초 → 다시 그림", LocationPolicy.shouldRerender(37.5, 127.0, now, 37.5, 127.0, now + 31_000), true)
+    expect("지도 따라가기: 100m → 그대로", LocationPolicy.shouldFollowMap(37.5, 127.0, 37.5009, 127.0), false)
+    expect("지도 따라가기: 200m(동네를 넘어감) → 옮긴다", LocationPolicy.shouldFollowMap(37.5, 127.0, 37.5018, 127.0), true)
+    expect("거리 0.01도 위도 ≈ 1.1km",
+        (LocationPolicy.distanceM(37.5, 127.0, 37.51, 127.0) / 100).toInt(), 11)
+    // 정자동 ↔ 동탄이면 지도가 반드시 따라가야 한다
+    expect("정자동→동탄 = 따라간다",
+        LocationPolicy.shouldFollowMap(37.366, 127.108, 37.200, 127.095), true)
+
+    // ⑤ 감시자 재등록 기준 — 20초 조용하면 다시
+    expect("감시자: 등록 실패 → 다시 건다", LocationPolicy.shouldRestartWatchdog(0, now, now), true)
+    expect("감시자: 측정 10초 전 → 그대로", LocationPolicy.shouldRestartWatchdog(2, now - 10_000, now), false)
+    expect("감시자: 측정 25초 전 → 다시 잰다", LocationPolicy.shouldRestartWatchdog(2, now - 25_000, now), true)
+    expect("감시자: 한 번도 측정 없음 → 다시 잰다", LocationPolicy.shouldRestartWatchdog(2, 0L, now), true)
+
+    // ⑥ 오래된 좌표 표시
+    expect("좌표 30초 전 = 최신", LocationPolicy.staleLabel(30_000), null)
+    expect("좌표 80초 전 = 최신", LocationPolicy.staleLabel(80_000), null)
+    expect("좌표 5분 전 = 표시", LocationPolicy.staleLabel(5 * 60_000L), "5분 전 위치")
+    expect("좌표 70분 전 = 시 단위", LocationPolicy.staleLabel(70 * 60_000L), "1시간 전 위치")
+    expect("좌표 하루 넘음", LocationPolicy.staleLabel(30 * 3_600_000L), "하루 넘게 전 위치")
 
     println(if (failures == 0) "ALL CHECKS PASSED" else "$failures CHECK(S) FAILED")
     if (failures > 0) kotlin.system.exitProcess(1)

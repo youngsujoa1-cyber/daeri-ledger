@@ -95,6 +95,7 @@ internal object SpotsMapPage {
   function jError(m) { try { Bridge.onError(String(m)); } catch (e) {} }
   function jSpot(i) { try { Bridge.onSpotClick(Number(i)); } catch (e) {} }
   function jMapClick() { try { Bridge.onMapClick(); } catch (e) {} }
+  function jDrag() { try { Bridge.onMapDrag(); } catch (e) {} }
 
   function fail(m) {
     if (failed) return;
@@ -158,17 +159,29 @@ internal object SpotsMapPage {
     }
   }
 
-  /** 내 위치 파란 점 (위치를 모르면 null 을 넘겨 지운다) */
+  /**
+   * 내 위치 파란 점 (위치를 모르면 null 을 넘겨 지운다)
+   *  - 이미 찍혀 있으면 **좌표만 옮긴다** — 갱신할 때마다 새로 만들면 잔상·겹침이 생긴다 (v1.0.31)
+   */
   function setMe(lat, lng) {
     if (!map) return;
-    if (me) { try { me.setMap(null); } catch (e) {} me = null; }
-    if (lat === null || lng === null) return;
+    if (lat === null || lng === null) {
+      if (me) { try { me.setMap(null); } catch (e) {} }
+      me = null;
+      return;
+    }
     var a = Number(lat), b = Number(lng);
     if (!isFinite(a) || !isFinite(b) || (a === 0 && b === 0)) return;
+    var pos = new kakao.maps.LatLng(a, b);
+    if (me) {
+      if (me.setPosition) me.setPosition(pos);
+      else { try { me.setMap(null); } catch (e) {} me = null; }
+      if (me) return;
+    }
     var el = document.createElement('div');
     el.className = 'me';
     me = new kakao.maps.CustomOverlay({
-      position: new kakao.maps.LatLng(a, b),
+      position: pos,
       content: el,
       xAnchor: 0.5,
       yAnchor: 0.5,
@@ -207,6 +220,8 @@ internal object SpotsMapPage {
     map.setZoomable(true);
     // 빈 지도를 누르면 앱이 핀 카드를 닫는다
     kakao.maps.event.addListener(map, 'click', function () { jMapClick(); });
+    // 손으로 지도를 옮기면 앱이 내 위치 따라가기를 멈춘다 (v1.0.31)
+    kakao.maps.event.addListener(map, 'dragstart', function () { jDrag(); });
     ready = true;
     if (pendingSpots) setSpots(pendingSpots);
     jReady();
@@ -245,6 +260,7 @@ class SpotsMapBridge(
     private val ready: () -> Unit,
     private val spotClick: (index: Int) -> Unit,
     private val mapClick: () -> Unit,
+    private val mapDrag: () -> Unit,
     private val error: (message: String) -> Unit
 ) {
 
@@ -262,6 +278,12 @@ class SpotsMapBridge(
     @android.webkit.JavascriptInterface
     fun onMapClick() {
         main.post { runCatching { mapClick() } }
+    }
+
+    /** 지도를 손으로 옮겼다 — 앱은 내 위치 따라가기를 멈춘다 (v1.0.31) */
+    @android.webkit.JavascriptInterface
+    fun onMapDrag() {
+        main.post { runCatching { mapDrag() } }
     }
 
     @android.webkit.JavascriptInterface

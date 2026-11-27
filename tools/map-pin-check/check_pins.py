@@ -66,7 +66,8 @@ var Bridge = {
   onReady: function () { _bridgeCalls.push(['ready']); },
   onError: function (m) { _bridgeCalls.push(['error', String(m)]); },
   onSpotClick: function (i) { _bridgeCalls.push(['spot', Number(i)]); },
-  onMapClick: function () { _bridgeCalls.push(['map']); }
+  onMapClick: function () { _bridgeCalls.push(['map']); },
+  onMapDrag: function () { _bridgeCalls.push(['drag']); }
 };
 function _el() {
   return {
@@ -97,8 +98,10 @@ var kakao = { maps: {
   CustomOverlay: function (opts) {
     this.opts = opts; this.content = opts.content; this._map = null;
     this.setMap = function (m) { this._map = m; if (m) _overlays.push(this); };
+    this.setPosition = function (p) { this.opts.position = p; };
   },
-  event: { addListener: function () {} }
+  /* 지도 이벤트를 기억해 둔다 — dragstart 가 앱으로 가는지 검사하려고 */
+  event: { addListener: function (obj, name, fn) { (obj._listeners = obj._listeners || {})[name] = fn; } }
 } };
 function _livePins() { var n = 0; for (var i = 0; i < _overlays.length; i++) if (_overlays[i]._map) n++; return n; }
 """
@@ -221,6 +224,27 @@ def main():
     expect("지금 한산 핫스팟 핀", ctx.eval("_overlays[1].content.className"), "pin hot")
     expect("지금 활발 핀 zIndex", ctx.eval("_overlays[0].opts.zIndex"), 6)
     expect("now 테두리 CSS", ".pin.now" in html and "rgba(47,191,176" in html, True)
+
+    # ===== 내 위치 파란 점 · 지도 따라가기 (v1.0.31) =====
+    # 파란 점은 갱신할 때마다 새로 만들지 않고 좌표만 옮긴다 (잔상·겹침 없음)
+    ctx.eval("_overlays = []; _bridgeCalls = [];")
+    ctx.eval("setMe(37.5, 127.0)")
+    expect("setMe → 파란 점 하나", ctx.eval("_livePins()"), 1)
+    me_overlay = ctx.eval("_overlays.length")
+    ctx.eval("setMe(37.51, 127.02)")
+    expect("setMe 두 번째 → 개체를 새로 만들지 않음", ctx.eval("_overlays.length"), me_overlay)
+    expect("setMe 두 번째 → 좌표만 옮김",
+           ctx.eval("_overlays[0].opts.position.lat"), 37.51)
+    expect("setMe 두 번째 → 지도에 그대로 남음", ctx.eval("_livePins()"), 1)
+    ctx.eval("setMe(null, null)")
+    expect("setMe(null) → 파란 점 지움", ctx.eval("_livePins()"), 0)
+    ctx.eval("setMe(0, 0)")
+    expect("setMe(0,0) → 무시", ctx.eval("_livePins()"), 0)
+
+    # 지도를 손으로 옮기면 앱에 알려 내 위치 따라가기를 멈추게 한다
+    ctx.eval("_bridgeCalls = [];")
+    ctx.eval("map._listeners['dragstart'] && map._listeners['dragstart']()")
+    expect("지도 끌기 → onMapDrag 브리지", json.loads(ctx.eval("JSON.stringify(_bridgeCalls)"))[-1], ["drag"])
 
     if failures:
         print(f"\n{failures} FAILED")

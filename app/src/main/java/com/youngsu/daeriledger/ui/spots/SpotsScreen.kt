@@ -34,6 +34,7 @@ import com.youngsu.daeriledger.databinding.ItemEmptyBinding
 import com.youngsu.daeriledger.databinding.ItemHotspotBinding
 import com.youngsu.daeriledger.databinding.ScreenSpotsBinding
 import com.youngsu.daeriledger.location.LocationHelper
+import com.youngsu.daeriledger.location.LocationPolicy
 import com.youngsu.daeriledger.ui.MainActivity
 import com.youngsu.daeriledger.ui.Screen
 import com.youngsu.daeriledger.ui.widget.SpotMapView
@@ -63,6 +64,10 @@ import kotlin.math.roundToInt
  *  - **🟢 지금 활발한 핫스팟 (v1.0.29)**: 화면 위 시간대 필터 칩 줄은 없애고, 앱이 **지금 시각(±1시간)** 에
  *    제보가 모인 핫스팟을 스스로 찾아 카드 줄(`🟢 지금 활발 · 주로 22시~01시 · 4건`)과 지도 핀(테두리 빛)으로
  *    강조하고 목록·지도에서 앞당긴다. 시간대 집계가 없는 기본 콜밭은 거리순 그대로다
+ *  - **실시간 내 위치 (v1.0.31)**: 화면이 보이는 동안 GPS·네트워크 위치를 **계속** 따라간다. 지도 파란 점·가까운 순 정렬·
+ *    지도 중심이 새 좌표로 저절로 옮겨지고, 화면을 닫았다 열거나 잠금을 풀고 돌아오면 새 좌표를 바로 잡는다.
+ *    오래된 좌표(예: 다른 동네)는 20초가 넘으면 믿지 않고 새로 재며, 캐시를 쓸 때는 `N분 전 위치` 로 알려 준다.
+ *    백그라운드 위치 권한은 쓰지 않는다 — 화면이 가려지면 갱신을 멈춘다.
  *  - **👑 운영자 모드 (v1.0.23)**: 설정에서 5번 탭 + 암호로 켜면 `+ 콜밭 추가` 가 3명 대기 없이 바로 전체 공개되고,
  *    카드를 길게 눌러 `운영자: 전체에서 바로 삭제` 로 기본·기사 추천·공용 제보 콜밭을 모두 지울 수 있다
  */
@@ -90,6 +95,16 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
     }
     private var userLocation: Location? = null
     private var locating = false
+    /** 한 번도 위치를 못 잡았는가 — `내 위치를 확인하는 중…` 에서 끝나지 않게 */
+    private var locationFailed = false
+
+    /** 화면이 보이는 동안 계속 돌아가는 GPS 감시자 (v1.0.31) — 화면이 가려지면 [onPause] 에서 멈춘다 */
+    private var watcher: LocationHelper.Watcher? = null
+
+    /** 지도 중심이 내 위치를 따라가는 중인가 — 손으로 지도를 옮기면 꺼지고, `내 위치` 를 누르면 다시 켜진다 */
+    private var mapFollow = true
+    private var mapFollowLat = 0.0
+    private var mapFollowLng = 0.0
     private var savedSpots: List<MySpot> = emptyList()
     private var spotStats: List<SpotStat> = emptyList()
 
@@ -163,7 +178,8 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         updateHiddenInfo()
         renderNearby()
         updateLocationCard()
-        maybeLocate()
+        // 화면이 보이는 동안 GPS 를 계속 따라간다 — 한 번 잡고 멈추지 않는다 (v1.0.31)
+        startTracking()
         // 지도는 처음 한 번만 띄우고, 이후에는 핀만 새로 찍는다
         loadMap()
         // 서버 제보는 비동기로 — 네트워크가 안 되면 조용히 로컬 목록만 유지한다
@@ -200,63 +216,139 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
 
     // ------------------------------------------------------------- 위치
 
-    private fun maybeLocate() {
-        if (locating || userLocation != null) return
-        if (!activity.hasLocationPermission()) return
-        locating = true
-        updateLocationCard()
-        LocationHelper.request(activity) { location ->
-            locating = false
-            userLocation = location
+    /**
+     * 화면이 보이는 동안 위치를 **계속** 따라간다 (v1.0.31).
+     *
+     * 예전에는 `userLocation != null` 이면 다시 잡지 않아서, 첫 좌표가 오래된 캐시(정자동)면 화면을 닫았다 열어도
+     * 그대로 멈춰 있었다. 지금은 화면을 열 때마다([refresh]) ① 감시자를 새로 걸고 ② 캐시가 20초보다 오래됐으면
+     * 실제 측정을 걸어, 동탄에 있으면 동탄으로 바로 바뀐다.
+     */
+    private fun startTracking() {
+        if (!activity.hasLocationPermission()) {
+            stopTracking()
             updateLocationCard()
-            renderNearby()
-            onMapLocation(location)
+            return
+        }
+        if (watcher == null) {
+            watcher = LocationHelper.startWatch(activity) { location -> onLocationFix(location) }
+        }
+        // 캐시가 20초 안이면 바로, 아니면 새로 잰다 — 한 번 잡은 좌표에 머무르지 않는다
+        if (userLocation == null) locating = true
+        LocationHelper.request(activity) { location ->
+            if (location != null) {
+                onLocationFix(location)
+            } else if (userLocation == null) {
+                locating = false
+                locationFailed = true
+                updateLocationCard()
+            }
         }
     }
 
+    /** 화면이 가려지면 GPS 감시를 멈춘다 — 백그라운드로 위치를 계속 받지 않는다 */
+    override fun onPause() {
+        stopTracking()
+    }
+
+    private fun stopTracking() {
+        watcher?.stop()
+        watcher = null
+        locating = false
+    }
+
+    /**
+     * 새 좌표가 들어왔다.
+     *  - 늦게 도착한 옛 측정은 버리고([LocationPolicy.acceptFix]),
+     *  - 30m 넘게 움직였거나 30초가 지났을 때만 목록(거리 정렬·핀)을 다시 그린다([LocationPolicy.shouldRerender]) —
+     *    파란 점은 측정이 올 때마다 바로 옮긴다.
+     */
+    private fun onLocationFix(location: Location) {
+        val prev = userLocation
+        if (prev != null &&
+            !LocationPolicy.acceptFix(location.time, location.accuracy, prev.time, prev.accuracy)
+        ) {
+            return
+        }
+        val redraw = prev == null || LocationPolicy.shouldRerender(
+            prev.latitude, prev.longitude, prev.time,
+            location.latitude, location.longitude, location.time
+        )
+        val firstFix = prev == null
+        userLocation = location
+        locating = false
+        locationFailed = false
+        updateLocationCard()
+        if (redraw) {
+            renderNearby()
+            if (firstFix && mapCenteredOnMe) {
+                // 지도가 예전 자리(정자동)에서 떠 있었으면 지금 자리로 옮긴다
+                moveMap(location.latitude, location.longitude)
+                mapFollowLat = location.latitude
+                mapFollowLng = location.longitude
+            }
+        }
+        onMapLocation(location)
+    }
+
+    /**
+     * `새로고침` — 캐시를 무시하고 **지금 자리**를 새로 잰다. 감시자에게도 즉시 재측정을 시킨다.
+     * (실패해도 기존 목록·정렬은 그대로 두고 안내만 한다)
+     */
     private fun onLocationAction() {
         when {
             !activity.hasLocationPermission() -> activity.requestLocationPermission()
             locating -> Unit
             else -> {
-                userLocation = null
                 locating = true
+                locationFailed = false
                 updateLocationCard()
                 // 새로고침을 누르면 기사님 제보도 다시 받아 온다 (서버는 5분 캐시)
                 loadCloud(force = true)
-                LocationHelper.request(activity) { location ->
+                watcher?.forceNow()
+                LocationHelper.requestFresh(activity) { location ->
                     locating = false
-                    userLocation = location
-                    updateLocationCard()
-                    renderNearby()
-                    onMapLocation(location)
-                    if (location == null) activity.toast("위치를 찾지 못했어요. 지역별로 볼 수 있어요")
+                    if (location == null) {
+                        locationFailed = userLocation == null
+                        updateLocationCard()
+                        activity.toast("위치를 찾지 못했어요. 지역별로 볼 수 있어요")
+                    } else {
+                        onLocationFix(location)
+                    }
                 }
             }
         }
     }
 
     private fun updateLocationCard() {
+        val loc = userLocation
         when {
             !activity.hasLocationPermission() -> {
                 binding.locationText.text = "위치 권한이 없어 지역별로 보고 있어요"
                 binding.locationAction.text = "위치 켜기"
                 binding.locationAction.visibility = View.VISIBLE
             }
-            locating -> {
+            loc == null && locationFailed -> {
+                binding.locationText.text = "위치를 못 찾았어요 — 지역별로 보기 · 위치 서비스가 켜져 있는지 확인해 주세요"
+                binding.locationAction.text = "다시 시도"
+                binding.locationAction.visibility = View.VISIBLE
+            }
+            loc == null -> {
                 binding.locationText.text = "내 위치를 확인하는 중…"
                 binding.locationAction.visibility = View.GONE
             }
-            userLocation != null -> {
-                val acc = userLocation?.accuracy?.roundToInt() ?: 0
-                binding.locationText.text =
-                    if (acc > 0) "내 위치 기준 가까운 순 · 오차 약 ${acc}m" else "내 위치 기준 가까운 순"
-                binding.locationAction.text = "새로고침"
-                binding.locationAction.visibility = View.VISIBLE
-            }
             else -> {
-                binding.locationText.text = "위치를 못 찾았어요 — 지역별로 보기"
-                binding.locationAction.text = "다시 시도"
+                val acc = loc.accuracy.roundToInt()
+                // 오래된 좌표(다른 동네일 수 있다)를 쓰고 있으면 `N분 전 위치` 로 솔직하게 알려 준다
+                val stale = LocationPolicy.staleLabel(
+                    LocationPolicy.ageMs(loc.time, System.currentTimeMillis())
+                )
+                val head = when {
+                    locating -> "내 위치를 새로 잡는 중…"
+                    stale == null -> "내 위치 기준 가까운 순"
+                    else -> "$stale 기준 · 가까운 순"
+                }
+                binding.locationText.text = if (acc > 0) "$head · 오차 약 ${acc}m" else head
+                binding.locationAction.text = "새로고침"
                 binding.locationAction.visibility = View.VISIBLE
             }
         }
@@ -612,6 +704,8 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
                 ready = { onMapReady() },
                 spotClick = { index -> onMapPinTapped(index) },
                 mapClick = { binding.mapPinCard.visibility = View.GONE },
+                // 지도를 손으로 옮겼다 — 내 위치 따라가기를 멈춘다 (v1.0.31)
+                mapDrag = { mapFollow = false },
                 error = { showMapError() }
             ),
             "Bridge"
@@ -672,6 +766,8 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         pushMapSpots()
         userLocation?.let { loc ->
             setMapMe(loc.latitude, loc.longitude)
+            mapFollowLat = loc.latitude
+            mapFollowLng = loc.longitude
             if (!mapCenteredOnMe) {
                 mapCenteredOnMe = true
                 moveMap(loc.latitude, loc.longitude)
@@ -790,33 +886,54 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         binding.mapWeb.evaluateJavascript("relayout()", null)
     }
 
-    /** `내 위치` — 지금 위치를 다시 찾아 지도 중심과 파란 점을 옮긴다 */
+    /** `내 위치` — 지금 위치를 **새로 재서** 파란 점을 옮기고, 지도도 다시 따라가게 한다 */
     private fun centerMapOnMe() {
         if (!activity.hasLocationPermission()) {
             activity.requestLocationPermission()
             activity.toast("위치 권한을 허용한 뒤 ‘내 위치’를 다시 눌러 주세요")
             return
         }
-        LocationHelper.request(activity) { location ->
+        mapFollow = true
+        watcher?.forceNow()
+        LocationHelper.requestFresh(activity) { location ->
             if (location == null) {
                 activity.toast("지금 위치를 찾지 못했어요 — 지도를 직접 움직여 주세요")
-                return@request
+                return@requestFresh
             }
             userLocation = location
+            locating = false
             updateLocationCard()
             renderNearby()
             mapCenteredOnMe = true
+            mapFollowLat = location.latitude
+            mapFollowLng = location.longitude
             setMapMe(location.latitude, location.longitude)
             moveMap(location.latitude, location.longitude)
         }
     }
 
-    /** 위치를 처음 찾았을 때 — 파란 점을 찍고, 아직 내 위치로 옮긴 적이 없으면 중심도 옮긴다 */
+    /**
+     * 좌표가 새로 들어왔을 때 — 파란 점은 **매번** 옮기고, 지도 중심은 따라가기 중일 때만 옮긴다.
+     * 손으로 지도를 옮기면([SpotsMapBridge.onMapDrag]) 따라가기를 멈추고 `내 위치` 를 누르면 다시 따라간다.
+     * (예전에는 첫 좌표에서만 지도를 옮겨서, 정자동에 멈춘 지도가 동탄으로 안 넘어갔다)
+     */
     private fun onMapLocation(location: Location?) {
         if (location == null || !mapReady) return
         setMapMe(location.latitude, location.longitude)
         if (!mapCenteredOnMe) {
             mapCenteredOnMe = true
+            mapFollowLat = location.latitude
+            mapFollowLng = location.longitude
+            moveMap(location.latitude, location.longitude)
+            return
+        }
+        if (mapFollow &&
+            LocationPolicy.shouldFollowMap(
+                mapFollowLat, mapFollowLng, location.latitude, location.longitude
+            )
+        ) {
+            mapFollowLat = location.latitude
+            mapFollowLng = location.longitude
             moveMap(location.latitude, location.longitude)
         }
     }
@@ -837,10 +954,11 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         )
     }
 
-    /** 지역 칩을 고르거나 검색을 마쳤을 때 — 지도를 그 결과의 첫 콜밭으로 옮긴다 */
+    /** 지역 칩을 고르거나 검색을 마쳤을 때 — 지도를 그 결과의 첫 콜밭으로 옮긴다 (따라가기는 멈춘다) */
     private fun centerMapOnFilter() {
         if (!mapReady || !mapStarted) return
         val first = filteredHotspots.firstOrNull { it.hasLocation } ?: return
+        mapFollow = false
         moveMap(first.lat, first.lng)
     }
 
