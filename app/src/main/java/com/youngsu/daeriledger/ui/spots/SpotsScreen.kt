@@ -345,7 +345,7 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
                 val head = when {
                     locating -> "내 위치를 새로 잡는 중…"
                     stale == null -> "내 위치 기준 가까운 순"
-                    else -> "$stale 기준 · 가까운 순"
+                    else -> "$stale 기준 가까운 순"
                 }
                 binding.locationText.text = if (acc > 0) "$head · 오차 약 ${acc}m" else head
                 binding.locationAction.text = "새로고침"
