@@ -2,10 +2,14 @@ package com.youngsu.daeriledger.ui.entry
 
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.content.Context
+import android.location.Geocoder
+import android.location.LocationManager
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.View
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -17,11 +21,13 @@ import com.youngsu.daeriledger.R
 import com.youngsu.daeriledger.data.LedgerRepository
 import com.youngsu.daeriledger.data.PaymentType
 import com.youngsu.daeriledger.data.Payout
+import com.youngsu.daeriledger.data.PlaceNamer
 import com.youngsu.daeriledger.data.Platforms
 import com.youngsu.daeriledger.data.Ride
 import com.youngsu.daeriledger.data.RideSpotPing
 import com.youngsu.daeriledger.data.ServiceType
 import com.youngsu.daeriledger.databinding.ActivityAddRideBinding
+import com.youngsu.daeriledger.location.LocationHelper
 import com.youngsu.daeriledger.settings.AppSettings
 import com.youngsu.daeriledger.util.BizTime
 import com.youngsu.daeriledger.util.Dialogs
@@ -33,6 +39,7 @@ import com.youngsu.daeriledger.util.setChips
 import com.youngsu.daeriledger.util.toast
 import java.time.LocalDate
 import java.time.LocalTime
+import java.util.Locale
 
 /** 3초 입력 화면 — 플랫폼·금액만 찍고 저장하면 순수익이 바로 계산된다. */
 class AddRideActivity : AppCompatActivity() {
@@ -54,6 +61,21 @@ class AddRideActivity : AppCompatActivity() {
     private var existing: Ride? = null
     private var insuranceTouched = false
     private var applyingDefaultInsurance = false
+
+    /** `📍 현위치` 로 잡아 둔 좌표 — 저장할 때 익명 콜밭 집계에도 그대로 쓴다 */
+    private var gpsFix: RideSpotPing.Fix? = null
+    private var locating = false
+
+    /** 위치 권한 요청 — 허락하면 누르자마자 잡던 현위치를 이어서 잡는다 */
+    private val locationPermission = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) {
+        if (LocationHelper.hasPermission(this)) {
+            startLocating()
+        } else {
+            toast("위치 권한을 허용해야 현위치를 채울 수 있어요")
+        }
+    }
 
     private val quickAmounts = listOf(
         15_000 to "1.5만", 20_000 to "2만", 25_000 to "2.5만",
@@ -180,6 +202,7 @@ class AddRideActivity : AppCompatActivity() {
             updatePreview()
         })
         binding.advancedToggle.setOnClickListener { toggleAdvanced() }
+        binding.currentLocationChip.setOnClickListener { useCurrentLocation() }
     }
 
     private fun simpleWatcher(action: () -> Unit) = object : TextWatcher {
@@ -318,6 +341,97 @@ class AddRideActivity : AppCompatActivity() {
         renderChips()
         renderPlatformNote()
         renderTime()
+    }
+
+    // ----------------------------------------------------------- 현위치 GPS
+
+    /** `📍 현위치` — 권한이 있으면 바로 잡고, 없으면 허락을 받는다 */
+    private fun useCurrentLocation() {
+        if (locating) return
+        if (!LocationHelper.hasPermission(this)) {
+            locationPermission.launch(
+                arrayOf(
+                    android.Manifest.permission.ACCESS_COARSE_LOCATION,
+                    android.Manifest.permission.ACCESS_FINE_LOCATION
+                )
+            )
+            return
+        }
+        startLocating()
+    }
+
+    private fun startLocating() {
+        if (locating) return
+        setLocating(true)
+        // 마지막 좌표를 바로 쓰고, 없으면 한 번만 갱신을 기다린다 (최대 6초)
+        LocationHelper.request(this) { location ->
+            if (location == null) {
+                setLocating(false)
+                toastLocationHelp()
+                return@request
+            }
+            gpsFix = RideSpotPing.Fix(
+                lat = location.latitude,
+                lng = location.longitude,
+                atMillis = System.currentTimeMillis()
+            )
+            resolveNeighborhood(location.latitude, location.longitude)
+        }
+    }
+
+    /** 좌표 → 동네 이름(정자동·역삼동…)을 기다렸다가 출발지 칸에 넣는다 (Geocoder 는 백그라운드에서) */
+    private fun resolveNeighborhood(lat: Double, lng: Double) {
+        Thread {
+            val name = runCatching {
+                val address = Geocoder(applicationContext, Locale.KOREAN)
+                    .getFromLocation(lat, lng, 1)
+                    ?.firstOrNull()
+                if (address == null) {
+                    null
+                } else {
+                    PlaceNamer.shortName(
+                        locality = address.locality,
+                        subLocality = address.subLocality,
+                        subAdminArea = address.subAdminArea,
+                        thoroughfare = address.thoroughfare,
+                        addressLines = (0..address.maxAddressLineIndex)
+                            .mapNotNull { address.getAddressLine(it) },
+                        adminArea = address.adminArea
+                    )
+                }
+            }.getOrNull()
+
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                setLocating(false)
+                if (name.isNullOrBlank()) {
+                    toast("동네 이름을 못 찾았어요 — 출발지를 직접 적어 주세요")
+                } else {
+                    binding.fromInput.setText(name)
+                    binding.fromInput.setSelection(name.length)
+                    toast("현위치를 출발지에 넣었어요 · $name")
+                }
+            }
+        }.start()
+    }
+
+    /** 버튼에 잠깐 `확인 중...` 을 보여 준다 */
+    private fun setLocating(on: Boolean) {
+        locating = on
+        binding.currentLocationChip.text = if (on) "확인 중..." else "📍 현위치"
+        binding.currentLocationChip.isEnabled = !on
+    }
+
+    /** 위치가 꺼져 있는지 / 못 잡았는지에 맞춰 안내한다 */
+    private fun toastLocationHelp() {
+        val manager = getSystemService(Context.LOCATION_SERVICE) as? LocationManager
+        val off = manager != null &&
+            !manager.isProviderEnabled(LocationManager.GPS_PROVIDER) &&
+            !manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+        toast(
+            if (off) "위치(GPS)가 꺼져 있어요 — 켜고 다시 눌러 주세요"
+            else "위치를 못 잡았어요 — 잠시 뒤 다시 눌러 주세요"
+        )
     }
 
     // ----------------------------------------------------------- 날짜·시간
@@ -475,8 +589,10 @@ class AddRideActivity : AppCompatActivity() {
         // 새 기록만 — 운행 시각의 현재 GPS 좌표를 익명 콜밭 집계에 보탈다 (v1.0.26).
         // 수정 저장에서는 보내지 않고, 몰아 올리기(밀린 기록·연속 입력)는 RideSpotGate 가 걸러 낸다.
         if (current == null) {
-            RideSpotPing.onRideSaved(applicationContext, settings, ride.timeMillis, ride.fromPlace)
+            RideSpotPing.onRideSaved(applicationContext, settings, ride.timeMillis, ride.fromPlace, gpsFix)
         }
+        // 저장한 기록의 좌표는 여기서 끝 — `저장 후 계속` 의 다음 기록은 새 자리에서 잡아야 한다
+        gpsFix = null
 
         settings.lastPlatformId = platformId
         settings.lastServiceType = service.id

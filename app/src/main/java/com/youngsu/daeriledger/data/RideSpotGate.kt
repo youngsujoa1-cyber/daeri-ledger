@@ -35,6 +35,9 @@ object RideSpotGate {
     /** 서버에 실어 보내는 출발지 이름 최대 길이 */
     const val NAME_MAX = 40
 
+    /** `📍 현위치` 로 잡아 둔 좌표를 저장할 때 그대로 써도 되는 최대 나이 (v1.0.27) */
+    const val FIX_MAX_AGE_MS = 30 * 60 * 1000L
+
     /** 판정 결과 */
     enum class Verdict {
         /** 집계에 보낸다 */
@@ -69,6 +72,16 @@ object RideSpotGate {
         if (trimmed.isEmpty()) return null
         return if (trimmed.length <= NAME_MAX) trimmed else trimmed.take(NAME_MAX).trim()
     }
+
+    /**
+     * `📍 현위치` 로 잡아 둔 좌표를 저장 시점에 그대로 써도 되는지 (v1.0.27).
+     * 30분 넘게 지난 좌표는 지금 자리가 아니므로 쓰지 않고 새로 잡는다.
+     *
+     * @param fixAt 좌표를 잡은 시각 — 0 이면 없음
+     * @param nowMillis 저장 시각
+     */
+    fun fixUsable(fixAt: Long, nowMillis: Long): Boolean =
+        fixAt > 0L && nowMillis - fixAt <= FIX_MAX_AGE_MS
 
     /**
      * @param rideTimeMillis 운행 시각(기록에 적힌 시각)

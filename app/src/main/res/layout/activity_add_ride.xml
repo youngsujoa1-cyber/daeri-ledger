@@ -207,11 +207,14 @@
                     android:layout_weight="1"
                     android:text="출발지 · 도착지 · 경유" />
 
-                <TextView
-                    style="@style/Text.Daeri.Label"
+                <!-- 현위치 GPS — 출발지 칸을 동네 이름으로 바로 채운다 (v1.0.27) -->
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/currentLocationChip"
+                    style="@style/Widget.Daeri.Chip.Action"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="경유는 비워도 돼요" />
+                    android:layout_gravity="center_vertical"
+                    android:text="📍 현위치" />
             </LinearLayout>
 
             <LinearLayout

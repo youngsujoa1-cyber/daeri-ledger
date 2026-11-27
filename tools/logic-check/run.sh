@@ -35,7 +35,7 @@ rm -rf "$OUT"
 
 "$JAVA" -cp "$KJAR:$STDLIB:$COROUT:$TROVE:$ANNOT" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler \
   -no-stdlib -cp "$STDLIB" -d "$OUT" \
-  "$SRC/data/Models.kt" "$SRC/data/Hotspots.kt" "$SRC/data/SpotAggregate.kt" "$SRC/data/SpotTimeBands.kt" "$SRC/data/RideSpotGate.kt" "$SRC/data/Payout.kt" \
+  "$SRC/data/Models.kt" "$SRC/data/Hotspots.kt" "$SRC/data/SpotAggregate.kt" "$SRC/data/SpotTimeBands.kt" "$SRC/data/RideSpotGate.kt" "$SRC/data/PlaceNamer.kt" "$SRC/data/Payout.kt" \
   "$SRC/data/DcbBackup.kt" "$SRC/util/TimeUtils.kt" "$SRC/ui/widget/CalendarGrid.kt" \
   "$SRC/ui/widget/PressTracker.kt" tools/logic-check/Check.kt
 

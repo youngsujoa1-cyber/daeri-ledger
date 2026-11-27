@@ -203,6 +203,21 @@
         <item name="chipCornerRadius">16dp</item>
     </style>
 
+    <!-- 누르면 동작하는 작은 칩 (📍 현위치) — 고르는 칩이 아니라 실행 버튼 -->
+    <style name="Widget.Daeri.Chip.Action" parent="Widget.Material3.Chip.Assist">
+        <item name="chipMinHeight">40dp</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/accent</item>
+        <item name="chipBackgroundColor">@color/accent_dim</item>
+        <item name="chipStrokeWidth">0dp</item>
+        <item name="chipCornerRadius">12dp</item>
+        <item name="chipStartPadding">12dp</item>
+        <item name="chipEndPadding">12dp</item>
+        <item name="rippleColor">@color/accent_dim</item>
+        <item name="ensureMinTouchTargetSize">false</item>
+    </style>
+
     <style name="Widget.Daeri.Toggle" parent="Widget.Material3.Button.OutlinedButton">
         <item name="android:minHeight">48dp</item>
         <item name="android:textSize">14sp</item>

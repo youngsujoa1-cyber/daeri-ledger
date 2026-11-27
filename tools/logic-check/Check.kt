@@ -3,6 +3,7 @@ import com.youngsu.daeriledger.data.Hotspots
 import com.youngsu.daeriledger.data.MySpot
 import com.youngsu.daeriledger.data.PaymentType
 import com.youngsu.daeriledger.data.Payout
+import com.youngsu.daeriledger.data.PlaceNamer
 import com.youngsu.daeriledger.data.Platforms
 import com.youngsu.daeriledger.data.PublicSpot
 import com.youngsu.daeriledger.data.Ride
@@ -979,6 +980,49 @@ fun main() {
     expect("운행 시각 시간대", SpotTimeBands.peakLabel(listOf(SpotTimeBands.hourOf(rideTime))), "")
     expect("운행 시간대 시", SpotTimeBands.hourOf(rideTime), 22)
     expect("운행 제보 note", SpotTimeBands.encodeNote("", SpotTimeBands.hourOf(rideTime)), "#t:22")
+
+    // ============================================================ 📍 현위치 → 동네 이름 (v1.0.27)
+    // 사용자 지적: 운행 입력 때 출발지를 매번 타이핑하지 않게 현위치를 바로 넣어 달라
+    // → 도로명·건물명보다 동/읍/면을 먼저, 없으면 구·시
+    expect(
+        "현위치: 주소 줄에서 동 우선",
+        PlaceNamer.shortName(
+            locality = "성남시",
+            subLocality = "분당구",
+            addressLines = listOf("대한민국 경기도 성남시 분당구 정자동 7")
+        ),
+        "정자동"
+    )
+    expect("현위치: subLocality 가 동이면 그대로",
+        PlaceNamer.shortName(locality = "성남시", subLocality = "정자동"), "정자동")
+    expect("현위치: 읍",
+        PlaceNamer.shortName(locality = "가평군", addressLines = listOf("경기도 가평군 청평면")), "청평면")
+    expect("현위치: 면",
+        PlaceNamer.shortName(locality = "화성시", subLocality = "동탄면"), "동탄면")
+    expect("현위치: 번지가 붙어도 동 이름만",
+        PlaceNamer.shortName(addressLines = listOf("서울특별시 강남구 역삼동 123-4")), "역삼동")
+    expect("현위치: 번지 토큰은 동네가 아니다",
+        PlaceNamer.shortName(addressLines = listOf("경기도 성남시 123-4동")), "성남시")
+    expect("현위치: 동이 없으면 구",
+        PlaceNamer.shortName(locality = "성남시", subLocality = "분당구"), "분당구")
+    expect("현위치: 서울특별시 → 서울", PlaceNamer.shortName(locality = "서울특별시"), "서울")
+    expect("현위치: 시·구가 한 덩이면 구", PlaceNamer.shortName(subAdminArea = "성남시 분당구"), "분당구")
+    expect("현위치: 도로명은 동네가 아니다",
+        PlaceNamer.shortName(
+            thoroughfare = "정자일로", locality = "성남시", subLocality = "분당구"
+        ), "분당구")
+    expect("현위치: 한 줄만 줘도 된다",
+        PlaceNamer.shortName("대한민국 경기도 수원시 팔달구 우만동 12-3"), "우만동")
+    expect("현위치: 아무것도 없으면 null", PlaceNamer.shortName(), null)
+    expect("현위치: 공백만 있으면 null", PlaceNamer.shortName(locality = "   "), null)
+    expect("현위치: 20자 제한",
+        PlaceNamer.shortName(subLocality = "가".repeat(30) + "동")?.length, PlaceNamer.MAX_LEN)
+
+    // 잡아 둔 좌표를 저장할 때 그대로 쓰는 기준 — 30분이 지나면 새로 잡는다
+    expect("현위치 좌표 10분 전 = 그대로 씀", RideSpotGate.fixUsable(now - 10 * 60_000L, now), true)
+    expect("현위치 좌표 30분 전 = 그대로 씀", RideSpotGate.fixUsable(now - 30 * 60_000L, now), true)
+    expect("현위치 좌표 31분 전 = 다시 잡음", RideSpotGate.fixUsable(now - 31 * 60_000L, now), false)
+    expect("현위치 좌표 없음 = 다시 잡음", RideSpotGate.fixUsable(0L, now), false)
 
     println(if (failures == 0) "ALL CHECKS PASSED" else "$failures CHECK(S) FAILED")
     if (failures > 0) kotlin.system.exitProcess(1)
