@@ -965,9 +965,15 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
     // ------------------------------------------------------ 콜밭 목록
 
     private fun renderNearby() {
-        binding.nearbyColumn.removeAllViews()
         val list = filteredHotspots
         val query = searchQuery.trim()
+        // 위치 갱신으로 다시 그릴 때, 순서가 그대로면 펼쳐 둔 개수를 유지한다
+        // (`더 보기`로 200곳까지 내려 본 순간 30초마다 40곳으로 접히면 읽던 자리를 잃는다 — v1.0.31)
+        val keepCount = if (renderedList.isNotEmpty() && renderedCount > 0 &&
+            renderedList.size == list.size &&
+            renderedList.indices.all { renderedList[it].id == list[it].id }
+        ) renderedCount else 0
+        binding.nearbyColumn.removeAllViews()
         renderedList = list
         renderedCount = 0
 
@@ -1000,7 +1006,7 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
 
         // 검색 결과는 조금 더 넉넉히(60곳), 평소 목록은 40곳까지 먼저 그린다.
         val firstPage = if (query.isNotEmpty()) SEARCH_PAGE_SIZE else PAGE_SIZE
-        val first = firstPage.coerceAtMost(list.size)
+        val first = maxOf(firstPage, keepCount).coerceAtMost(list.size)
         appendRows(list, 0, first)
         updateMoreButton(list)
     }
