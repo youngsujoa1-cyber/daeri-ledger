@@ -407,7 +407,7 @@ def platform_defs():
     src = MODELS_SOURCE.read_text(encoding="utf-8")
     block = src[src.index("object Platforms"):src.index("fun byId(")]
     rows = re.findall(
-        r'PlatformDef\("([a-z]+)", "([^"]+)", ([0-9.]+), (true|false), 0x[0-9A-Fa-f]+',
+        r'PlatformDef\(\s*"([a-z]+)", "([^"]+)", ([0-9.]+), (true|false), 0x[0-9A-Fa-f]+',
         block,
     )
     return [(pid, label, float(fee), net == "true") for pid, label, fee, net in rows]
@@ -623,9 +623,44 @@ def check_column_guard():
     db.close()
 
 
+def check_personal_no_insurance():
+    """v1.0.33 — 개인콜은 건당 보험료도 고용·산재·세금(3.3%)도 붙지 않는다"""
+    models = MODELS_SOURCE.read_text(encoding="utf-8")
+    personal = re.search(r'PlatformDef\(\s*"personal".*?\)', models, re.S)
+    expect("소스에 개인콜 정의", personal is not None, True)
+    block = personal.group(0) if personal else ""
+    expect("개인콜 건당 보험료 제외", "chargesPerCallInsurance = false" in block, True)
+    expect("개인콜 고용·산재·세금 제외", "chargesEmploymentTax = false" in block, True)
+    expect("세금 제외 판정 함수", "fun chargesEmploymentTax(" in models, True)
+    # 카카오T·티맵은 건당만 빠지고 3.3% 세금은 그대로
+    for pid in ("kakao", "tmap"):
+        line = re.search(r'PlatformDef\("' + pid + r'".*?\),', models, re.S)
+        expect(f"{pid} 건당만 제외(세금 유지)", "chargesEmploymentTax = false" not in (line.group(0) if line else ""), True)
+
+    payout = (ROOT / "app/src/main/java/com/youngsu/daeriledger/data/Payout.kt").read_text(encoding="utf-8")
+    expect("적용 세금 비율 함수", "fun employmentPercentFor(" in payout, True)
+    expect("보험&세금 규칙 한 곳", "fun insuranceRuleFor(" in payout, True)
+    expect("세금 비율은 Platforms 판정을 거친다",
+           "if (Platforms.chargesEmploymentTax(platformId))" in payout, True)
+    expect("건당 보험료도 Platforms 판정을 거친다",
+           "if (Platforms.chargesPerCallInsurance(platformId))" in payout, True)
+
+    add = ADD_RIDE.read_text(encoding="utf-8")
+    expect("입력 화면이 규칙을 거쳐 계산", "Payout.insuranceRuleFor(" in add, True)
+    expect("입력 화면 보험&세금 제외 라벨", "· 보험료·세금 제외" in add, True)
+    expect("입력 화면 미리보기 내역", "보험료·세금 없음" in add, True)
+    expect("입력 화면에 설정 세금률 직접 주입 없음",
+           "employmentInsurancePercent = settings.employmentInsurancePercent" in add, False)
+    expect("구분 줄 잠금은 건당 보험 유무", "binding.insuranceInput.isEnabled = !perCallExempt" in add, True)
+
+    screen = SETTINGS_SCREEN.read_text(encoding="utf-8")
+    expect("설정 안내에 개인콜 제외", "개인콜은 건당 보험료도 3.3% 세금도 붙지 않고" in screen, True)
+
+
 def main():
     source_alignment()
     check_platform_source()
+    check_personal_no_insurance()
     import tempfile
     with tempfile.TemporaryDirectory() as tmp:
         check_v2_to_v4(Path(tmp))

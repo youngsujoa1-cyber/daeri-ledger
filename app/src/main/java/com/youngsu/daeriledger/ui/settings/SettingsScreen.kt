@@ -121,13 +121,13 @@ class SettingsScreen(private val activity: MainActivity) : Screen {
         section("보험 & 세금")
         note(
             "카카오T·티맵은 건당 보험료가 빠지지 않아요. 두 플랫폼은 아래 고용·산재·세금(3.3%)만 빠지고, " +
-                "그 외 플랫폼은 건당 보험료 + 3.3% 세금이 함께 빠집니다. 입력 화면의 `보험&세금` 줄에서 " +
-                "건당 0원 + 3.3% 1,485원처럼 내역을 나눠 보여 줘요."
+                "개인콜은 건당 보험료도 3.3% 세금도 붙지 않고, 그 외 플랫폼은 건당 보험료 + 3.3% 세금이 함께 빠집니다. " +
+                "입력 화면의 `보험&세금` 줄에서 건당 0원 + 3.3% 1,485원처럼 내역을 나누어 보여 줘요."
         )
         row(
             icon = R.drawable.ic_receipt,
             title = "대리 건당 보험료",
-            subtitle = "대리 콜 한 건마다 빠지는 금액 · 카카오T·티맵 제외",
+            subtitle = "대리 콜 한 건마다 빠지는 금액 · 카카오T·티맵·개인콜 제외",
             value = Money.won(settings.insuranceDaeri)
         ) {
             Dialogs.amount(
@@ -141,7 +141,7 @@ class SettingsScreen(private val activity: MainActivity) : Screen {
         row(
             icon = R.drawable.ic_receipt,
             title = "탁송 건당 보험료",
-            subtitle = "탁송 콜 한 건마다 빠지는 금액 · 카카오T·티맵 제외",
+            subtitle = "탁송 콜 한 건마다 빠지는 금액 · 카카오T·티맵·개인콜 제외",
             value = Money.won(settings.insuranceTaksong)
         ) {
             Dialogs.amount(

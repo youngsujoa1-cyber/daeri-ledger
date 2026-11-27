@@ -33,7 +33,8 @@ enum class PaymentType(val id: String, val label: String, val short: String) {
  * 이 경우 입력값이 실수령액(수수료 떼고 받은 돈)이고, 총매출은 수수료율로 역산한다.
  * 예) 카카오T 20,000원 입력 → 총매출 25,000원, 수수료 5,000원 (수수료율 20%).
  * chargesPerCallInsurance = false 는 건당 보험료가 자동으로 빠지지 않는 플랫폼이다(v1.0.20).
- * 카카오T·티맵은 건당 보험료 0원이고 매출의 3.3% 세금만 빠진다.
+ * chargesEmploymentTax = false 는 매출의 고용·산재·세금(3.3%)도 붙지 않는 플랫폼이다(v1.0.33).
+ * 카카오T·티맵은 건당 보험료 0원이고 매출의 3.3% 세금만 빠지고, 개인콜은 건당 보험료도 세금도 붙지 않는다.
  */
 data class PlatformDef(
     val id: String,
@@ -41,7 +42,8 @@ data class PlatformDef(
     val defaultFeePercent: Double,
     val defaultNetShown: Boolean,
     val brandColor: Long,
-    val chargesPerCallInsurance: Boolean = true
+    val chargesPerCallInsurance: Boolean = true,
+    val chargesEmploymentTax: Boolean = true
 )
 
 object Platforms {
@@ -64,7 +66,11 @@ object Platforms {
         PlatformDef("superdrive", "수퍼드라이버", 20.0, false, 0xFFF5A623),
         PlatformDef("openmile", "오픈마일", 20.0, false, 0xFF20C4C4),
         PlatformDef("byuldaeri", "별대리", 20.0, false, 0xFFE0559B),
-        PlatformDef("personal", "개인콜", 0.0, false, 0xFFB7C4D2)
+        // 개인콜은 플랫폼이 아니라 손님과 직접 한 콜 — 건당 보험료도 고용·산재·세금(3.3%)도 붙지 않는다 (v1.0.33)
+        PlatformDef(
+            "personal", "개인콜", 0.0, false, 0xFFB7C4D2,
+            chargesPerCallInsurance = false, chargesEmploymentTax = false
+        )
     )
 
     val ALL_IDS: List<String> = ALL.map { it.id }
@@ -80,8 +86,11 @@ object Platforms {
 
     fun label(id: String?): String = byId(id).label
 
-    /** 이 플랫폼이 건당 보험료를 떼는지 — 카카오T·티맵만 안 떼고, 나머지는 설정값대로 뗀다. */
+    /** 이 플랫폼이 건당 보험료를 떼는지 — 카카오T·티맵·개인콜만 안 떼고, 나머지는 설정값대로 뗀다. */
     fun chargesPerCallInsurance(id: String?): Boolean = byId(id).chargesPerCallInsurance
+
+    /** 이 플랫폼이 고용·산재·세금(3.3%)을 떼는지 — 개인콜만 안 떼고, 나머지는 설정값대로 뗀다(v1.0.33). */
+    fun chargesEmploymentTax(id: String?): Boolean = byId(id).chargesEmploymentTax
 
     /** 저장된 체크 상태 정리 — 모르는 id 는 버리고, 모두 꺼져 있으면 기본 7종으로 되돌린다. */
     fun normalizeEnabled(ids: Set<String>?): Set<String> {

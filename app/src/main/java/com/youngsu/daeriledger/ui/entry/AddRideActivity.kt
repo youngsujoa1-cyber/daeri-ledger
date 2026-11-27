@@ -315,23 +315,25 @@ class AddRideActivity : AppCompatActivity() {
     /**
      * 건당 보험료 칸과 구분 줄의 안내를 플랫폼에 맞춘다.
      * - 카카오T·티맵: 건당 보험료 없음 → 항상 0원으로 두고 안내에도 그렇게 적는다(v1.0.20).
+     * - 개인콜: 건당 보험료도 3.3% 세금도 없음 → 둘 다 0원으로 잠그고 그렇게 적는다(v1.0.33).
      * - 그 외: 직접 고친 값이 있으면 그대로 두고, 아니면 설정의 건당 보험료로 채운다.
      */
     private fun applyDefaultInsurance() {
-        val exempt = !Platforms.chargesPerCallInsurance(platformId)
+        val perCallExempt = !Platforms.chargesPerCallInsurance(platformId)
+        val taxExempt = !Platforms.chargesEmploymentTax(platformId)
         applyingDefaultInsurance = true
         when {
-            exempt -> binding.insuranceInput.setText("0")
+            perCallExempt -> binding.insuranceInput.setText("0")
             !insuranceTouched -> binding.insuranceInput.setText(settings.insuranceFor(service).toString())
         }
         applyingDefaultInsurance = false
-        if (exempt) insuranceTouched = false
-        // 카카오T·티맵은 건당 보험료가 붙지 않으므로 칸도 0원으로 잠근다
-        binding.insuranceInput.isEnabled = !exempt
-        binding.insuranceHintText.text = if (exempt) {
-            "${Platforms.label(platformId)}은(는) 건당 보험 없음"
-        } else {
-            "건당 보험료 ${Money.won(settings.insuranceFor(service))} 자동"
+        if (perCallExempt) insuranceTouched = false
+        // 카카오T·티맵·개인콜은 건당 보험료가 붙지 않으므로 칸도 0원으로 잠근다
+        binding.insuranceInput.isEnabled = !perCallExempt
+        binding.insuranceHintText.text = when {
+            perCallExempt && taxExempt -> "${Platforms.label(platformId)} · 보험료·세금 제외"
+            perCallExempt -> "${Platforms.label(platformId)}은(는) 건당 보험 없음"
+            else -> "건당 보험료 ${Money.won(settings.insuranceFor(service))} 자동"
         }
     }
 
@@ -358,16 +360,22 @@ class AddRideActivity : AppCompatActivity() {
         binding.toInput.setText(ride.toPlace)
         binding.memoInput.setText(ride.memo)
         // 저장된 보험&세금 합계에서 건당 몫만 되돌린다(3.3% 세금은 다시 계산) — 두 번 붙지 않게
-        val perCallStored = Payout.perCallFromStored(
+        // 개인콜(v1.0.33)·카카오T·티맵처럼 건당 보험료가 없는 플랫폼은 그냥 0원이다
+        val rule = Payout.insuranceRuleFor(
+            ride.platformId,
+            settings.insuranceFor(ride.service),
+            settings.employmentInsurancePercent
+        )
+        val perCallExempt = !Platforms.chargesPerCallInsurance(ride.platformId)
+        val perCallStored = if (perCallExempt) 0 else Payout.perCallFromStored(
             ride.gross,
             ride.insuranceAmount,
-            settings.employmentInsurancePercent
+            rule.employmentPercent
         )
         binding.insuranceInput.setText(perCallStored.toString())
         insuranceTouched = true
         // 출발·도착·특이사항은 항상 보이므로, 건당 보험료가 기본값과 다를 때만 상세를 편다.
-        val defaultPerCall = Payout.perCallInsuranceFor(ride.platformId, settings.insuranceFor(ride.service))
-        if (perCallStored != defaultPerCall) {
+        if (!perCallExempt && perCallStored != rule.perCall) {
             toggleAdvanced(forceOpen = true)
         }
         renderChips()
@@ -559,15 +567,25 @@ class AddRideActivity : AppCompatActivity() {
 
     private fun insuranceValue(): Int = Money.parseAmount(binding.insuranceInput.text.toString())
 
-    private fun breakdown(input: Int) = Payout.calculate(
-        input = input,
-        tip = tip(),
-        feePercent = settings.effectiveFeePercent(platformId),
-        tipFeePercent = settings.tipFeePercent,
-        insurancePerCall = Payout.perCallInsuranceFor(platformId, insuranceValue()),
-        employmentInsurancePercent = settings.employmentInsurancePercent,
-        netShown = settings.platformNetShown(platformId)
+    /** 지금 고른 플랫폼에 실제로 적용되는 보험&세금 규칙 — 카카오T·티맵은 건당 0원, 개인콜은 둘 다 0원 */
+    private fun insuranceRule(): Payout.InsuranceRule = Payout.insuranceRuleFor(
+        platformId = platformId,
+        configuredPerCall = insuranceValue(),
+        configuredEmploymentPercent = settings.employmentInsurancePercent
     )
+
+    private fun breakdown(input: Int): Payout.Breakdown {
+        val rule = insuranceRule()
+        return Payout.calculate(
+            input = input,
+            tip = tip(),
+            feePercent = settings.effectiveFeePercent(platformId),
+            tipFeePercent = settings.tipFeePercent,
+            insurancePerCall = rule.perCall,
+            employmentInsurancePercent = rule.employmentPercent,
+            netShown = settings.platformNetShown(platformId)
+        )
+    }
 
     private fun updatePreview() {
         val input = inputAmount()
@@ -596,13 +614,14 @@ class AddRideActivity : AppCompatActivity() {
         binding.previewFee.text = "-" + Money.won(result.fee)
         binding.previewInsurance.text = "-" + Money.won(result.insurance)
         // 보험&세금 내역 — 건당 보험료와 3.3% 세금을 나눠 보여 준다 (1,485원이 어디서 나왔는지)
-        val empPercent = settings.employmentInsurancePercent
-        val perCall = Payout.perCallInsuranceFor(platformId, insuranceValue())
-        val empAmount = Payout.employmentOf(result.gross, empPercent)
-        val empLabel = String.format(java.util.Locale.KOREA, "%.1f", empPercent)
+        val rule = insuranceRule()
+        val perCall = rule.perCall
+        val empAmount = Payout.employmentOf(result.gross, rule.employmentPercent)
+        val empLabel = String.format(java.util.Locale.KOREA, "%.1f", rule.employmentPercent)
         val insuranceParts = buildList {
             if (perCall > 0) add("건당 ${Money.won(perCall)}")
             if (empAmount > 0) add("$empLabel% ${Money.won(empAmount)}")
+            if (isEmpty() && rule.exempt) add("보험료·세금 없음")
         }
         if (insuranceParts.isEmpty()) {
             binding.previewInsuranceNote.visibility = View.GONE

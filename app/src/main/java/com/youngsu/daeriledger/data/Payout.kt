@@ -21,6 +21,8 @@ import kotlin.math.roundToInt
  *
  * v1.0.20 — 건당 보험료는 카카오T·티맵에 붙지 않는다(`perCallInsuranceFor`).
  *   두 플랫폼은 건당 0원으로 잡히고 매출의 고용·산재(3.3%)만 `보험&세금`으로 빠진다.
+ * v1.0.33 — 개인콜은 건당 보험료도 고용·산재·세금(3.3%)도 붙지 않는다(`insuranceRuleFor`).
+ *   손님과 직접 한 콜이라 플랫폼 보험·원천징수 대상이 아니므로 `보험&세금` 자체가 0원이다.
  */
 object Payout {
 
@@ -50,14 +52,40 @@ object Payout {
     }
 
     /**
-     * 이 플랫폼에 실제로 적용할 건당 보험료 — 카카오T·티맵은 0원(설정값이 있어도 무시).
+     * 이 플랫폼에 실제로 적용할 건당 보험료 — 카카오T·티맵·개인콜은 0원(설정값이 있어도 무시).
      * 저장된 기존 기록은 건드리지 않고, 새 입력·플랫폼 전환·다시 계산할 때만 이 값을 쓴다.
      */
     fun perCallInsuranceFor(platformId: String, configured: Int): Int =
         if (Platforms.chargesPerCallInsurance(platformId)) configured.coerceAtLeast(0) else 0
 
     /**
+     * 이 플랫폼에 실제로 적용할 고용·산재·세금(3.3%) 비율 — 개인콜은 설정값이 있어도 0%(v1.0.33).
+     * 카카오T·티맵은 건당 보험료만 빠지므로 세금 비율은 설정값 그대로 쓴다.
+     */
+    fun employmentPercentFor(platformId: String, configured: Double): Double =
+        if (Platforms.chargesEmploymentTax(platformId)) configured.coerceAtLeast(0.0) else 0.0
+
+    /** 한 플랫폼에 실제로 적용할 보험&세금 규칙 — 입력 화면·순수익 계산이 모두 이 값을 쓴다 */
+    data class InsuranceRule(val perCall: Int, val employmentPercent: Double) {
+        val exempt: Boolean get() = perCall == 0 && employmentPercent <= 0.0
+    }
+
+    /**
+     * 설정값을 그 플랫폼의 실제 규칙으로 바꿔 준다 — 카카오T·티맵은 건당 0원, 개인콜은 둘 다 0원.
+     * 예) 개인콜 · 설정(1,168원 · 3.3%) → 건당 0원 · 0%
+     */
+    fun insuranceRuleFor(
+        platformId: String,
+        configuredPerCall: Int,
+        configuredEmploymentPercent: Double
+    ): InsuranceRule = InsuranceRule(
+        perCall = perCallInsuranceFor(platformId, configuredPerCall),
+        employmentPercent = employmentPercentFor(platformId, configuredEmploymentPercent)
+    )
+
+    /**
      * 저장된 보험&세금 합계(건당 + 고용·산재)에서 건당 몫만 되돌린다 — 수정 화면 입력칸에 넣을 값.
+     * employmentPercent 에는 그 플랫폼에 실제로 적용되는 비율(`employmentPercentFor`)을 넣는다.
      * 예) 총매출 45,000 · 저장 합계 1,485 · 3.3% → 건당 1,485 − 1,485 = 0
      */
     fun perCallFromStored(gross: Int, insuranceAmount: Int, employmentPercent: Double): Int {

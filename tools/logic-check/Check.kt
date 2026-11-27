@@ -103,10 +103,12 @@ fun main() {
     expect("로지 25,000 수수료", grossMode.fee, 5_000)
     expect("로지 25,000 순수익", grossMode.net, 18_500)
 
-    val a = Payout.calculate(25_000, 0, 0.0, 0.0, 1_500, 0.0)
+    // 개인콜은 수수료 0% · 보험&세금 0원 (v1.0.33 — 설정에 1,500원· 3.3%가 있어도 안 붙는다)
+    val personalRule = Payout.insuranceRuleFor("personal", 1_500, 3.3)
+    val a = Payout.calculate(25_000, 0, 0.0, 0.0, personalRule.perCall, personalRule.employmentPercent)
     expect("개인콜 25,000 수수료", a.fee, 0)
-    expect("개인콜 25,000 보험", a.insurance, 1_500)
-    expect("개인콜 25,000 순수익", a.net, 23_500)
+    expect("개인콜 25,000 보험", a.insurance, 0)
+    expect("개인콜 25,000 순수익", a.net, 25_000)
 
     val c = Payout.calculate(25_000, 3_000, 20.0, 20.0, 1_500, 0.0)
     expect("팁 포함 총액(팁 3,000→3,750)", c.total, 28_750)
@@ -124,10 +126,76 @@ fun main() {
     expect("로지 건당보험 뗌", Platforms.chargesPerCallInsurance("roji"), true)
     expect("콜마너 건당보험 뗌", Platforms.chargesPerCallInsurance("colmaner"), true)
     expect("아이콘 건당보험 뗌", Platforms.chargesPerCallInsurance("icon"), true)
-    expect("개인콜 건당보험 뗌", Platforms.chargesPerCallInsurance("personal"), true)
+    expect("개인콜 건당보험 안 뗌", Platforms.chargesPerCallInsurance("personal"), false)
     expect("카카오T 적용 건당 0", Payout.perCallInsuranceFor("kakao", 1_168), 0)
     expect("티맵 적용 건당 0", Payout.perCallInsuranceFor("tmap", 2_500), 0)
+    expect("개인콜 적용 건당 0", Payout.perCallInsuranceFor("personal", 1_168), 0)
     expect("로지 적용 건당 설정값", Payout.perCallInsuranceFor("roji", 1_168), 1_168)
+
+    // ======================================== v1.0.33 — 개인콜 보험료·세금 제외
+    // (1) 개인콜만 고용·산재·세금(3.3%)도 안 뗀다 — 카카오T·티맵은 건당만 0원이고 세금은 그대로
+    expect("개인콜 세금 안 뗌", Platforms.chargesEmploymentTax("personal"), false)
+    expect("카카오T 세금 뗌", Platforms.chargesEmploymentTax("kakao"), true)
+    expect("티맵 세금 뗌", Platforms.chargesEmploymentTax("tmap"), true)
+    expect("핸들 세금 뗌", Platforms.chargesEmploymentTax("handle"), true)
+    expect("로지 세금 뗌", Platforms.chargesEmploymentTax("roji"), true)
+    expect("개인콜 적용 세금 0%", Payout.employmentPercentFor("personal", 3.3), 0.0)
+    expect("카카오T 적용 세금 그대로", Payout.employmentPercentFor("kakao", 3.3), 3.3)
+    expect("로지 적용 세금 그대로", Payout.employmentPercentFor("roji", 3.3), 3.3)
+    expect("개인콜 규칙 건당 0원", Payout.insuranceRuleFor("personal", 1_168, 3.3).perCall, 0)
+    expect("개인콜 규칙 세금 0%", Payout.insuranceRuleFor("personal", 1_168, 3.3).employmentPercent, 0.0)
+    expect("개인콜 규칙 제외 표시", Payout.insuranceRuleFor("personal", 1_168, 3.3).exempt, true)
+    expect("로지 규칙 그대로", Payout.insuranceRuleFor("roji", 1_168, 3.3).perCall, 1_168)
+    expect("카카오T 규칙은 건당만 0", Payout.insuranceRuleFor("kakao", 1_168, 3.3).employmentPercent, 3.3)
+    expect("카카오T 규칙은 제외 아님", Payout.insuranceRuleFor("kakao", 1_168, 3.3).exempt, false)
+
+    // (2) 사용자 캡처 그대로 — 개인콜 30,000원은 수수료·보험&세금 없이 순수익 30,000원
+    val personalRule33 = Payout.insuranceRuleFor("personal", 1_168, 3.3)
+    val personalShot = Payout.calculate(
+        input = 30_000, tip = 0, feePercent = 0.0, tipFeePercent = 20.0,
+        insurancePerCall = personalRule33.perCall,
+        employmentInsurancePercent = personalRule33.employmentPercent
+    )
+    expect("개인콜 30,000 보험&세금 0원", personalShot.insurance, 0)
+    expect("개인콜 30,000 순수익", personalShot.net, 30_000)
+
+    // (3) 같은 금액을 로지로 넣으면 예전처럼 건당 1,168 + 3.3% 990 이 함께 빠진다
+    val roji30 = Payout.calculate(
+        input = 30_000, tip = 0, feePercent = 20.0, tipFeePercent = 20.0,
+        insurancePerCall = Payout.perCallInsuranceFor("roji", 1_168), employmentInsurancePercent = 3.3
+    )
+    expect("로지 30,000 보험&세금", roji30.insurance, 2_158)
+    expect("로지 30,000 순수익", roji30.net, 21_842)
+
+    // (4) 팁이 있어도 개인콜은 보험·세금 0 — 팁 역산만 적용된다 (받은 10,000 · 20% → 총액 12,500)
+    val personalTip = Payout.calculate(
+        input = 30_000, tip = 10_000, feePercent = 0.0, tipFeePercent = 20.0,
+        insurancePerCall = 0, employmentInsurancePercent = 0.0
+    )
+    expect("개인콜 팁 총액", personalTip.total, 42_500)
+    expect("개인콜 팁 수수료", personalTip.fee, 2_500)
+    expect("개인콜 팁 보험&세금 0원", personalTip.insurance, 0)
+    expect("개인콜 팁 순수익", personalTip.net, 40_000)
+
+    // (5) 수정 화면 왕복 — v1.0.32 이전에 개인콜로 저장한 기록(건당+세금이 붙어 있던 행)을 열면
+    //     건당 칸은 0원으로 잠기고, 다시 저장하면 보험&세금 0원으로 고쳐진다
+    val oldPersonalInsurance = 2_158      // 1,168 + 30,000×3.3%(990)
+    expect("개인콜 옛 기록 건당 되돌리기",
+        Payout.perCallFromStored(30_000, oldPersonalInsurance, 0.0), 2_158)
+    val personalRebook = Payout.calculate(
+        input = 30_000, tip = 0, feePercent = 0.0, tipFeePercent = 20.0,
+        insurancePerCall = 0, employmentInsurancePercent = 0.0
+    )
+    expect("개인콜 옛 기록 다시 저장 보험&세금", personalRebook.insurance, 0)
+    expect("개인콜 옛 기록 다시 저장 순수익", personalRebook.net, 30_000)
+
+    // (6) 다른 플랫폼은 그대로 — 핸들 45,000 은 건당 1,168 + 3.3% 1,485
+    val handle45 = Payout.calculate(
+        input = 45_000, tip = 0, feePercent = 20.0, tipFeePercent = 20.0,
+        insurancePerCall = Payout.insuranceRuleFor("handle", 1_168, 3.3).perCall,
+        employmentInsurancePercent = Payout.insuranceRuleFor("handle", 1_168, 3.3).employmentPercent
+    )
+    expect("핸들 45,000 보험&세금", handle45.insurance, 2_653)
 
     // ======================================== v1.0.32 — 프로그램 7종 추가 + 체크 필터
     // (1) 프로그램 순서 — 아이콘과 개인콜 사이에 신규 7종
@@ -645,12 +713,12 @@ fun main() {
     expect("팁만 수수료", tipOnly.fee, 2_500)
     expect("팁만 순수익(10,000−1,500)", tipOnly.net, 8_500)
 
-    // (5) 요금 %와 팁 %가 다를 때 — 개인콜 요금 0% · 팁 20%
-    val mixed = Payout.calculate(30_000, 10_000, 0.0, 20.0, 1_500, 0.0, netShown = false)
+    // (5) 요금 %와 팁 %가 다를 때 — 개인콜 요금 0% · 팁 20% (보험&세금은 v1.0.33 부터 0원)
+    val mixed = Payout.calculate(30_000, 10_000, 0.0, 20.0, 0, 0.0, netShown = false)
     expect("개인콜+팁 총액", mixed.total, 42_500)
     expect("개인콜+팁 요금 수수료", mixed.fareFee, 0)
     expect("개인콜+팁 팁 수수료", mixed.tipFee, 2_500)
-    expect("개인콜+팁 순수익(30,000+받은 팁 10,000−1,500)", mixed.net, 38_500)
+    expect("개인콜+팁 순수익(30,000+받은 팁 10,000)", mixed.net, 40_000)
 
     // (6) 반올림 — 받은 팁 3,333 · 20% → 총액 4,166 · 수수료 833
     val tipOdd = Payout.calculate(25_000, 3_333, 20.0, 20.0, 1_500, 0.0, netShown = false)
