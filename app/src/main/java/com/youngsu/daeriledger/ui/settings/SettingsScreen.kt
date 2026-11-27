@@ -88,9 +88,22 @@ class SettingsScreen(private val activity: MainActivity) : Screen {
         section("플랫폼 수수료")
         note(
             "카카오T·티맵·핸들은 앱에 이미 수수료가 빠진 금액이 보여서 받은 금액을 넣고 총매출은 수수료율로 역산해요. " +
-                "로지·콜마너·아이콘은 총매출에서 20%를 뺍니다. 실제 정산 기준에 맞게 고치면 순수익이 정확해져요."
+                "로지·콜마너·아이콘과 새로 넣은 대구사랑·대구시민·대구세종·트리콜·수퍼드라이버·오픈마일·별대리는 총매출에서 20%를 뺍니다. " +
+                "실제 정산 기준에 맞게 고치면 순수익이 정확해져요."
         )
-        Platforms.ALL.forEach { platform -> platformRow(platform) }
+        // 사용할 프로그램 선택 (v1.0.32) — 체크한 프로그램만 아래 수수료 목록과 운행 기록 칩에 보인다
+        val enabledList = Platforms.visible(settings.enabledPlatformIds)
+        row(
+            icon = R.drawable.ic_check,
+            title = "사용할 프로그램 선택",
+            subtitle = "체크한 프로그램만 여기와 운행 기록 칩에 떠요 · ${Platforms.ALL.size}개 중 ${enabledList.size}개 사용 중",
+            value = "${enabledList.size}개"
+        ) { showPlatformPicker() }
+        enabledList.forEach { platform -> platformRow(platform) }
+        note(
+            "체크를 끄면 설정 목록과 운행 기록 칩에서만 빠지고, 그 프로그램으로 적은 과거 운행 기록·통계·달력 집계는 그대로 남아요. " +
+                "수정 화면에서 그런 기록을 열면 그 프로그램도 같이 보여요."
+        )
         // 개인콜 바로 아래 — 팁·경유비는 플랫폼이 아니라 따로 %를 잡는다
         row(
             icon = R.drawable.ic_receipt,
@@ -419,6 +432,53 @@ class SettingsScreen(private val activity: MainActivity) : Screen {
         // 줄을 눌러도 토글된다
         b.rowRoot.setOnClickListener { sw.isChecked = !sw.isChecked }
         binding.settingsColumn.addView(b.root)
+    }
+
+    // ------------------------------------------------- 사용할 프로그램 선택 (v1.0.32)
+
+    /**
+     * 14개 프로그램을 체크박스로 켜고 끄는 창. 체크를 바꾸면 바로 저장하고 뒤의 설정 목록을 다시 그린다
+     * (켜면 `아이콘` 과 `개인콜` 사이에 바로 나타난다). 마지막 한 개는 끌 수 없다.
+     */
+    private fun showPlatformPicker() {
+        val platforms = Platforms.ALL
+        val labels = platforms.map { it.label }.toTypedArray()
+        var current = settings.enabledPlatformIds
+        val checked = platforms.map { it.id in current }.toBooleanArray()
+
+        val dialog = MaterialAlertDialogBuilder(activity)
+            .setTitle("사용할 프로그램 선택")
+            .setMultiChoiceItems(labels, checked) { d, which, isChecked ->
+                val id = platforms[which].id
+                val next = Platforms.toggleEnabled(current, id, isChecked)
+                if (next == null) {
+                    // 모두 해제하면 장부에 적을 프로그램이 없어지므로 마지막 한 개는 남긴다
+                    activity.toast("프로그램은 최소 1개는 남겨 주세요")
+                    (d as? AlertDialog)?.listView?.setItemChecked(which, true)
+                } else {
+                    current = next
+                    settings.enabledPlatformIds = next
+                    refresh()
+                }
+            }
+            .setPositiveButton("완료", null)
+            .setNeutralButton("전체 선택") { _, _ ->
+                current = Platforms.ALL_IDS.toSet()
+                settings.enabledPlatformIds = current
+                refresh()
+            }
+            .setNegativeButton("기본 7종") { _, _ ->
+                current = Platforms.DEFAULT_ENABLED_IDS.toSet()
+                settings.enabledPlatformIds = current
+                refresh()
+            }
+            .create()
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(activity.color(R.color.accent))
+            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setTextColor(activity.color(R.color.text_secondary))
+            dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(activity.color(R.color.text_secondary))
+        }
+        dialog.show()
     }
 
     private fun platformRow(platform: PlatformDef) {

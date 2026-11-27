@@ -129,6 +129,84 @@ fun main() {
     expect("티맵 적용 건당 0", Payout.perCallInsuranceFor("tmap", 2_500), 0)
     expect("로지 적용 건당 설정값", Payout.perCallInsuranceFor("roji", 1_168), 1_168)
 
+    // ======================================== v1.0.32 — 프로그램 7종 추가 + 체크 필터
+    // (1) 프로그램 순서 — 아이콘과 개인콜 사이에 신규 7종
+    val newIds = listOf(
+        "daegusarang", "daegucitizen", "daegusejong", "trincall", "superdrive", "openmile", "byuldaeri"
+    )
+    expect("프로그램 수", Platforms.ALL.size, 14)
+    expect(
+        "프로그램 순서",
+        Platforms.ALL_IDS,
+        listOf(
+            "kakao", "tmap", "handle", "roji", "colmaner", "icon",
+            "daegusarang", "daegucitizen", "daegusejong", "trincall", "superdrive", "openmile", "byuldaeri",
+            "personal"
+        )
+    )
+    expect("아이콘 다음이 대구사랑", Platforms.ALL_IDS[Platforms.ALL_IDS.indexOf("icon") + 1], "daegusarang")
+    expect("개인콜 바로 앞이 별대리", Platforms.ALL_IDS[Platforms.ALL_IDS.indexOf("personal") - 1], "byuldaeri")
+    expect("신규 7종 이름", newIds.map { Platforms.label(it) },
+        listOf("대구사랑", "대구시민", "대구세종", "트리콜", "수퍼드라이버", "오픈마일", "별대리"))
+    expect("프로그램 id 중복 없음", Platforms.ALL_IDS.distinct().size, Platforms.ALL.size)
+
+    // (2) 신규 7종의 기본 정산 규칙 = 로지·콜마너·아이콘과 같은 20% 차감(총매출 모드)
+    for (id in newIds) {
+        val p = Platforms.byId(id)
+        expect("${p.label} 기본수수료", p.defaultFeePercent, 20.0)
+        expect("${p.label} 총매출 모드", p.defaultNetShown, false)
+        expect("${p.label} 건당보험 뗌", Platforms.chargesPerCallInsurance(id), true)
+        val r = Payout.calculate(25_000, 0, p.defaultFeePercent, 20.0, 1_500, 0.0, netShown = p.defaultNetShown)
+        expect("${p.label} 25,000 수수료", r.fee, 5_000)
+        expect("${p.label} 25,000 순수익", r.net, 18_500)
+    }
+
+    // (3) 체크한 프로그램만 보인다 — 순서는 그대로
+    val defaults = Platforms.DEFAULT_ENABLED_IDS.toSet()
+    expect("기본 체크 7종", Platforms.DEFAULT_ENABLED_IDS,
+        listOf("kakao", "tmap", "handle", "roji", "colmaner", "icon", "personal"))
+    expect("기본 체크 화면 순서", Platforms.visible(defaults).map { it.id }, Platforms.DEFAULT_ENABLED_IDS)
+    expect("기본 체크 개수", Platforms.visible(defaults).size, 7)
+    expect("신규 7종은 기본 미체크", Platforms.visible(defaults).none { it.id in newIds }, true)
+    val withDaegu = defaults + "daegusarang"
+    val visibleDaegu = Platforms.visible(withDaegu).map { it.id }
+    expect("대구사랑 체크 개수", visibleDaegu.size, 8)
+    expect("대구사랑이 아이콘과 개인콜 사이",
+        visibleDaegu[visibleDaegu.indexOf("icon") + 1], "daegusarang")
+    expect("전체 체크 = 14종 순서 그대로", Platforms.visible(Platforms.ALL_IDS.toSet()).map { it.id }, Platforms.ALL_IDS)
+    expect("한 개만 체크", Platforms.visible(setOf("personal")).map { it.label }, listOf("개인콜"))
+
+    // (4) 체크를 꺼도 과거 기록·통계 이름은 그대로 남는다 (저장 id 로 이름을 읽는다)
+    val hiddenRide = Ride(
+        businessDay = d, timeMillis = ts(20, 0), platformId = "daegusarang",
+        service = ServiceType.DAERI, payment = PaymentType.CASH,
+        gross = 25_000, feePercent = 20.0, feeAmount = 5_000, tip = 0, insuranceAmount = 1_500
+    )
+    expect("체크 끈 프로그램 기록 이름", hiddenRide.platformLabel, "대구사랑")
+    expect("체크 끈 프로그램 기록 순수익", hiddenRide.net, 18_500)
+    expect("모르는 옛 id 라벨", Platforms.label("legacy-app"), "카카오T")
+
+    // (5) 수정 화면 — 체크를 끈 프로그램도 그 기록을 열면 칩에 함께 보인다
+    expect("꺼진 프로그램 임시 포함",
+        Platforms.visibleWith("daegusarang", defaults).map { it.id },
+        listOf("kakao", "tmap", "handle", "roji", "colmaner", "icon", "daegusarang", "personal"))
+    expect("새 기록엔 임시 포함 없음", Platforms.visibleWith(null, defaults).size, 7)
+    expect("켜진 프로그램은 한 번만", Platforms.visibleWith("kakao", defaults).size, 7)
+    expect("모르는 id 는 임시 포함 안 함", Platforms.visibleWith("??", defaults).size, 7)
+
+    // (6) 마지막 한 개는 끌 수 없다
+    expect("여러 개일 때 해제", Platforms.toggleEnabled(defaults, "tmap", false)?.contains("tmap"), false)
+    expect("마지막 한 개 해제 불가", Platforms.toggleEnabled(setOf("kakao"), "kakao", false), null)
+    expect("꺼진 것 다시 켜기", Platforms.toggleEnabled(defaults, "daegusarang", true)?.contains("daegusarang"), true)
+    expect("모르는 id 토글 무시", Platforms.toggleEnabled(defaults, "??", true), defaults)
+
+    // (7) 저장값 정리 — 빈 값·모르는 값뿐이면 기본 7종으로 되돌린다
+    expect("저장값 없음 → 기본 7종", Platforms.normalizeEnabled(null), defaults)
+    expect("저장값 비어 있음 → 기본 7종", Platforms.normalizeEnabled(emptySet()), defaults)
+    expect("모르는 id 만 있으면 기본 7종", Platforms.normalizeEnabled(setOf("???")), defaults)
+    expect("신규 id 저장값 유지", Platforms.normalizeEnabled(setOf("personal", "superdrive")),
+        setOf("personal", "superdrive"))
+
     // 사용자 캡처(카카오T 3:06) — 받은 36,000 → 총매출 45,000 · 수수료 9,000 · 보험&세금 1,485(3.3%) · 순수익 34,515
     val kakaoShot = Payout.calculate(
         input = 36_000, tip = 0, feePercent = 20.0, tipFeePercent = 20.0,

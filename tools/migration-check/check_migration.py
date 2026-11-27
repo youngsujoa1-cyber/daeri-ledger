@@ -7,6 +7,11 @@
 이 검사는 예전 버전 스키마 그대로 DB 를 만들어 (실사용 규모 11,876건 + 지출 + 휴무일 + 콜밭)
 앱의 onUpgrade 가 하는 일을 그대로 적용한 뒤, 기존 값이 하나도 바뀌지 않았는지 본다.
 
+v1.0.32 부터는 프로그램 7종(대구사랑·대구시민·대구세종·트리콜·수퍼드라이버·오픈마일·별대리)이
+늘고 `사용할 프로그램 선택` 체크로 화면에 보일 프로그램을 고른다. 이 검사는 DB 스키마를 바꾸지 않고
+(platform 칸은 자유 문자열) 신규 7종 기록이 예전 기록·집계·백업과 섞여도 그대로 남는지,
+체크를 꺼도 기록이 지워지지 않는지, 백업·복원이 체크 상태까지 담는지도 함께 본다.
+
     python3 tools/migration-check/check_migration.py
 
 마지막 줄이 ALL CHECKS PASSED 이면 통과.
@@ -20,6 +25,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 DB_SOURCE = ROOT / "app/src/main/java/com/youngsu/daeriledger/data/LedgerDb.kt"
 REPO_SOURCE = ROOT / "app/src/main/java/com/youngsu/daeriledger/data/LedgerRepository.kt"
+MODELS_SOURCE = ROOT / "app/src/main/java/com/youngsu/daeriledger/data/Models.kt"
+SETTINGS_SOURCE = ROOT / "app/src/main/java/com/youngsu/daeriledger/settings/AppSettings.kt"
+BACKUP_SOURCE = ROOT / "app/src/main/java/com/youngsu/daeriledger/data/BackupManager.kt"
+SETTINGS_SCREEN = ROOT / "app/src/main/java/com/youngsu/daeriledger/ui/settings/SettingsScreen.kt"
+ADD_RIDE = ROOT / "app/src/main/java/com/youngsu/daeriledger/ui/entry/AddRideActivity.kt"
 
 RIDES = 11_876          # 사용자가 복원한 기존 기록 수 (2021-04-06 ~ 2026-11-22)
 EXPENSES = 412
@@ -369,6 +379,168 @@ def fresh_rides_schema():
     return _fresh_schema("T_RIDES", "rides")
 
 
+# ------------------------------------------------ v1.0.32 프로그램 7종 + 체크 필터
+NEW_PLATFORMS = [
+    ("daegusarang", "대구사랑"),
+    ("daegucitizen", "대구시민"),
+    ("daegusejong", "대구세종"),
+    ("trincall", "트리콜"),
+    ("superdrive", "수퍼드라이버"),
+    ("openmile", "오픈마일"),
+    ("byuldaeri", "별대리"),
+]
+LEGACY_PLATFORMS = [
+    ("kakao", "카카오T"),
+    ("tmap", "티맵"),
+    ("handle", "핸들"),
+    ("roji", "로지"),
+    ("colmaner", "콜마너"),
+    ("icon", "아이콘"),
+    ("personal", "개인콜"),
+]
+EXPECTED_ORDER = [p[0] for p in LEGACY_PLATFORMS[:6]] + [p[0] for p in NEW_PLATFORMS] + \
+    ["personal"]
+
+
+def platform_defs():
+    """Models.kt 의 Platforms.ALL 정의를 그대로 읽는다 — (id, label, 수수료, 총매출모드)"""
+    src = MODELS_SOURCE.read_text(encoding="utf-8")
+    block = src[src.index("object Platforms"):src.index("fun byId(")]
+    rows = re.findall(
+        r'PlatformDef\("([a-z]+)", "([^"]+)", ([0-9.]+), (true|false), 0x[0-9A-Fa-f]+',
+        block,
+    )
+    return [(pid, label, float(fee), net == "true") for pid, label, fee, net in rows]
+
+
+def check_platform_source():
+    """신규 7종 정의·순서·기본 체크 상태가 소스에 그대로 있는지"""
+    defs = platform_defs()
+    expect("프로그램 14종 정의", len(defs), 14)
+    expect("프로그램 순서", [d[0] for d in defs], EXPECTED_ORDER)
+    expect("신규 7종 이름", [d[1] for d in defs][6:13], [p[1] for p in NEW_PLATFORMS])
+    for pid, label, fee, net in defs[6:13]:
+        expect(f"{label} 기본 수수료 20%", fee, 20.0)
+        expect(f"{label} 총매출 모드", net, False)
+    expect("기존 7종 이름 그대로", [d[1] for d in defs if d[0] not in dict(NEW_PLATFORMS)],
+           [p[1] for p in LEGACY_PLATFORMS])
+
+    src = MODELS_SOURCE.read_text(encoding="utf-8")
+    defaults = re.search(r"DEFAULT_ENABLED_IDS: List<String> =\s*listOf\(([^)]*)\)", src, re.S)
+    default_ids = re.findall(r'"([a-z]+)"', defaults.group(1)) if defaults else []
+    expect("기본 체크 7종", default_ids, [p[0] for p in LEGACY_PLATFORMS])
+    expect("신규 7종은 기본 미체크", all(p[0] not in default_ids for p in NEW_PLATFORMS), True)
+    expect("마지막 한 개 보호", "fun toggleEnabled(" in src and "next.isEmpty()" in src, True)
+    expect("체크한 것만 순서대로", "fun visible(" in src and "ALL.filter { it.id in enabledIds }" in src, True)
+    expect("수정 기록은 임시 포함", "fun visibleWith(" in src, True)
+    expect("저장값 정리", "fun normalizeEnabled(" in src, True)
+
+    st = SETTINGS_SOURCE.read_text(encoding="utf-8")
+    expect("설정에 체크 저장", '"enabled_platforms"' in st, True)
+    expect("저장값은 Platforms 정리기를 거친다",
+           st.count("Platforms.normalizeEnabled(") >= 2, True)
+
+    ss = SETTINGS_SCREEN.read_text(encoding="utf-8")
+    expect("설정 수수료 목록은 체크한 것만",
+           "Platforms.visible(settings.enabledPlatformIds)" in ss, True)
+    expect("14종 전체를 그리지 않는다",
+           "Platforms.ALL.forEach { platform -> platformRow" not in ss, True)
+    expect("사용할 프로그램 선택 줄", '"사용할 프로그램 선택"' in ss, True)
+    expect("최소 1개 안내", "최소 1개" in ss, True)
+
+    ar = ADD_RIDE.read_text(encoding="utf-8")
+    expect("운행 기록 칩도 체크한 것만", "Platforms.visibleWith(" in ar, True)
+    expect("수정 기록 플랫폼 임시 표시", "includeId = existing?.platformId" in ar, True)
+    expect("꺼진 프로그램 안내", "체크를 끈 프로그램" in ar, True)
+
+    bm = BACKUP_SOURCE.read_text(encoding="utf-8")
+    expect("백업에 체크 상태", '"enabledPlatforms"' in bm, True)
+    expect("복원에 체크 상태", 'optJSONArray("enabledPlatforms")' in bm, True)
+    expect("백업 수수료는 14종 모두", "Platforms.ALL.forEach { p ->" in bm, True)
+
+
+def check_platform_db(tmp: Path):
+    """DB 에 신규 7종 기록을 넣어도 예전 기록·집계·백업 구조가 그대로인지"""
+    schema = fresh_rides_schema()
+    expect("platform 칸에 값 제한(CHECK) 없음", "CHECK" not in schema.upper(), True)
+    db = sqlite3.connect(tmp / "platforms.db")
+    db.execute(schema)
+    order, binds = repository_column_order()
+    expect("저장 칸 = 바인딩 수", binds, len(order))
+
+    def insert(day: str, ms: int, pid: str, gross: int) -> None:
+        values = {
+            "business_day": day, "time_ms": ms, "platform": pid, "service": "daeri",
+            "payment": "card", "gross": gross, "fee_percent": 20.0,
+            "fee_amount": gross // 5, "tip": 0, "insurance_amount": 1_500,
+            "from_place": "정자동", "via_place": "", "to_place": "강남역",
+            "memo": "", "spot": "", "settled": 1, "created_at": ms,
+        }
+        expect_cols = set(order)
+        assert expect_cols <= set(values), sorted(expect_cols - set(values))
+        db.execute(
+            f"INSERT INTO rides ({','.join(order)}) VALUES ({','.join('?' * len(order))})",
+            tuple(values[c] for c in order),
+        )
+
+    # 예전 7종 한 건씩 + 신규 7종 한 건씩
+    for i, (pid, _label) in enumerate(LEGACY_PLATFORMS + NEW_PLATFORMS):
+        insert("2026-11-28", 1_764_000_000_000 + i, pid, 25_000)
+    db.commit()
+    expect("14종 기록 저장", db.execute("SELECT COUNT(*) FROM rides").fetchone()[0], 14)
+    groups = db.execute(
+        "SELECT platform, COUNT(*), SUM(gross), SUM(fee_amount) FROM rides GROUP BY platform"
+    ).fetchall()
+    expect("플랫폼별 집계 14줄", len(groups), 14)
+    expect("신규 7종도 집계에 나온다",
+           sorted(pid for pid, *_ in groups), sorted(p[0] for p in LEGACY_PLATFORMS + NEW_PLATFORMS))
+    new_rows = {row[0]: row for row in groups if row[0] in dict(NEW_PLATFORMS)}
+    expect("신규 7종 수수료 20%", [r[3] for r in new_rows.values()], [5_000] * 7)
+
+    # 체크를 끈 상태(기본 7종만 체크)여도 기록은 그대로 — 화면에서 숨을 뿐이다
+    marks = ",".join("?" * len(LEGACY_PLATFORMS))
+    legacy_count = db.execute(
+        f"SELECT COUNT(*) FROM rides WHERE platform IN ({marks})",
+        [p[0] for p in LEGACY_PLATFORMS],
+    ).fetchone()[0]
+    total = db.execute("SELECT COUNT(*) FROM rides").fetchone()[0]
+    expect("체크한 7종 기존 기록", legacy_count, 7)
+    expect("체크 끈 신규 7종 기록도 남아 있다", total - legacy_count, 7)
+    labels = dict(LEGACY_PLATFORMS + NEW_PLATFORMS)
+    hidden = db.execute(
+        f"SELECT platform FROM rides WHERE platform NOT IN ({marks})",
+        [p[0] for p in LEGACY_PLATFORMS],
+    ).fetchall()
+    expect("체크 끈 기록도 이름을 읽는다",
+           [labels.get(pid, "카카오T") for (pid,) in hidden], [p[1] for p in NEW_PLATFORMS])
+    expect("무결성 검사", db.execute("PRAGMA integrity_check").fetchone()[0], "ok")
+    db.close()
+
+    # JSON 백업 — 체크 상태 칸과 14종 수수료가 모두 들어가고, 옛 백업은 기본값을 지킨다
+    defs = platform_defs()
+    backup = {
+        "settings": {
+            "enabledPlatforms": ["kakao", "tmap", "handle", "roji", "colmaner", "icon", "daegusarang"],
+            "platformFees": {d[0]: {"percent": d[2], "netShown": d[3]} for d in defs},
+        }
+    }
+    settings_json = backup["settings"]
+    expect("백업의 수수료 14종", len(settings_json["platformFees"]), 14)
+    expect("백업의 신규 7종 수수료",
+           [settings_json["platformFees"][p[0]]["percent"] for p in NEW_PLATFORMS], [20.0] * 7)
+    known = [d[0] for d in defs]
+    restored = [p for p in settings_json["enabledPlatforms"] if p in known]
+    expect("복원한 체크 상태(순서 유지)", restored,
+           ["kakao", "tmap", "handle", "roji", "colmaner", "icon", "daegusarang"])
+    st = SETTINGS_SOURCE.read_text(encoding="utf-8")
+    expect("한 번도 안 건드린 기기는 기본 7종(null)",
+           "prefs.getStringSet(KEY_ENABLED_PLATFORMS, null)" in st, True)
+    expect("옛 백업(체크 칸 없음)은 기존 체크 상태를 덮지 않는다",
+           "if (ids.isNotEmpty()) settings.enabledPlatformIds = ids.toSet()"
+           in BACKUP_SOURCE.read_text(encoding="utf-8"), True)
+
+
+
 def fresh_spots_schema():
     """LedgerDb.kt 의 CREATE TABLE my_spots 문 그대로 (새로 설치한 경우)"""
     return _fresh_schema("T_SPOTS", "my_spots")
@@ -453,12 +625,14 @@ def check_column_guard():
 
 def main():
     source_alignment()
+    check_platform_source()
     import tempfile
     with tempfile.TemporaryDirectory() as tmp:
         check_v2_to_v4(Path(tmp))
         check_v1_to_v4(Path(tmp))
         check_fresh_v4(Path(tmp))
         check_column_guard()
+        check_platform_db(Path(tmp))
     print("ALL CHECKS PASSED" if failures == 0 else f"{failures} CHECK(S) FAILED")
     return 0 if failures == 0 else 1
 

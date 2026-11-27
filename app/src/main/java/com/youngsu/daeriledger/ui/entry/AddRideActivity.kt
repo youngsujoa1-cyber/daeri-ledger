@@ -107,16 +107,19 @@ class AddRideActivity : AppCompatActivity() {
         settings = AppSettings.get(this)
 
         rideId = intent.getLongExtra(EXTRA_RIDE_ID, 0L)
-        platformId = settings.lastPlatformId
-        service = ServiceType.from(settings.lastServiceType)
+        // 수정 중이면 그 기록을 먼저 읽는다 — 설정에서 체크를 끈 프로그램으로 적은 기록도 고칠 수 있게
+        // 플랫폼 칩에 그 한 종을 임시로 함께 보여 주기 위해서다 (v1.0.32)
+        existing = if (rideId != 0L) repo.rideById(rideId) else null
+        if (rideId != 0L && existing == null) { finish(); return }
+        platformId = existing?.platformId ?: defaultPlatformId()
+        service = existing?.service ?: ServiceType.from(settings.lastServiceType)
 
         setupInsetsAndBar()
         setupChips()
         setupInputs()
 
-        if (rideId != 0L) {
-            existing = repo.rideById(rideId)
-            existing?.let { prefill(it) } ?: run { finish(); return }
+        if (existing != null) {
+            prefill(existing!!)
         } else {
             intent.getStringExtra(EXTRA_DATE)?.let { key ->
                 BizTime.parseDay(key)?.let { date ->
@@ -167,7 +170,12 @@ class AddRideActivity : AppCompatActivity() {
         binding.paymentChips.isSingleSelection = true
         binding.amountChips.isSingleSelection = true
 
-        binding.platformChips.setChips(Platforms.ALL.map { it.id to it.label }, platformId) { id ->
+        // 플랫폼 칩은 설정에서 체크한 프로그램만 — 수정 중이면 그 기록의 플랫폼도 함께 (v1.0.32)
+        val chipPlatforms = Platforms.visibleWith(
+            includeId = existing?.platformId,
+            enabledIds = settings.enabledPlatformIds
+        )
+        binding.platformChips.setChips(chipPlatforms.map { it.id to it.label }, platformId) { id ->
             platformId = id
             renderPlatformNote()
             // 카카오T·티맵은 건당 보험료 0원, 나머지는 손대지 않았을 때 설정값으로 되돌린다
@@ -198,6 +206,17 @@ class AddRideActivity : AppCompatActivity() {
             binding.amountInput.setText(value)
             binding.amountInput.setSelection(binding.amountInput.text.length)
         }
+    }
+
+    /**
+     * 처음 열 때 고를 프로그램 — 마지막에 쓴 프로그램이 체크돼 있으면 그대로,
+     * 아니면 체크한 프로그램 중 첫 번째(`카카오T` → … → `개인콜` 순서).
+     */
+    private fun defaultPlatformId(): String {
+        val enabled = settings.enabledPlatformIds
+        val last = settings.lastPlatformId
+        if (last in enabled) return last
+        return Platforms.visible(enabled).firstOrNull()?.id ?: Platforms.DEFAULT_ENABLED_IDS.first()
     }
 
     private fun setupInputs() {
@@ -262,6 +281,9 @@ class AddRideActivity : AppCompatActivity() {
         } else {
             "팁 · 경유비 수수료 0% — 받은 팁을 그대로 더해요. 설정에서 %를 넣으면 역산해요."
         }
+        // 설정에서 체크를 끈 프로그램의 기록을 고칠 때 — 왜 칩에 함께 보이는지 알려 준다 (v1.0.32)
+        val uncheckedNote = if (settings.isPlatformEnabled(platformId)) "" else
+            "\n※ 설정에서 체크를 끈 프로그램이에요 — 이 기록을 고치는 동안만 칩에 같이 보여요."
         if (settings.platformNetShown(platformId)) {
             binding.amountSectionLabel.text = "금액 (수수료 떼고 받은 금액)"
             binding.platformFeeNote.text = (if (pct > 0) {
@@ -271,14 +293,14 @@ class AddRideActivity : AppCompatActivity() {
             } else {
                 "${platform.label}은(는) 앱에 수수료가 빠진 금액이 보여요. " +
                     "수수료율을 넣으면 총매출을 역산해서 잡아요."
-            }) + "\n" + tipNote
+            }) + "\n" + tipNote + uncheckedNote
         } else {
             binding.amountSectionLabel.text = "금액 (총매출)"
             binding.platformFeeNote.text = (if (pct <= 0) {
                 "${platform.label} 수수료 0% — 설정에서 실제 수수료율을 넣으면 순수익이 더 정확해져요."
             } else {
                 "${platform.label}은(는) 금액의 ${pct.toInt()}%를 수수료로 뺍니다. 설정에서 바꿀 수 있어요."
-            }) + "\n" + tipNote
+            }) + "\n" + tipNote + uncheckedNote
         }
     }
 

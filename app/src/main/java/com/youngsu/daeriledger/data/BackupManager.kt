@@ -133,6 +133,11 @@ class BackupManager(
         s.put("insuranceTaksong", settings.insuranceTaksong)
         s.put("employmentInsurancePercent", settings.employmentInsurancePercent)
         s.put("tipFeePercent", settings.tipFeePercent)
+        // 사용할 프로그램 체크 상태 (v1.0.32) — 프로그램 순서대로 보관해 복원할 때 그대로 살아난다
+        s.put(
+            "enabledPlatforms",
+            org.json.JSONArray(Platforms.ALL_IDS.filter { it in settings.enabledPlatformIds })
+        )
         val fees = JSONObject()
         Platforms.ALL.forEach { p ->
             fees.put(p.id, JSONObject().apply {
@@ -497,6 +502,13 @@ class BackupManager(
             settings.employmentInsurancePercent = o.optDouble("employmentInsurancePercent", 0.0)
         }
         if (o.has("tipFeePercent")) settings.tipFeePercent = o.optDouble("tipFeePercent", 20.0)
+        // 사용할 프로그램 체크 상태 (v1.0.32) — 이 칸이 없는 예전 백업은 건드리지 않는다(기본 7종 유지)
+        o.optJSONArray("enabledPlatforms")?.let { arr ->
+            val ids = (0 until arr.length()).mapNotNull { i ->
+                arr.optString(i).takeIf { it.isNotBlank() }
+            }
+            if (ids.isNotEmpty()) settings.enabledPlatformIds = ids.toSet()
+        }
         o.optJSONObject("platformFees")?.let { fees ->
             Platforms.ALL.forEach { p ->
                 fees.optJSONObject(p.id)?.let { entry ->

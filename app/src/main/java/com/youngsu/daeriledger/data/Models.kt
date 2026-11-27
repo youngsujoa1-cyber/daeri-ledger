@@ -45,6 +45,10 @@ data class PlatformDef(
 )
 
 object Platforms {
+    /**
+     * 프로그램 순서 — 설정 화면과 운행 기록 칩이 모두 이 순서를 따른다.
+     * `아이콘` 과 `개인콜` 사이에 v1.0.32 에서 넣은 7종이 들어간다.
+     */
     val ALL: List<PlatformDef> = listOf(
         PlatformDef("kakao", "카카오T", 20.0, true, 0xFFF9E000, chargesPerCallInsurance = false),
         PlatformDef("tmap", "티맵", 20.0, true, 0xFF2E7DF6, chargesPerCallInsurance = false),
@@ -52,8 +56,25 @@ object Platforms {
         PlatformDef("roji", "로지", 20.0, false, 0xFFFF6B3D),
         PlatformDef("colmaner", "콜마너", 20.0, false, 0xFF9B6BFF),
         PlatformDef("icon", "아이콘", 20.0, false, 0xFF33C56E),
+        // ---- v1.0.32 신규 7종 — 기본 수수료는 로지·콜마너·아이콘처럼 총매출에서 20% 차감
+        PlatformDef("daegusarang", "대구사랑", 20.0, false, 0xFFFF5A5F),
+        PlatformDef("daegucitizen", "대구시민", 20.0, false, 0xFF3D8BFD),
+        PlatformDef("daegusejong", "대구세종", 20.0, false, 0xFF6F42C1),
+        PlatformDef("trincall", "트리콜", 20.0, false, 0xFF00B894),
+        PlatformDef("superdrive", "수퍼드라이버", 20.0, false, 0xFFF5A623),
+        PlatformDef("openmile", "오픈마일", 20.0, false, 0xFF20C4C4),
+        PlatformDef("byuldaeri", "별대리", 20.0, false, 0xFFE0559B),
         PlatformDef("personal", "개인콜", 0.0, false, 0xFFB7C4D2)
     )
+
+    val ALL_IDS: List<String> = ALL.map { it.id }
+
+    /**
+     * 처음부터 있던 7종 — 설정의 `사용할 프로그램 선택` 에서 기본으로 체크돼 있다.
+     * 새로 넣은 7종은 기본 미체크라서, 체크하면 `아이콘` 과 `개인콜` 사이에 바로 나타난다.
+     */
+    val DEFAULT_ENABLED_IDS: List<String> =
+        listOf("kakao", "tmap", "handle", "roji", "colmaner", "icon", "personal")
 
     fun byId(id: String?): PlatformDef = ALL.firstOrNull { it.id == id } ?: ALL.first()
 
@@ -61,6 +82,36 @@ object Platforms {
 
     /** 이 플랫폼이 건당 보험료를 떼는지 — 카카오T·티맵만 안 떼고, 나머지는 설정값대로 뗀다. */
     fun chargesPerCallInsurance(id: String?): Boolean = byId(id).chargesPerCallInsurance
+
+    /** 저장된 체크 상태 정리 — 모르는 id 는 버리고, 모두 꺼져 있으면 기본 7종으로 되돌린다. */
+    fun normalizeEnabled(ids: Set<String>?): Set<String> {
+        val known = ids.orEmpty().filter { it in ALL_IDS }.toSet()
+        return if (known.isEmpty()) DEFAULT_ENABLED_IDS.toSet() else known
+    }
+
+    /** 체크한 프로그램만, 프로그램 순서(`카카오T` → … → `개인콜`) 그대로. */
+    fun visible(enabledIds: Set<String>): List<PlatformDef> = ALL.filter { it.id in enabledIds }
+
+    /**
+     * 운행 기록 화면의 플랫폼 칩 — 체크한 프로그램만 보여 준다.
+     * 수정 중인 기록의 플랫폼이 체크에서 빠져 있으면, 그 기록을 고칠 수 있게 그 한 종만 임시로 함께 보여 준다.
+     */
+    fun visibleWith(includeId: String?, enabledIds: Set<String>): List<PlatformDef> {
+        val base = visible(enabledIds)
+        if (includeId == null || base.any { it.id == includeId }) return base
+        val extra = ALL.firstOrNull { it.id == includeId } ?: return base
+        return ALL.filter { it.id in enabledIds || it.id == extra.id }
+    }
+
+    /**
+     * 체크 토글 결과. 하나도 안 남게 되는 해제는 허용하지 않고 `null` 을 돌려준다
+     * (`사용할 프로그램 선택` 에서 `프로그램은 최소 1개는 남겨 두세요` 로 안내).
+     */
+    fun toggleEnabled(enabledIds: Set<String>, id: String, checked: Boolean): Set<String>? {
+        if (id !in ALL_IDS) return enabledIds
+        val next = if (checked) enabledIds + id else enabledIds - id
+        return if (next.isEmpty()) null else next
+    }
 }
 
 /**

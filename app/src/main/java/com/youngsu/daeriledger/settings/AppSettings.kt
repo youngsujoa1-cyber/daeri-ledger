@@ -30,6 +30,7 @@ class AppSettings private constructor(context: Context) {
         private const val KEY_HIDDEN_SPOTS = "hidden_spot_ids"
         private const val KEY_ADMIN_MODE = "admin_mode"
         private const val KEY_SHARE_RIDE_STATS = "share_ride_stats"
+        private const val KEY_ENABLED_PLATFORMS = "enabled_platforms"
         private const val KEY_PING_ATTEMPT = "spot_ping_attempt_at"
         private const val KEY_PING_AT = "spot_ping_at"
         private const val KEY_PING_LAT = "spot_ping_lat"
@@ -107,6 +108,26 @@ class AppSettings private constructor(context: Context) {
 
     fun insuranceFor(service: ServiceType): Int =
         if (service == ServiceType.DAERI) insuranceDaeri else insuranceTaksong
+
+    /**
+     * `설정 → 사용할 프로그램 선택` 에서 체크한 프로그램 (v1.0.32).
+     *
+     * 체크한 프로그램만 설정의 수수료 목록과 운행 기록 화면의 플랫폼 칩에 보인다.
+     * 저장값이 없는 기기는 처음부터 있던 7종(`카카오T`·`티맵`·`핸들`·`로지`·`콜마너`·`아이콘`·`개인콜`)이
+     * 체크된 상태로 시작하고, 새로 넣은 7종(`대구사랑`~`별대리`)은 미체크다.
+     * 체크를 꺼도 과거 운행 기록·통계·달력 집계는 그대로 남는다 — 보이는 곳만 달라진다.
+     */
+    var enabledPlatformIds: Set<String>
+        get() = Platforms.normalizeEnabled(prefs.getStringSet(KEY_ENABLED_PLATFORMS, null))
+        set(value) = prefs.edit()
+            .putStringSet(
+                KEY_ENABLED_PLATFORMS,
+                HashSet(Platforms.normalizeEnabled(value))
+            )
+            .apply()
+
+    /** 이 프로그램을 체크했는지 — 운행 기록 칩·설정 목록이 이 값으로 걸러진다 */
+    fun isPlatformEnabled(platformId: String): Boolean = platformId in enabledPlatformIds
 
     /**
      * 이 플랫폼에 적용하는 수수료율(%).
