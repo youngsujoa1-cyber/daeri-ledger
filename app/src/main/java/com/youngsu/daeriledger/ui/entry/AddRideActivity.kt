@@ -47,6 +47,9 @@ class AddRideActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_RIDE_ID = "ride_id"
         const val EXTRA_DATE = "date"
+
+        /** `📍 현위치` 가 믿고 쓰는 마지막 좌표의 나이 — 이보다 오래됐으면 새로 잡는다 */
+        private const val FRESH_FIX_MS = 3 * 60 * 1000L
     }
 
     private lateinit var binding: ActivityAddRideBinding
@@ -363,8 +366,8 @@ class AddRideActivity : AppCompatActivity() {
     private fun startLocating() {
         if (locating) return
         setLocating(true)
-        // 마지막 좌표를 바로 쓰고, 없으면 한 번만 갱신을 기다린다 (최대 6초)
-        LocationHelper.request(this) { location ->
+        // 3분 안에 잡힌 좌표는 바로 쓰고, 더 오래된 좌표(다른 동네일 수 있다)는 새로 잡는다 (최대 6초)
+        LocationHelper.request(this, maxCacheAgeMs = FRESH_FIX_MS) { location ->
             if (location == null) {
                 setLocating(false)
                 toastLocationHelp()

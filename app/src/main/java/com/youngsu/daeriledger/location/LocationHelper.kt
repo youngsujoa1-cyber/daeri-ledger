@@ -38,13 +38,18 @@ object LocationHelper {
     }
 
     /**
-     * 마지막 위치가 없으면 한 번만 위치 갱신을 요청한다. 최대 6초 기다린다.
+     * 마지막 위치가 없거나 [maxCacheAgeMs] 보다 오래됐으면 한 번만 위치 갱신을 요청한다. 최대 6초 기다린다.
      * onResult 는 메인 스레드에서 한 번만 호출된다.
+     *
+     * @param maxCacheAgeMs 마지막 좌표를 믿을 수 있는 나이 — 기본(-1)은 나이와 상관없이 바로 쓰는 예전 방식.
+     *   `📍 현위치` 처럼 지금 서 있는 자리가 필요한 곳은 짧게 줘서 오래된 좌표(다른 동네)를 쓰지 않게 한다.
      */
     @SuppressLint("MissingPermission")
-    fun request(context: Context, onResult: (Location?) -> Unit) {
+    fun request(context: Context, maxCacheAgeMs: Long = -1L, onResult: (Location?) -> Unit) {
         val cached = lastKnown(context)
-        if (cached != null) {
+        val cacheFresh = cached != null &&
+            (maxCacheAgeMs < 0 || System.currentTimeMillis() - cached.time <= maxCacheAgeMs)
+        if (cacheFresh) {
             onResult(cached)
             return
         }
