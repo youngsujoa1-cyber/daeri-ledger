@@ -32,8 +32,13 @@ data class Hotspot(
     val lastAt: Long = 0L,
     /** 운영자(관리자)가 기준 인원을 기다리지 않고 바로 올린 콜밭이면 true (v1.0.23) */
     val admin: Boolean = false,
-    /** 운행 기록 GPS로 만든 익명 제보가 섞인 자리(🔥 핫스팟)면 true (v1.0.26) */
+    /** 운행 기록 GPS로 만든 익명 제보가 모인 자리(🔥 핫스팟)면 true (v1.0.26) */
     val hotspot: Boolean = false,
+    /**
+     * 기사님이 `+ 콜밭 추가` 로 **직접 제보**해 전체에 올라온 자리면 true (v1.0.30) —
+     * 지도에서 내 콜밭과 같은 **노란 핀**으로 찍는다. 내가 직접 저장한 콜밭은 [mine] 이다.
+     */
+    val direct: Boolean = false,
     /** 제보가 모인 시간대(0~23) — 잘 뜨는 시간대(피크) 줄과 지도 핀 정보에 쓴다. 없으면 빈 목록 */
     val hours: List<Int> = emptyList()
 ) {
@@ -3299,7 +3304,7 @@ object Hotspots {
     /** 콜밭 출처 — 화면에는 구분 칩 없이 하나의 콜밭 목록으로 보이고, 카드 배지만 다르다 */
     const val SOURCE_DRIVER = "기사 추천"
     const val SOURCE_TAKSONG = "탁송"
-    /** 기사님들이 제보해 올라온 공용 콜밭 — v1.0.26 부터 서로 다른 기기 2명 이상 */
+    /** 기사님들이 직접 제보해 올라온 공용 콜밭 — v1.0.30 부터 서로 다른 기기 3명 이상 (지도에서 노란 핀) */
     const val SOURCE_CLOUD = "기사 제보"
 
     /**
@@ -3370,7 +3375,8 @@ object Hotspots {
     /**
      * 서버에서 받은 공용 콜밭([PublicSpot])을 콜밭 목록 항목으로.
      *  - `기사 제보` 배지 + `기사 N명 제보 · N시간 전` 줄로 표시된다
-     *  - 운행 기록 GPS에서 모인 자리는 [hotspot] = true → 화면이 🔥 핫스팟(코랄)으로 구분한다
+     *  - 직접 제보로 올라온 자리는 [direct] = true → 지도에 **노란 핀** (v1.0.30)
+     *  - 운행 기록 GPS에서 모인 자리는 [hotspot] = true → 화면이 🔥 핫스팟(빨간 핀)으로 구분한다
      *  - 잘 뜨는 시간대는 [peak] 에 들어 있어 카드에 `🔥 22시~01시 활발` 로 보인다
      *  - 좌표는 서버 제보 묶음의 평균이라 그대로 길찾기에 쓴다
      */
@@ -3391,6 +3397,7 @@ object Hotspots {
             lastAt = spot.lastAt,
             admin = spot.admin,
             hotspot = spot.hotspot,
+            direct = spot.direct,
             hours = spot.hours
         )
     }

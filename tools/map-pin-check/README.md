@@ -14,7 +14,9 @@ python3 tools/map-pin-check/check_pins.py   # 마지막 줄: ALL PIN CHECKS PASS
 - 지도(`init`) 전에 들어온 목록도 기다렸다 찍는지
 - 다시 부르면 이전 핀이 지도에서 내려가는지(쌓이지 않는지)
 - 빈 목록 · 깨진 JSON · `null` · `0,0` 좌표 처리, 핀 클릭이 `Bridge.onSpotClick(index)` 로 가는지
-- `.pin` CSS (18px · `display:block` · `box-sizing:border-box` · 흰 2px 테두리 · 가운데 점 · 앰버/민트)
+- `.pin` CSS (18px · `display:block` · `box-sizing:border-box` · 흰 2px 테두리 · 가운데 점 · 노란색/민트)
+- 핀 색 클래스 (v1.0.30) — `mine`(내 콜밭)·`direct`(기사님 직접 제보)는 노란 핀, `hot`(500m·3명 운행 GPS 핫스팟)은 빨간 핀,
+  둘 다 `true` 면 노란 핀, 그리고 `now`(지금 활발) 핀의 테두리 빛과 zIndex
 
 ## v1.0.21 버그 (이 검사가 잡는 것)
 

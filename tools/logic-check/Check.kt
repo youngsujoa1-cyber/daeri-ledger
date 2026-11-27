@@ -621,8 +621,9 @@ fun main() {
     expect("팁 수수료 되짚기", Payout.tipInputFrom(45_000, 12_500, 11_500, 20.0), 10_000)
     expect("팁 수수료 되짚기(옛 행)", Payout.tipInputFrom(45_000, 10_000, 9_000, 20.0), 10_000)
 
-    // ============================================================ 콜밭 공용 제보 (v1.0.16 → v1.0.26: 2명·50m)
-    // 사용자가 정한 기준 (v1.0.26): 공용 등록도 공용 삭제도 **서로 다른 기기 2명 이상 · 반경 50m**
+    // ============================================================ 콜밭 공용 제보 (v1.0.16 → v1.0.30: 3명·50m)
+    // 사용자가 정한 기준 (2026-11-27 정정): 직접 제보 등록은 **서로 다른 기기 3명 이상 · 반경 50m**,
+    // 없어진 곳 신고는 v1.0.26 의 **2명** 그대로 둔다.
     val lat0 = 37.5000
     val lng0 = 127.0000
     fun report(
@@ -650,23 +651,31 @@ fun main() {
     fun spots(n: Int, lat: Double = lat0, lng: Double = lng0) =
         (1..n).map { report(it, lat, lng) }
 
-    // 기준값 자체
-    expect("공용 제보 기준 인원", SpotAggregator.MIN_REPORTERS, 2)
+    // 기준값 자체 — v1.0.30: 직접 제보·핫스팟 모두 3명, 없어진 곳 신고만 2명
+    expect("직접 제보 기준 인원", SpotAggregator.MIN_REPORTERS, 3)
+    expect("핫스팟 기준 인원", SpotAggregator.MIN_HOTSPOT_REPORTERS, 3)
+    expect("없어진 곳 신고 기준 인원", SpotAggregator.MIN_REMOVERS, 2)
     expect("제보 묶음 반경(m)", SpotAggregator.GROUP_RADIUS_M, 50.0)
+    expect("핫스팟 묶음 반경(m)", SpotAggregator.HOTSPOT_RADIUS_M, 500.0)
     expect("등록 kind", SpotAggregator.KIND_SPOT, "콜밭")
     expect("삭제 kind", SpotAggregator.KIND_REMOVED, "삭제")
 
-    // (1) 공용 등록 — 2명이면 노출, 1명이면 미노출
-    val two = SpotAggregator.aggregate(spots(2))
-    expect("2명 등록 노출 수", two.added.size, 1)
-    expect("2명 등록 reporters", two.added.firstOrNull()?.reporters, 2)
+    // (1) 직접 제보 — 3명이면 노출(🟡 노란 핀), 2명·1명은 아직 미노출
+    val three = SpotAggregator.aggregate(spots(3))
+    expect("3명 직접 제보 노출 수", three.added.size, 1)
+    expect("3명 직접 제보 reporters", three.added.firstOrNull()?.reporters, 3)
+    expect("3명 직접 제보 = 노란 핀 표식", three.added.firstOrNull()?.direct, true)
+    expect("3명 직접 제보는 핫스팟 아님", three.added.firstOrNull()?.hotspot, false)
+    expect("직접 제보 수", three.directCount, 1)
+    expect("핫스팟 수 0", three.hotspotCount, 0)
+    expect("2명 등록은 아직 미노출", SpotAggregator.aggregate(spots(2)).added.size, 0)
     expect("1명 등록은 미노출", SpotAggregator.aggregate(spots(1)).added.size, 0)
 
-    // (2) 같은 기기가 2번 올려도 1명 — 노출되지 않는다
-    val sameDevice = (1..2).map { report(1, minutesAgo = it.toLong()) }
-    expect("같은 기기 2회 = 1명", SpotAggregator.aggregate(sameDevice).added.size, 0)
+    // (2) 같은 기기가 여러 번 올려도 1명 — 노출되지 않는다
+    val sameDevice = (1..3).map { report(1, minutesAgo = it.toLong()) }
+    expect("같은 기기 3회 = 1명", SpotAggregator.aggregate(sameDevice).added.size, 0)
     // 빈 deviceHash 는 세지 않는다
-    val blankHash = spots(2).map { it.copy(deviceHash = "  ") }
+    val blankHash = spots(3).map { it.copy(deviceHash = "  ") }
     expect("빈 기기 해시 제외", SpotAggregator.aggregate(blankHash).added.size, 0)
 
     // (3) 50m 안이면 한 자리로, 50m 밖이면 다른 자리로 (0.00013 ≒ 15m, 0.0003 ≒ 33m, 0.00036 ≒ 40m, 0.00054 ≒ 60m)
@@ -674,24 +683,25 @@ fun main() {
     expect("반경 33m 거리", SpotAggregator.distanceM(lat0, lng0, lat0 + 0.0003, lng0) < SpotAggregator.GROUP_RADIUS_M, true)
     expect("반경 40m 거리", SpotAggregator.distanceM(lat0, lng0, lat0 + 0.00036, lng0) < SpotAggregator.GROUP_RADIUS_M, true)
     expect("반경 60m 거리", SpotAggregator.distanceM(lat0, lng0, lat0 + 0.00054, lng0) > SpotAggregator.GROUP_RADIUS_M, true)
-    // 40m 안쪽 2명 = 한 자리로 합쳐짐
-    val near = listOf(report(1), report(2, lat = lat0 + 0.00036))
-    expect("40m 안 2명 = 한 자리", SpotAggregator.aggregate(near).added.size, 1)
-    expect("40m 안 2명 reporters", SpotAggregator.aggregate(near).added.firstOrNull()?.reporters, 2)
-    // 60m 밖이면 별도 자리라 1명+1명 = 미노출
-    val apart = listOf(report(1), report(2, lat = lat0 + 0.00054))
-    expect("60m 밖 1명+1명 = 미노출", SpotAggregator.aggregate(apart).added.size, 0)
-    // 33m 는 v1.0.26 부터 같은 자리 — 1명+1명도 합쳐져 노출
-    val thirtyThree = listOf(report(1), report(2, lat = lat0 + 0.0003))
-    expect("33m 안 2명 = 한 자리", SpotAggregator.aggregate(thirtyThree).added.size, 1)
+    // 40m 안쪽 3명 = 한 자리로 합쳐짐
+    val near = listOf(report(1), report(2, lat = lat0 + 0.00036), report(3, lat = lat0 + 0.00036))
+    expect("40m 안 3명 = 한 자리", SpotAggregator.aggregate(near).added.size, 1)
+    expect("40m 안 3명 reporters", SpotAggregator.aggregate(near).added.firstOrNull()?.reporters, 3)
+    // 60m 밖이면 별도 자리 — 3명 중 2명만 떨어져 있으면 미노출
+    val apart = listOf(report(1), report(2, lat = lat0 + 0.00054), report(3, lat = lat0 + 0.00054))
+    expect("60m 밖 1명+2명 = 미노출", SpotAggregator.aggregate(apart).added.size, 0)
+    // 33m 는 v1.0.26 부터 같은 자리 — 3명이 합쳐져 노출
+    val thirtyThree = listOf(report(1), report(2, lat = lat0 + 0.0003), report(3, lat = lat0 + 0.0003))
+    expect("33m 안 3명 = 한 자리", SpotAggregator.aggregate(thirtyThree).added.size, 1)
 
     // (4) 이름·좌표·주소·메모 — 가장 많이 나온 이름, 같으면 긴 이름, 좌표는 평균
     val named = listOf(
         report(1, name = "역삼역 2번출구"),
-        report(2, name = "역삼역")
+        report(2, name = "역삼역"),
+        report(3, name = "역삼역")
     )
     val namedSpot = SpotAggregator.aggregate(named).added.firstOrNull()
-    expect("많이 나온 이름(동률이면 긴 이름)", namedSpot?.name, "역삼역 2번출구")
+    expect("많이 나온 이름", namedSpot?.name, "역삼역")
     expect("좌표 평균", namedSpot?.lat, lat0)
     expect("주소 유지", namedSpot?.address, "서울 강남구 테헤란로")
 
@@ -701,13 +711,13 @@ fun main() {
     expect("2명 삭제 reporters", removedTwo.removed.firstOrNull()?.reporters, 2)
     expect("1명 삭제 = 없어진 자리 없음", SpotAggregator.aggregate(removals(1)).removed.size, 0)
 
-    // (6) 2명 등록 + 1명 삭제 → 공용 콜밭은 그대로 보인다
-    val keep = SpotAggregator.aggregate(spots(2) + removals(1))
+    // (6) 3명 등록 + 1명 삭제 → 공용 콜밭은 그대로 보인다
+    val keep = SpotAggregator.aggregate(spots(3) + removals(1))
     expect("1명 삭제는 콜밭 유지", keep.added.size, 1)
     expect("1명 삭제는 삭제 목록 없음", keep.removed.size, 0)
 
-    // (7) 2명 등록 + 2명 삭제 → 공용 콜밭도 숨긴다
-    val gone = SpotAggregator.aggregate(spots(2) + removals(2))
+    // (7) 3명 등록 + 2명 삭제 → 공용 콜밭도 숨긴다
+    val gone = SpotAggregator.aggregate(spots(3) + removals(2))
     expect("2명 삭제 시 콜밭 미노출", gone.added.size, 0)
     expect("2명 삭제 시 없어진 자리 1곳", gone.removed.size, 1)
 
@@ -723,18 +733,25 @@ fun main() {
     expect("반경 밖 삭제 기기 0", SpotAggregator.devicesNear(removals(2, lat0 + 0.01, lng0), lat0, lng0), 0)
 
     // (10) 들어온 순서가 달라도 결과가 같다 (최신순 정렬 후 묶음)
-    val shuffled = (spots(2) + removals(2)).reversed()
+    val shuffled = (spots(3) + removals(2)).reversed()
     val shuffledState = SpotAggregator.aggregate(shuffled)
     expect("순서 무관 콜밭 수", shuffledState.added.size, gone.added.size)
     expect("순서 무관 삭제 수", shuffledState.removed.size, gone.removed.size)
     expect("순서 무관 이름", shuffledState.removed.firstOrNull()?.name, gone.removed.firstOrNull()?.name)
 
     // (11) kind 가 비어 있거나 모르는 값이면 콜밭 등록으로 본다
-    val unknownKind = (1..2).map { report(it).copy(kind = "") }
+    val unknownKind = (1..3).map { report(it).copy(kind = "") }
     expect("kind 빈 값 = 등록으로 집계", SpotAggregator.aggregate(unknownKind).added.size, 1)
 
+    // (11-2) 직접 제보와 운행 GPS는 따로 묶인다 — 같은 자리라도 노란 핀 1곳 + 빨간 핀 1곳
+    val mixedReports = spots(3) + (1..3).map { report(200 + it, note = "#t:22", name = "역삼역") }
+    val mixedState = SpotAggregator.aggregate(mixedReports)
+    expect("직접+GPS 따로 = 2곳", mixedState.added.size, 2)
+    expect("직접 제보 1곳", mixedState.directCount, 1)
+    expect("핫스팟 1곳", mixedState.hotspotCount, 1)
+
     // ============================================================ 👑 운영자 모드 (v1.0.23)
-    // 운영자 해시가 달린 제보 한 건은 기준 인원(2명)을 기다리지 않고 바로 공개·삭제된다
+    // 운영자 해시가 달린 제보 한 건은 기준 인원(3명)을 기다리지 않고 바로 공개·삭제된다
     val adminHash = SpotAggregator.adminDeviceHash("test-pass")
     expect("운영자 해시 길이", adminHash.length, 32)
     expect("운영자 해시는 16진수", adminHash.all { it in "0123456789abcdef" }, true)
@@ -766,11 +783,11 @@ fun main() {
     expect("운영자 공개 기사 수", adminPublic.added.firstOrNull()?.reporters, 1)
     expect("운영자 공개도 삭제 목록에는 안 들어감", adminPublic.removed.size, 0)
 
-    // (2) 운영자 1 + 일반 1 = 2명, 운영자 표식 유지
-    val adminMixed = SpotAggregator.aggregate(spots(1) + adminReport(minutesAgo = 1), adminHash)
-    expect("운영자+일반1 공개 수", adminMixed.added.size, 1)
-    expect("운영자+일반1 기사 수", adminMixed.added.firstOrNull()?.reporters, 2)
-    expect("운영자+일반1 표식", adminMixed.added.firstOrNull()?.admin, true)
+    // (2) 운영자 1 + 일반 2 = 3명, 운영자 표식 유지
+    val adminMixed = SpotAggregator.aggregate(spots(2) + adminReport(minutesAgo = 1), adminHash)
+    expect("운영자+일반2 공개 수", adminMixed.added.size, 1)
+    expect("운영자+일반2 기사 수", adminMixed.added.firstOrNull()?.reporters, 3)
+    expect("운영자+일반2 표식", adminMixed.added.firstOrNull()?.admin, true)
 
     // (3) 운영자 삭제 1건 = 바로 사라짐 (기준 인원 대기 없음)
     val adminGone = SpotAggregator.aggregate(listOf(adminReport(SpotAggregator.KIND_REMOVED)), adminHash)
@@ -780,23 +797,23 @@ fun main() {
     expect("암호 없는 빌드는 운영자 삭제도 못 알아봄",
         SpotAggregator.aggregate(listOf(adminReport(SpotAggregator.KIND_REMOVED)), null).removed.size, 0)
 
-    // (4) 운영자 삭제가 일반 2명 등록과 같거나 더 새로우면 삭제가 이긴다 (반경 50m)
+    // (4) 운영자 삭제가 일반 3명 등록과 같거나 더 새로우면 삭제가 이긴다 (반경 50m)
     val adminOverTwo = SpotAggregator.aggregate(
-        spots(2) + adminReport(SpotAggregator.KIND_REMOVED), adminHash
+        spots(3) + adminReport(SpotAggregator.KIND_REMOVED), adminHash
     )
-    expect("운영자 삭제 vs 2명 등록 → 공개 0", adminOverTwo.added.size, 0)
-    expect("운영자 삭제 vs 2명 등록 → 삭제 1", adminOverTwo.removed.size, 1)
+    expect("운영자 삭제 vs 3명 등록 → 공개 0", adminOverTwo.added.size, 0)
+    expect("운영자 삭제 vs 3명 등록 → 삭제 1", adminOverTwo.removed.size, 1)
 
     // (5) 운영자 삭제도 반경 50m 밖이면 등록 유지 / 40m 안이면 숨긴다
     val adminFar = SpotAggregator.aggregate(
-        spots(2) + adminReport(SpotAggregator.KIND_REMOVED, lat = lat0 + 0.00054), adminHash
+        spots(3) + adminReport(SpotAggregator.KIND_REMOVED, lat = lat0 + 0.00054), adminHash
     )
     expect("60m 밖 운영자 삭제 → 공개 유지", adminFar.added.size, 1)
     expect("60m 밖 운영자 삭제 → 삭제 1", adminFar.removed.size, 1)
     val adminNear = SpotAggregator.aggregate(
-        spots(2) + adminReport(SpotAggregator.KIND_REMOVED, lat = lat0 + 0.00036), adminHash
+        spots(3) + adminReport(SpotAggregator.KIND_REMOVED, lat = lat0 + 0.00036), adminHash
     )
-    expect("40m 안 운영자 삭제 → 2명 등록도 숨김", adminNear.added.size, 0)
+    expect("40m 안 운영자 삭제 → 3명 등록도 숨김", adminNear.added.size, 0)
     expect("40m 안 운영자 삭제 → 삭제 1", adminNear.removed.size, 1)
 
     // (6) 2명 삭제보다 운영자 공개가 더 새로우면 공개가 이긴다
@@ -813,25 +830,26 @@ fun main() {
     expect("운영자 삭제+공개 → 공개 1", adminBoth.added.size, 1)
     expect("운영자 삭제+공개 → 삭제 0", adminBoth.removed.size, 0)
 
-    // (7-2) 오래된 운영자 삭제는 그 뒤에 온 기사 2명 등록을 막지 않는다
+    // (7-2) 오래된 운영자 삭제는 그 뒤에 온 기사 3명 등록을 막지 않는다
     val revived = SpotAggregator.aggregate(
-        listOf(adminReport(SpotAggregator.KIND_REMOVED, minutesAgo = 60)) + spots(2), adminHash
+        listOf(adminReport(SpotAggregator.KIND_REMOVED, minutesAgo = 60)) + spots(3), adminHash
     )
-    expect("1시간 전 운영자 삭제 → 새 2명 공개", revived.added.size, 1)
+    expect("1시간 전 운영자 삭제 → 새 3명 공개", revived.added.size, 1)
     expect("1시간 전 운영자 삭제 → 삭제 풀림", revived.removed.size, 0)
-    // 반대로 운영자 삭제가 2명 등록보다 새로우면 공개되지 않는다
+    // 반대로 운영자 삭제가 3명 등록보다 새로우면 공개되지 않는다
     val killedAgain = SpotAggregator.aggregate(
-        spots(2).map { it.copy(createdAt = it.createdAt - 600_000L) } +
+        spots(3).map { it.copy(createdAt = it.createdAt - 600_000L) } +
             adminReport(SpotAggregator.KIND_REMOVED), adminHash
     )
-    expect("새 운영자 삭제 → 2명 공개 0", killedAgain.added.size, 0)
+    expect("새 운영자 삭제 → 3명 공개 0", killedAgain.added.size, 0)
     expect("새 운영자 삭제 → 삭제 1", killedAgain.removed.size, 1)
 
-    // (8) 암호를 아는 집계에서도 일반 2명 기준은 그대로
-    val normalWithAdmin = SpotAggregator.aggregate(spots(2), adminHash)
-    expect("암호 있는 집계의 일반 2명", normalWithAdmin.added.size, 1)
-    expect("암호 있는 집계의 일반 2명 표식", normalWithAdmin.added.firstOrNull()?.admin, false)
+    // (8) 암호를 아는 집계에서도 일반 3명 기준은 그대로
+    val normalWithAdmin = SpotAggregator.aggregate(spots(3), adminHash)
+    expect("암호 있는 집계의 일반 3명", normalWithAdmin.added.size, 1)
+    expect("암호 있는 집계의 일반 3명 표식", normalWithAdmin.added.firstOrNull()?.admin, false)
     expect("일반 1명은 여전히 미노출", SpotAggregator.aggregate(spots(1), adminHash).added.size, 0)
+    expect("일반 2명도 여전히 미노출", SpotAggregator.aggregate(spots(2), adminHash).added.size, 0)
 
     // (9) 운영자 해시 판정 도우미
     expect("운영자 제보 판정", SpotAggregator.isAdminReport(adminReport(), adminHash), true)
@@ -897,22 +915,59 @@ fun main() {
         SpotTimeBands.nowFit(listOf(22, 22, 22), 22).score > SpotTimeBands.nowFit(listOf(22), 22).score,
         true)
 
-    // (12) 운행 GPS 집계 — 2명이 같은 자리(22·23시)에서 모이면 핫스팟 + 시간대
+    // (12) 운행 GPS 집계 (v1.0.30) — 반경 500m · 서로 다른 기기 3명 이상 · 지금 시간대(±1시간)
     val rideReports = listOf(
         report(1, note = "#t:22 강남역 2번출구", name = "강남역 2번출구"),
-        report(2, note = "#t:23", name = "강남역 2번출구", minutesAgo = 5)
+        report(2, note = "#t:23", name = "강남역 2번출구", minutesAgo = 5),
+        report(3, note = "#t:22", name = "강남역 2번출구", minutesAgo = 10)
     )
     val rideSpot = SpotAggregator.aggregate(rideReports).added.firstOrNull()
-    expect("운행 GPS 2명 = 핫스팟", rideSpot?.hotspot, true)
+    expect("운행 GPS 3명 = 핫스팟", rideSpot?.hotspot, true)
+    expect("핫스팟은 노란 핀 아님", rideSpot?.direct, false)
+    expect("핫스팟 기사 수", rideSpot?.reporters, 3)
     expect("핫스팟 피크", rideSpot?.peak, "22시~01시 활발")
     expect("핫스팟 시간대 목록", rideSpot?.hours, listOf(22, 23))
-    expect("핫스팟 메모에 표식이 안 남음", rideSpot?.note, "강남역 2번출구")
-    expect("직접 제보 2명은 핫스팟 아님",
-        SpotAggregator.aggregate(spots(2)).added.firstOrNull()?.hotspot, false)
-    // 표식 없는 옛 제보는 제보 시각에서 시간대를 읽는다 (23시 10분 두 건 → 23시 창)
-    val lateNight = BizTime.millisOf(LocalDate.of(2025, 1, 1), LocalTime.of(23, 10))
+    expect("운행 GPS 2명은 미노출", SpotAggregator.aggregate(rideReports.take(2)).added.size, 0)
+    expect("하나의 기기가 3번 올려도 미노출",
+        SpotAggregator.aggregate((1..3).map { report(1, note = "#t:22", minutesAgo = it.toLong()) }).added.size, 0)
+
+    // 반경 500m — 400m 떨어진 자리는 한 핫스팟, 700m 떨어지면 따로 (0.0009 ≒ 100m, 0.0036 ≒ 400m, 0.0063 ≒ 700m)
+    expect("400m 거리 < 500m", SpotAggregator.distanceM(lat0, lng0, lat0 + 0.0036, lng0) < SpotAggregator.HOTSPOT_RADIUS_M, true)
+    expect("700m 거리 > 500m", SpotAggregator.distanceM(lat0, lng0, lat0 + 0.0063, lng0) > SpotAggregator.HOTSPOT_RADIUS_M, true)
+    val wide = listOf(
+        report(1, note = "#t:22"),
+        report(2, note = "#t:22", lat = lat0 + 0.0036),
+        report(3, note = "#t:22", lat = lat0 + 0.0036)
+    )
+    expect("400m 안 3명 = 한 핫스팟", SpotAggregator.aggregate(wide).added.size, 1)
+    expect("400m 안 3명 reporters", SpotAggregator.aggregate(wide).added.firstOrNull()?.reporters, 3)
+    val farAway = listOf(
+        report(1, note = "#t:22"),
+        report(2, note = "#t:22", lat = lat0 + 0.0063),
+        report(3, note = "#t:22", lat = lat0 + 0.0063)
+    )
+    expect("700m 밖은 따로 — 1명+2명 = 미노출", SpotAggregator.aggregate(farAway).added.size, 0)
+
+    // 지금 시간대(±1시간) — 22시에 보면 보이고, 14시에 보면 빠진다
+    expect("지금 22시 = 핫스팟 보임", SpotAggregator.aggregate(rideReports, nowHour = 22).added.size, 1)
+    expect("지금 23시 = 핫스팟 보임", SpotAggregator.aggregate(rideReports, nowHour = 23).added.size, 1)
+    expect("지금 0시 = 23시 제보가 ±1시간 안이라 보임", SpotAggregator.aggregate(rideReports, nowHour = 0).added.size, 1)
+    expect("지금 2시 = 22·23시에서 멀어 빠짐", SpotAggregator.aggregate(rideReports, nowHour = 2).added.size, 0)
+    expect("지금 14시 = 빠짐", SpotAggregator.aggregate(rideReports, nowHour = 14).added.size, 0)
+    // 직접 제보(시간대 없는 고정 콜밭)는 지금 시간대와 상관없이 그대로 보인다
+    expect("직접 제보는 시간대 무관", SpotAggregator.aggregate(spots(3), nowHour = 14).added.size, 1)
+
+    // 직접 제보 3명은 핫스팟 아님 (빨간 핀 아님)
+    expect("직접 제보 3명은 핫스팟 아님",
+        SpotAggregator.aggregate(spots(3)).added.firstOrNull()?.hotspot, false)
+    // 표식 없는 옛 제보는 제보 시각에서 시간대를 읽는다 (23시 10분 세 건 → 23시 창)
+    val lateNight = BizTime.millisOf(LocalDate.of(2025, 1, 1), LocalTime.of(23, 50))
     val lateSpot = SpotAggregator.aggregate(
-        listOf(report(1, createdAt = lateNight), report(2, createdAt = lateNight - 600_000L))
+        listOf(
+            report(1, createdAt = lateNight),
+            report(2, createdAt = lateNight - 600_000L),
+            report(3, createdAt = lateNight - 1_200_000L)
+        )
     ).added.firstOrNull()
     expect("제보 시각에서 읽은 피크", lateSpot?.peak, "23시~02시 활발")
     expect("옛 제보는 핫스팟 아님", lateSpot?.hotspot, false)
@@ -923,7 +978,7 @@ fun main() {
         lat = 37.5,
         lng = 127.0,
         address = "서울 강남구 테헤란로",
-        reporters = 2,
+        reporters = 3,
         lastAt = 1_700_000_000_000L,
         note = "#t:22 강남역 앞",
         peak = "22시~01시 활발",
@@ -932,12 +987,13 @@ fun main() {
     )
     val cloudItem = Hotspots.fromPublicSpot(publicSpot)
     expect("제보 콜밭 출처", cloudItem.source, Hotspots.SOURCE_CLOUD)
-    expect("제보 콜밭 reporters", cloudItem.reporters, 2)
+    expect("제보 콜밭 reporters", cloudItem.reporters, 3)
     expect("제보 콜밭 lastAt", cloudItem.lastAt, 1_700_000_000_000L)
     expect("제보 콜밭 시·도", cloudItem.city, "서울")
     expect("제보 콜밭 좌표 있음", cloudItem.hasLocation, true)
     expect("제보 콜밭 이름 검색", cloudItem.matches("테헤란로"), true)
     expect("핫스팟 표식", cloudItem.hotspot, true)
+    expect("핫스팟은 노란 핀 아님", cloudItem.direct, false)
     expect("핫스팟 카드 피크", cloudItem.peakLabel, "🔥 22시~01시 활발")
     expect("메모에서 시간대 표식 제거", cloudItem.tip, "강남역 앞")
     expect("목록의 시간대 목록", cloudItem.hours, listOf(22, 23))
@@ -951,6 +1007,13 @@ fun main() {
     )
     expect("운영자 콜밭은 핫스팟 아님", manualItem.hotspot, false)
     expect("일반 콜밭 피크 줄", manualItem.peakLabel, "피크 20시~23시 활발")
+    // 🟡 직접 제보로 올라온 자리는 노란 핀 표식이 남는다 (v1.0.30)
+    val directItem = Hotspots.fromPublicSpot(
+        publicSpot.copy(hotspot = false, direct = true, note = "", peak = "22시~01시 활발")
+    )
+    expect("직접 제보 콜밭 = 노란 핀", directItem.direct, true)
+    expect("직접 제보 콜밭은 핫스팟 아님", directItem.hotspot, false)
+    expect("직접 제보 콜밭 피크 줄은 피크", directItem.peakLabel, "피크 22시~01시 활발")
 
     // ============================================================ 몰아 올리기 제외 (v1.0.26)
     // 사용자 지적: "가끔 한 자리에서 밀린거 싹다 올리는 사람도 있거든" → 시간차·연속 입력 필터

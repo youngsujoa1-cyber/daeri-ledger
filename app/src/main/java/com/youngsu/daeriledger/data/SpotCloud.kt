@@ -24,8 +24,9 @@ import java.util.TimeZone
  *
  * - 외부 SDK 없이 `HttpURLConnection` 으로 Firestore REST API 만 부른다(오프라인 Gradle 환경 대응).
  * - 제보 1건 = `spot_reports` 문서 1건. 서버는 읽기만 열려 있고 수정·삭제는 규칙으로 막혀 있다.
- * - **2명·반경 50m 기준 (v1.0.26)**: 같은 자리에 서로 다른 기기 2명 이상이 `콜밭` 제보하면 공용 콜밭으로 노출하고,
+ * - **3명 기준 (v1.0.30)**: 같은 자리에 서로 다른 기기 3명 이상이 `콜밭` 제보하면 공용 콜밭(🟡 노란 핀)으로 노출하고,
  *   같은 자리에 2명 이상이 `삭제`(없어진 곳) 신고하면 모든 기사님 화면에서 숨긴다.
+ *   운행 기록 GPS는 반경 500m 로 묶어 3명 이상 + 지금 시간대 입력이 있으면 🔴 핫스팟 핀으로 보여 준다.
  *   Spark 무료 플랜에는 Cloud Functions 가 없어 집계는 앱에서 한다([SpotAggregator]).
  *
  * 서버 프로젝트·키는 Firebase 콘솔 > 프로젝트 설정에서 확인할 수 있다.
@@ -131,13 +132,13 @@ object SpotCloud {
                         ok = true
                         msg = when {
                             kind == SpotAggregator.KIND_REMOVED && admin ->
-                                "👑 운영자 삭제 — 2명 대기 없이 모든 기사님 앱에서 바로 사라져요."
+                                "👑 운영자 삭제 — 3명 대기 없이 모든 기사님 앱에서 바로 사라져요."
                             kind == SpotAggregator.KIND_REMOVED ->
                                 "없어진 곳으로 신고했어요. 2명 이상 모이면 모든 기사님 화면에서 숨겨져요."
                             admin ->
-                                "👑 운영자 공개 — 2명 대기 없이 모든 기사님 앱에 바로 올렸어요."
+                                "👑 운영자 공개 — 3명 대기 없이 모든 기사님 앱에 바로 올렸어요."
                             else ->
-                                "제보를 올렸어요. 같은 자리에서 2명 이상 모이면 모든 기사님께 공용 콜밭으로 보여요."
+                                "제보를 올렸어요. 같은 자리에서 3명 이상 모이면 모든 기사님께 노란 핀 콜밭으로 보여요."
                         }
                         cacheAt = 0L                     // 다음 조회 때 새로 받는다
                     }
@@ -219,8 +220,9 @@ object SpotCloud {
     // ---------------------------------------------------------------- 공용 콜밭 받기
 
     /**
-     * 최근 제보를 모아 "서로 다른 기기 2명 이상이 제보한 자리"만 공용 콜밭으로,
+     * 최근 제보를 모아 "서로 다른 기기 3명 이상이 제보한 자리"만 공용 콜밭(🟡 노란 핀)으로,
      * "2명 이상이 없어졌다고 신고한 자리"는 숨길 자리로 돌려준다.
+     * 운행 GPS는 반경 500m 로 묶어 3명 이상 + 지금 시간대(±1시간) 입력이 있는 자리만 🔴 핫스팟으로 낸다.
      * 5분 캐시를 쓰므로 화면을 자주 열어도 서버를 계속 부르지 않는다.
      * 콜백은 메인 스레드에서 온다.
      */
@@ -239,7 +241,11 @@ object SpotCloud {
         Thread {
             var result: SpotPublicState = cache
             try {
-                result = SpotAggregator.aggregate(fetchRecent(), adminHash)
+                result = SpotAggregator.aggregate(
+                    fetchRecent(),
+                    adminHash,
+                    nowHour = SpotTimeBands.hourOf(System.currentTimeMillis())
+                )
                 cache = result
                 cacheAt = System.currentTimeMillis()
                 lastError = null

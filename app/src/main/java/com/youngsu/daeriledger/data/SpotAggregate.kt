@@ -33,7 +33,12 @@ data class SpotReport(
     val rideBand: Boolean get() = band != null
 }
 
-/** 앱이 보여 줄 공용 콜밭 한 곳 (서로 다른 기기 [SpotAggregator.MIN_REPORTERS]명 이상이 제보) */
+/**
+ * 앱이 보여 줄 공용 콜밭 한 곳 (서로 다른 기기 3명 이상이 제보한 자리, 또는 운행 GPS 핫스팟).
+ *
+ *  - [direct] = true : 기사님들이 `+ 콜밭 추가` 로 **직접 제보**해 올라온 자리 → 지도에 **노란 핀**
+ *  - [hotspot] = true : `운행 기록` 출발지 GPS 가 **반경 500m** 안에 모인 자리 → 지도에 **빨간 핀**
+ */
 data class PublicSpot(
     val name: String,
     val lat: Double,
@@ -48,13 +53,15 @@ data class PublicSpot(
     val admin: Boolean = false,
     /** 제보 시각 분포에서 찾은 잘 뜨는 시간대 — "22시~01시 활발" (모자라면 "") */
     val peak: String = "",
-    /** 제보가 모인 시간대(0~23) — 잘 뜨는 시간대(피크)를 찾는 데 쓴다 */
+    /** 제보가 모인 시간대(0~23) — 잘 뜨는 시간대(피크)와 `지금 활발` 판단에 쓴다 */
     val hours: List<Int> = emptyList(),
-    /** 운행 기록 GPS로 만든 익명 제보가 섞인 자리(🔥 핫스팟)면 true */
-    val hotspot: Boolean = false
+    /** 운행 기록 GPS로 만든 익명 제보가 모인 자리(🔥 핫스팟)면 true — 빨간 핀 */
+    val hotspot: Boolean = false,
+    /** `+ 콜밭 추가` 로 직접 제보된 자리면 true — 노란 핀 (v1.0.30) */
+    val direct: Boolean = false
 )
 
-/** 서로 다른 기기 [SpotAggregator.MIN_REPORTERS]명 이상이 '없어진 곳'이라고 신고한 자리 — 반경 [SpotAggregator.GROUP_RADIUS_M]m 안의 콜밭을 숨긴다 */
+/** 서로 다른 기기 2명 이상이 '없어진 곳'이라고 신고한 자리 — 반경 [SpotAggregator.GROUP_RADIUS_M]m 안의 콜밭을 숨긴다 */
 data class RemovedSpot(
     val name: String,
     val lat: Double,
@@ -71,28 +78,33 @@ data class RemovedSpot(
 data class SpotPublicState(
     val added: List<PublicSpot> = emptyList(),
     val removed: List<RemovedSpot> = emptyList()
-)
+) {
+    /** 직접 제보로 올라온 공용 콜밭(노란 핀) 수 */
+    val directCount: Int get() = added.count { it.direct && !it.hotspot }
+    /** 운행 GPS 핫스팟(빨간 핀) 수 */
+    val hotspotCount: Int get() = added.count { it.hotspot }
+}
 
 /**
  * 제보 묶음 계산 — Android 와 무관한 순수 로직이라 단위 테스트로 검증할 수 있다.
  *
- * 규칙 (v1.0.26 — 사용자가 정한 **2명·반경 50m** 기준):
- *  - 같은 자리(반경 50m)에 서로 다른 기기 **2명 이상**이 `콜밭` 제보 → 공용 콜밭으로 노출.
- *  - 그 자리 반경 50m 안에 서로 다른 기기 **2명 이상**이 `삭제` 신고 → 공용 콜밭에서도 숨긴다.
- *  - `삭제` 신고가 기준 인원 이상 모인 자리는 [RemovedSpot] 으로 돌려주고, 화면은 그 반경 50m 안의
- *    기본·기사 추천·내 콜밭까지 모두 숨긴다.
+ * 규칙 (v1.0.30 — 사용자가 정한 **3명** 기준, 2026-11-27 정정):
+ *  - 같은 자리(반경 [GROUP_RADIUS_M] 50m)에 서로 다른 기기 **3명 이상**이 `콜밭` 제보 → 공용 콜밭(🟡 노란 핀).
+ *  - 운행 기록 GPS는 **반경 [HOTSPOT_RADIUS_M] 500m** 로 묶고, 서로 다른 기기 **3명 이상**이면서
+ *    **지금 시간대(±1시간)에 입력이 모인** 자리만 🔴 핫스팟 핀으로 보여 준다.
+ *  - 그 자리 반경 50m 안에 서로 다른 기기 **2명 이상**이 `삭제` 신고 → 공용 콜밭에서도 숨긴다
+ *    (없어진 곳 신고 기준은 v1.0.26 의 2명을 그대로 둔다 — 사용자가 바꿔 달라고 한 것은 등록·핫스팟 기준이다).
  *
- * **거리 기준 (v1.0.26)**: 같은 자리로 보는 반경은 **50m**다(v1.0.24 의 20m 를 사용자 요청으로 넓혔다).
- *  등록 묶기·삭제 묶기·없어진 자리 숨김·운영자 판정이 모두 [GROUP_RADIUS_M] 하나를 쓴다.
- *
- * **인원 기준 (v1.0.26)**: 5명 → **2명**. 초기에 콜밭이 훨씬 잘 모이게 하려는 사용자 요청이다.
+ * **두 종류를 따로 묶는다**: 직접 제보(고정 콜밭)와 운행 GPS(지금 활동)는 반경도 기준도 달라서
+ * 한 묶음으로 섞지 않는다. 500m 로 넓힌 GPS 묶음에 직접 제보까지 넣으면 노란 핀이 엉뚱한 곳에 찍힌다.
  *
  * **잘 뜨는 시간대**: 묶인 제보들의 시간대 분포에서 3시간 창을 찾아 [PublicSpot.peak] 로 내보낸다.
- *  운행 기록 저장 시 만든 제보는 `note` 의 `#t:` 표식에서, 그 밖의 제보는 제보 시각에서 시간대를 읽는다.
+ * 운행 기록 저장 시 만든 제보는 `note` 의 `#t:` 표식에서, 그 밖의 제보는 제보 시각에서 시간대를 읽는다.
  *
- * **운행 기록 GPS 집계 (v1.0.26)**: 기사님이 새 운행을 저장하면 그 순간의 좌표·출발지 요약명·시간대만
- *  익명으로 올린다([RideSpotGate] 가 몰아 올리기를 걸러 낸다). 그런 제보가 섞인 자리는
- *  [PublicSpot.hotspot] = true 로 표시해 화면이 🔥 코랄 레드 핀·배지로 구분한다.
+ * **운행 기록 GPS 집계 (v1.0.26 → v1.0.30)**: 기사님이 새 운행을 저장하면 그 순간의 좌표·출발지 요약명·시간대만
+ * 익명으로 올린다([RideSpotGate] 가 몰아 올리기를 걸러 낸다). [aggregate] 의 [nowHour] 를 주면
+ * **지금 시간대(±1시간)에 입력이 없는 핫스팟은 목록에서 뺀다** — "그 시간에 500m 안에서 출발지 입력이 많은 곳"만
+ * 남기기 위해서다. [nowHour] 가 null 이면 시간대와 상관없이 3명 이상 모인 자리를 모두 돌려준다(테스트용).
  *
  * **운영자(관리자) 모드 (v1.0.23)**: 운영자 암호로 만든 기기 해시([adminDeviceHash])가 붙은 제보 한 건은
  * 기준 인원을 기다리지 않고 바로 공개·삭제된다. 서버 규칙(8칸 형식만 검사)을 그대로 쓰기 위해
@@ -100,10 +112,23 @@ data class SpotPublicState(
  */
 object SpotAggregator {
 
-    /** 같은 콜밭으로 묶는 반경(m) — v1.0.26 에서 20m → 50m */
+    /** 직접 제보(고정 콜밭)를 한 자리로 묶는 반경(m) — v1.0.26 에서 20m → 50m */
     const val GROUP_RADIUS_M = 50.0
-    /** 공용 등록·공용 삭제 모두 서로 다른 기기 2명 이상 */
-    const val MIN_REPORTERS = 2
+
+    /** 운행 기록 GPS 를 한 자리(핫스팟)로 묶는 반경(m) — v1.0.30 에서 50m → 500m */
+    const val HOTSPOT_RADIUS_M = 500.0
+
+    /** 직접 제보 공용 승격 기준 — 서로 다른 기기 3명 이상 (v1.0.30, 2명 → 3명) */
+    const val MIN_REPORTERS = 3
+
+    /** 운행 GPS 핫스팟 기준 — 서로 다른 기기 3명 이상 (v1.0.30, 2명 → 3명) */
+    const val MIN_HOTSPOT_REPORTERS = 3
+
+    /** 없어진 곳 신고 기준 — 서로 다른 기기 2명 이상 (v1.0.26 그대로) */
+    const val MIN_REMOVERS = 2
+
+    /** 핫스팟으로 보여 주려면 지금 시간대(±1시간)에 필요한 최소 입력 수 */
+    const val MIN_HOTSPOT_NOW = 1
 
     /** 콜밭 등록 제보 */
     const val KIND_SPOT = "콜밭"
@@ -128,24 +153,33 @@ object SpotAggregator {
         !adminHash.isNullOrBlank() && report.deviceHash.trim() == adminHash
 
     /**
-     * 제보 목록 -> 공용 콜밭·없어진 자리.
-     * 1) 최신 제보부터 훑으며 아직 안 묶인 제보를 씨앗으로 삼고 50m 안의 같은 종류 제보를 한 묶음으로 모은다.
-     * 2) 콜밭 묶음은 서로 다른 기기 2명 이상일 때만, 그 반경 50m 안의 삭제 신고 기기가 2명 미만일 때만 노출한다.
-     * 3) 삭제 묶음은 서로 다른 기기 2명 이상이면 [RemovedSpot] 으로 내보낸다.
-     * 4) 운영자 해시([adminHash])가 붙은 제보는 기기 수와 상관없이 바로 공개·삭제되고,
+     * 제보 목록 -> 공용 콜밭·핫스팟·없어진 자리.
+     * 1) 직접 제보(반경 50m)와 운행 GPS(반경 500m)를 **따로** 묶는다.
+     * 2) 직접 제보 묶음은 서로 다른 기기 3명 이상일 때만(🟡 노란 핀), 그 반경 50m 안의 삭제 신고 기기가 2명 미만일 때만 노출한다.
+     * 3) 운행 GPS 묶음은 서로 다른 기기 3명 이상 + [nowHour] 가 주어졌으면 지금(±1시간) 입력이 있을 때만(🔴 빨간 핀).
+     * 4) 삭제 묶음은 서로 다른 기기 2명 이상이면 [RemovedSpot] 으로 내보낸다.
+     * 5) 운영자 해시([adminHash])가 붙은 제보는 기기 수와 상관없이 바로 공개·삭제되고,
      *    같은 자리에서 운영자 쪽이 더 새로 하면 그쪽이 이긴다(오래된 삭제는 새 공개/새 등록에 풀린다).
+     *
+     * @param nowHour 지금 시(0~23). 주면 그 ±1시간에 입력이 없는 핫스팟은 빼고, null 이면 시간대와 무관하게 모두 낸다.
      */
-    fun aggregate(reports: List<SpotReport>, adminHash: String? = null): SpotPublicState {
+    fun aggregate(
+        reports: List<SpotReport>,
+        adminHash: String? = null,
+        nowHour: Int? = null
+    ): SpotPublicState {
         if (reports.isEmpty()) return SpotPublicState()
         val admin = adminHash?.takeIf { it.isNotBlank() }
         val removals = reports.filter { it.kind == KIND_REMOVED }
-        val spots = reports.filter { it.kind != KIND_REMOVED }
-        val spotGroups = groupReports(spots)
-        val removalGroups = groupReports(removals)
+        val direct = reports.filter { it.kind != KIND_REMOVED && !it.rideBand }
+        val rides = reports.filter { it.kind != KIND_REMOVED && it.rideBand }
+        val directGroups = groupReports(direct, GROUP_RADIUS_M)
+        val removalGroups = groupReports(removals, GROUP_RADIUS_M)
+        val rideGroups = groupReports(rides, HOTSPOT_RADIUS_M)
 
-        /** 반경 50m 안에서 기기 수 [minDevices] 이상인 콜밭 묶음의 가장 늦은 시각(ms) */
+        /** 반경 50m 안에서 기기 수 [minDevices] 이상인 직접 제보 묶음의 가장 늦은 시각(ms) */
         fun crowdSpotAt(lat: Double, lng: Double, minDevices: Int): Long =
-            spotGroups.asSequence()
+            directGroups.asSequence()
                 .filter { distanceM(lat, lng, it.lat, it.lng) <= GROUP_RADIUS_M }
                 .filter { it.devices.size >= minDevices }
                 .map { it.lastAt }
@@ -155,12 +189,12 @@ object SpotAggregator {
             .filter { group ->
                 when {
                     // 운영자가 더 새로 이 자리를 공개했으면 숨기지 않는다
-                    newestAdminAt(spots, group.lat, group.lng, admin) > group.lastAt -> false
+                    newestAdminAt(direct, group.lat, group.lng, admin) > group.lastAt -> false
                     // 그 뒤에 기사들이 다시 등록했으면 오래된 삭제는 풀린다
                     crowdSpotAt(group.lat, group.lng, MIN_REPORTERS) > group.lastAt -> false
                     // 운영자 삭제 한 건이면 기준 인원을 기다리지 않는다
                     group.hasAdmin(admin) -> true
-                    else -> group.devices.size >= MIN_REPORTERS
+                    else -> group.devices.size >= MIN_REMOVERS
                 }
             }
             .map { group ->
@@ -175,7 +209,8 @@ object SpotAggregator {
             }
             .sortedWith(compareByDescending<RemovedSpot> { it.admin }.thenByDescending { it.reporters }.thenByDescending { it.lastAt })
 
-        val added = spotGroups
+        // ---------------------------------------------------------------- 🟡 직접 제보 (노란 핀)
+        val addedDirect = directGroups
             .filter { group ->
                 val adminRemovalAt = newestAdminAt(removals, group.lat, group.lng, admin)
                 when {
@@ -183,9 +218,9 @@ object SpotAggregator {
                     adminRemovalAt > 0L && adminRemovalAt >= group.lastAt -> false
                     // 운영자가 이 자리를 공개했으면 기준 인원을 기다리지 않는다
                     group.hasAdmin(admin) -> true
-                    // 같은 자리에서 기준 인원 이상이 '없어졌다'고 하면 공용 콜밭으로도 올리지 않는다
+                    // 같은 자리에서 2명 이상이 '없어졌다'고 하면 공용 콜밭으로도 올리지 않는다
                     else -> group.devices.size >= MIN_REPORTERS &&
-                        devicesNear(removals, group.lat, group.lng) < MIN_REPORTERS
+                        devicesNear(removals, group.lat, group.lng) < MIN_REMOVERS
                 }
             }
             .map { group ->
@@ -203,10 +238,47 @@ object SpotAggregator {
                     admin = group.hasAdmin(admin),
                     peak = SpotTimeBands.peakLabel(group.hours),
                     hours = group.hours.distinct().sorted(),
-                    hotspot = group.hotspot
+                    hotspot = false,
+                    direct = true
                 )
             }
-            .sortedWith(compareByDescending<PublicSpot> { it.admin }.thenByDescending { it.reporters }.thenByDescending { it.lastAt })
+
+        // ---------------------------------------------------------------- 🔴 운행 GPS 핫스팟 (빨간 핀)
+        val addedHotspots = rideGroups
+            .filter { group ->
+                if (group.devices.size < MIN_HOTSPOT_REPORTERS) return@filter false
+                // 운영자가 더 새로 이 자리를 지웠으면 핫스팟도 띄우지 않는다
+                val adminRemovalAt = newestAdminAt(removals, group.lat, group.lng, admin)
+                if (adminRemovalAt > 0L && adminRemovalAt >= group.lastAt) return@filter false
+                // 지금 시간대(±1시간)에 입력이 모인 자리만 — "그 시간에 500m 안에서 출발지 입력이 많은 곳"
+                if (nowHour != null &&
+                    SpotTimeBands.activeCount(group.hours, nowHour) < MIN_HOTSPOT_NOW
+                ) return@filter false
+                true
+            }
+            .map { group ->
+                PublicSpot(
+                    name = group.bestName().ifBlank { "운행 핫스팟" },
+                    lat = group.lat,
+                    lng = group.lng,
+                    address = "",
+                    reporters = group.devices.size,
+                    lastAt = group.lastAt,
+                    note = "",
+                    admin = false,
+                    peak = SpotTimeBands.peakLabel(group.hours),
+                    hours = group.hours.distinct().sorted(),
+                    hotspot = true,
+                    direct = false
+                )
+            }
+
+        val added = (addedDirect + addedHotspots)
+            .sortedWith(
+                compareByDescending<PublicSpot> { it.admin }
+                    .thenByDescending { it.reporters }
+                    .thenByDescending { it.lastAt }
+            )
 
         return SpotPublicState(added = added, removed = removed)
     }
@@ -249,8 +321,8 @@ object SpotAggregator {
             .toSet()
             .size
 
-    /** 최신 제보부터 50m 반경으로 묶는다 (같은 기기가 여러 번 올려도 한 묶음 안에 남는다) */
-    private fun groupReports(reports: List<SpotReport>): List<ReportGroup> {
+    /** 최신 제보부터 [radius] 반경으로 묶는다 (같은 기기가 여러 번 올려도 한 묶음 안에 남는다) */
+    private fun groupReports(reports: List<SpotReport>, radius: Double): List<ReportGroup> {
         if (reports.isEmpty()) return emptyList()
         val sorted = reports.sortedByDescending { it.createdAt }
         val used = BooleanArray(sorted.size)
@@ -262,7 +334,7 @@ object SpotAggregator {
             for (j in i until sorted.size) {
                 if (used[j]) continue
                 val report = sorted[j]
-                if (distanceM(seed.lat, seed.lng, report.lat, report.lng) <= GROUP_RADIUS_M) {
+                if (distanceM(seed.lat, seed.lng, report.lat, report.lng) <= radius) {
                     used[j] = true
                     members.add(report)
                 }
@@ -283,9 +355,6 @@ object SpotAggregator {
         val hours: List<Int> = reports.map {
             SpotTimeBands.bandOf(it.note) ?: SpotTimeBands.hourOf(it.createdAt)
         }
-
-        /** 운행 기록 GPS에서 만든 익명 제보가 하나라도 섞였는지 — 화면에 🔥 핫스팟으로 표시 */
-        val hotspot: Boolean = reports.any { SpotTimeBands.isRideBand(it.note) }
 
         /** 이 묶음에 운영자 해시가 붙은 제보가 있는지 */
         fun hasAdmin(adminHash: String?): Boolean =

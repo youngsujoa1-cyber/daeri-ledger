@@ -183,7 +183,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
-                android:text="2명 대기 없이 모든 기사님 앱에서 지금 바로 사라져요"
+                android:text="3명 대기 없이 모든 기사님 앱에서 지금 바로 사라져요"
                 android:textColor="@color/text_secondary"
                 android:textSize="11.5sp" />
         </LinearLayout>

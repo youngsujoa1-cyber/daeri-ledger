@@ -8,7 +8,7 @@ import java.util.Locale
  *  - [KakaoMapPage](위치 고르기)와 같은 카카오 JavaScript SDK 를 쓰되, 이 문서는 **주소 찾기(Geocoder)를
  *    하지 않는다** — 목록 지도에서 지도를 움직일 때마다 주소 API 를 부르면 느리고 쓸모도 없다.
  *  - 앱이 `setSpots(json)` 으로 콜밭 좌표를 넘기면 **핀(CustomOverlay)** 으로 찍는다. 핀은 DOM 한 칸이라
- *    카카오 `Marker` 이미지보다 가벼고, **내 콜밭은 앰버 · 일반 콜밭은 민트 · 운행 기록 GPS 집계 핫스팟은 코랄 레드**로 구분한다.
+ *    카카오 `Marker` 이미지보다 가벼고, **내 콜밭·기사님 직접 제보는 노란색 · 일반 콜밭은 민트 · 운행 기록 GPS 핫스팟은 빨간색**으로 구분한다.
  *  - 핀을 누르면 `Bridge.onSpotClick(index)` 로 앱에 알리고, 앱이 이름·피크·메모 카드를 띄운다.
  *    빈 지도를 누르면 `Bridge.onMapClick()` 으로 카드를 닫는다.
  *  - 키는 `BuildConfig.KAKAO_JS_KEY`(local.properties)로만 들어오고, 문서는 카카오 콘솔에 등록한
@@ -40,7 +40,7 @@ internal object SpotsMapPage {
   html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; background:#E9EEF3; -webkit-tap-highlight-color:transparent; }
   #map { position:absolute; left:0; top:0; width:100%; height:100%; }
 
-  /* 콜밭 핀 — 아래로 뾰족한 물방울 모양 (내 콜밭 앰버 · 일반 민트 · 🔥 핫스팟 코랄)
+  /* 콜밭 핀 — 아래로 뾰족한 물방울 모양 (내 콜밭·직접 제보 노란색 · 일반 민트 · 🔥 핫스팟 빨간색)
      카카오맵 위에서 한눈에 보이도록 18px · 흰 테두리 · 가운데 흰 점 */
   .pin {
     display:block; box-sizing:border-box;
@@ -56,8 +56,10 @@ internal object SpotsMapPage {
     border-radius:50%; background:#FFFFFF;
   }
   .pin.mine { background:#FFB020; }
+  /* 🟡 기사님이 `+ 콜밭 추가` 로 직접 제보해 전체에 올라온 콜밭 — 내 콜밭과 같은 노란색 (v1.0.30) */
+  .pin.direct { background:#FFB020; }
   .pin.basic { background:#2FBFB0; }
-  /* 🔥 운행 기록 GPS로 모인 핫스팟 — 코랄 레드 (v1.0.26) */
+  /* 🔥 운행 기록 GPS(반경 500m·3명 이상)로 모인 핫스팟 — 빨간색 (v1.0.26 → v1.0.30) */
   .pin.hot { background:#FF4D4F; }
   /* 🟢 지금 시간대(±1시간)에 콜이 모인 핫스팟 — 민트 테두리가 빛난다 (v1.0.29) */
   .pin.now {
@@ -108,8 +110,10 @@ internal object SpotsMapPage {
   }
 
   /**
-   * 앱이 넘긴 콜밭 좌표를 핀으로 찍는다. json = [{i, lat, lng, mine, hot, now}]
+   * 앱이 넘긴 콜밭 좌표를 핀으로 찍는다. json = [{i, lat, lng, mine, direct, hot, now}]
    *  - 앱에서 이미 걸러 둔 목록(지역·검색·숨김)만 넘어온다 — 지도는 그리기만 한다.
+   *  - `mine`(내 콜밭)과 `direct`(기사님 직접 제보)는 노란 핀, `hot`(운행 GPS 핫스팟)은 빨간 핀,
+   *    나머지 기본 콜밭은 민트 핀이다 (v1.0.30).
    *  - `now`(지금 활발한 핫스팟)는 핀을 조금 크게 하고 민트 테두리를 빛나게 해 한눈에 띄게 한다.
    *  - 갱신할 때마다 이전 핀은 지도에서 떼어 낸다(쌓이지 않는다).
    *  - 넘어오는 모양은 **배열 그대로**와 **JSON 문자열** 둘 다 받는다.
@@ -135,7 +139,7 @@ internal object SpotsMapPage {
         var lat = Number(s.lat), lng = Number(s.lng);
         if (!isFinite(lat) || !isFinite(lng) || (lat === 0 && lng === 0)) return;
         var el = document.createElement('div');
-        el.className = 'pin ' + (s.mine ? 'mine' : (s.hot ? 'hot' : 'basic')) + (s.now ? ' now' : '');
+        el.className = 'pin ' + (s.mine ? 'mine' : (s.direct ? 'direct' : (s.hot ? 'hot' : 'basic'))) + (s.now ? ' now' : '');
         el.setAttribute('data-i', String(s.i));
         el.addEventListener('click', function (ev) {
           if (ev && ev.stopPropagation) ev.stopPropagation();
@@ -146,7 +150,7 @@ internal object SpotsMapPage {
           content: el,
           xAnchor: 0.5,
           yAnchor: 1,
-          zIndex: s.now ? 6 : (s.mine ? 4 : (s.hot ? 3 : 2))
+          zIndex: s.now ? 6 : ((s.mine || s.direct) ? 4 : (s.hot ? 3 : 2))
         });
         ov.setMap(map);
         pins.push(ov);

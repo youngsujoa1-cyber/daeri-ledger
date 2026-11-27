@@ -189,7 +189,7 @@ class SettingsScreen(private val activity: MainActivity) : Screen {
         }
         note(
             "운행 기록의 도착지·요금·플랫폼·메모는 보내지 않아요. 같은 자리에서 밀린 기록을 한꺼번에 올리면 " +
-                "첫 건만 반영되고, 같은 자리에서 서로 다른 기기 2명 이상이 모이면 콜밭 목록에 보여요."
+                "첫 건만 반영되고, 같은 자리(반경 500m)에서 서로 다른 기기 3명 이상이 모이고 지금 시간대에 입력이 있으면 빨간 핫스팟 핀으로 보여요."
         )
 
         // -------------------------------------------------------------- 데이터
@@ -228,7 +228,7 @@ class SettingsScreen(private val activity: MainActivity) : Screen {
             row(
                 icon = R.drawable.ic_check,
                 title = "👑 운영자 모드",
-                subtitle = "콜밭 등록·삭제가 2명 대기 없이 모든 기사님 앱에 바로 반영돼요",
+                subtitle = "콜밭 등록·삭제가 3명 대기 없이 모든 기사님 앱에 바로 반영돼요",
                 value = "켜짐"
             ) { confirmAdminOff() }
         }
@@ -356,7 +356,7 @@ class SettingsScreen(private val activity: MainActivity) : Screen {
 
         val dialog = MaterialAlertDialogBuilder(activity)
             .setTitle("👑 운영자 모드 잠금 해제")
-            .setMessage("콜밭을 2명 대기 없이 바로 공개·삭제할 수 있는 모드입니다. 운영자 암호를 입력해 주세요.")
+            .setMessage("콜밭을 3명 대기 없이 바로 공개·삭제할 수 있는 모드입니다. 운영자 암호를 입력해 주세요.")
             .setView(box)
             .setNegativeButton("취소", null)
             .setPositiveButton("확인", null)
@@ -379,12 +379,12 @@ class SettingsScreen(private val activity: MainActivity) : Screen {
         dialog.show()
     }
 
-    /** 운영자 모드 끄기 — 다시 일반 2명 기준으로 돌아간다 */
+    /** 운영자 모드 끄기 — 다시 일반 3명(등록)·2명(삭제) 기준으로 돌아간다 */
     private fun confirmAdminOff() {
         Dialogs.confirm(
             activity,
             "운영자 모드 끄기",
-            "콜밭 등록은 다시 2명 이상 모여야 공개되고, 삭제도 2명 기준으로 돌아갑니다.",
+            "콜밭 등록은 다시 3명 이상 모여야 공개되고, 삭제는 2명 기준으로 돌아갑니다.",
             positive = "끄기"
         ) {
             settings.isAdminMode = false

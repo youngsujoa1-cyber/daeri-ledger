@@ -31,7 +31,7 @@ import java.util.Locale
  *    **🗺️ 지도에서 위치 고르기**(카카오맵 피커)로 다른 자리를 골라 덮어쓸 수 있다.
  *    위치를 못 잡으면 `위치를 아직 못 잡았어요 — 지도에서 골라 주세요` 로 안내한다.
  *  - 좌표 없이 이름만 저장해도 된다.
- *  - **👑 운영자 모드**(v1.0.23): 설정에서 암호로 잠금을 풀어 두면 창 위에 `등록 시 2명 대기 없이 바로 전체 공개`
+ *  - **👑 운영자 모드**(v1.0.23): 설정에서 암호로 잠금을 풀어 두면 창 위에 `등록 시 3명 대기 없이 바로 전체 공개`
  *    배지가 보이고, 저장한 콜밭이 모든 기사님 앱의 공용 콜밭에 바로 올라간다.
  *  - 저장한 콜밭은 DB(my_spots)에 남아 콜밭 목록·검색·거리순 정렬·길찾기·숨기기에 그대로 쓰이고,
  *    JSON 백업에도 함께 들어간다.
@@ -49,7 +49,7 @@ object AddSpotDialog {
         val locationValue = container.findViewById<TextView>(R.id.locationValueText)
         val adminHint = container.findViewById<View>(R.id.adminModeHint)
 
-        // 👑 운영자 모드 — 이 창에서 등록하는 콜밭이 2명 대기 없이 바로 전체 공개된다
+        // 👑 운영자 모드 — 이 창에서 등록하는 콜밭이 3명 대기 없이 바로 전체 공개된다
         val adminMode = activity.settings.isAdminMode
         adminHint.visibility = if (adminMode) View.VISIBLE else View.GONE
 

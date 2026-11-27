@@ -197,6 +197,19 @@ def main():
     expect("핫스팟 zIndex", ctx.eval("_overlays[0].opts.zIndex"), 3)
     expect("hot 코랄 CSS", ".pin.hot" in html and "#FF4D4F" in html, True)
 
+    # 🟡 기사님 직접 제보(노란 핀) vs 🔥 핫스팟(빨간 핀) — v1.0.30
+    ctx.eval("_overlays = []; _bridgeCalls = [];")
+    ctx.eval(
+        "setSpots([{i:0,lat:37.5,lng:127.0,mine:false,direct:true,hot:false},"
+        "{i:1,lat:37.6,lng:127.1,mine:false,direct:false,hot:true},"
+        "{i:2,lat:37.7,lng:127.2,mine:true,direct:true,hot:false},"
+        "{i:3,lat:37.8,lng:127.3,mine:false,direct:true,hot:true}])"
+    )
+    expect("직접 제보 핀 클래스", ctx.eval("_overlays[0].content.className"), "pin direct")
+    expect("직접 제보 zIndex", ctx.eval("_overlays[0].opts.zIndex"), 4)
+    expect("직접 제보도 핫스팟보다 노란 핀", ctx.eval("_overlays[3].content.className"), "pin direct")
+    expect("direct 노란 CSS", ".pin.direct" in html and "#FFB020" in html, True)
+
     # 🟢 지금 활발한 핫스팟 (v1.0.29) — 핀 테두리가 빛나고 맨 위로 뜬다
     ctx.eval("_overlays = []; _bridgeCalls = [];")
     ctx.eval(
