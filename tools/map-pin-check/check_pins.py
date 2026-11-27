@@ -197,6 +197,18 @@ def main():
     expect("핫스팟 zIndex", ctx.eval("_overlays[0].opts.zIndex"), 3)
     expect("hot 코랄 CSS", ".pin.hot" in html and "#FF4D4F" in html, True)
 
+    # 🟢 지금 활발한 핫스팟 (v1.0.29) — 핀 테두리가 빛나고 맨 위로 뜬다
+    ctx.eval("_overlays = []; _bridgeCalls = [];")
+    ctx.eval(
+        "setSpots([{i:0,lat:37.5,lng:127.0,mine:false,hot:true,now:true},"
+        "{i:1,lat:37.6,lng:127.1,mine:false,hot:true,now:false},"
+        "{i:2,lat:37.7,lng:127.2,mine:false,hot:false,now:true}])"
+    )
+    expect("지금 활발 핀 클래스", ctx.eval("_overlays[0].content.className"), "pin hot now")
+    expect("지금 한산 핫스팟 핀", ctx.eval("_overlays[1].content.className"), "pin hot")
+    expect("지금 활발 핀 zIndex", ctx.eval("_overlays[0].opts.zIndex"), 6)
+    expect("now 테두리 CSS", ".pin.now" in html and "rgba(47,191,176" in html, True)
+
     if failures:
         print(f"\n{failures} FAILED")
         sys.exit(1)

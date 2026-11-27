@@ -48,7 +48,7 @@ data class PublicSpot(
     val admin: Boolean = false,
     /** 제보 시각 분포에서 찾은 잘 뜨는 시간대 — "22시~01시 활발" (모자라면 "") */
     val peak: String = "",
-    /** 제보가 모인 시간대(0~23) — 화면의 시간대 칩 필터에 쓴다 */
+    /** 제보가 모인 시간대(0~23) — 잘 뜨는 시간대(피크)를 찾는 데 쓴다 */
     val hours: List<Int> = emptyList(),
     /** 운행 기록 GPS로 만든 익명 제보가 섞인 자리(🔥 핫스팟)면 true */
     val hotspot: Boolean = false

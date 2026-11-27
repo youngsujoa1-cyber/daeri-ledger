@@ -5,13 +5,8 @@ import java.time.ZoneId
 import java.util.Locale
 
 /**
- * 콜밭 화면의 **시간대 필터 칩** — 고른 시간대에 집계(제보)가 있는 콜밭만 목록·지도에 남긴다.
- * 기본 콜밭 1,223곳처럼 시간대 집계가 없는 곳은 `전체`에서만 보인다.
- */
-data class NightSlot(val label: String, val hours: Set<Int>)
-
-/**
  * 콜밭이 **잘 뜨는 시간대(피크)** — 제보·운행 시각의 분포에서 제보가 가장 많이 모인 3시간 창을 찾는다.
+ * 화면 위의 시간대 필터 칩 줄은 v1.0.29 에서 없어졌고, 시간대는 카드·지도 핀 정보의 피크 줄로만 쓴다.
  *
  * 서버(Firebase Firestore) 보안 규칙은 `spot_reports` 문서의 **8칸**
  * (`name`·`kind`·`lat`·`lng`·`address`·`note`·`deviceHash`·`createdAt`)만 받는다.
@@ -94,25 +89,72 @@ object SpotTimeBands {
     /** "22시~01시 활발" — 모인 제보가 적으면 빈 문자열 */
     fun peakLabel(hours: List<Int>): String = peakWindow(hours)?.let { label(it) + " 활발" } ?: ""
 
-    /** 시간대를 훑는 순서 — 저녁 18시부터 자정, 그다음 새벽·낮 */
-    private val EVENING_FIRST: List<Int> = (18..23).toList() + (0..17).toList()
+    /** 지금 시간대를 "지금"으로 보는 폭(시간) — 현재 시각 ±1시간 = 3시간 창 */
+    const val NOW_RADIUS = 1
+
+    /** 두 시(0~23)의 시계 방향 최단 거리 — 23시와 0시는 1 */
+    fun hourDistance(a: Int, b: Int): Int {
+        val x = ((a % 24) + 24) % 24
+        val y = ((b % 24) + 24) % 24
+        val d = Math.abs(x - y)
+        return if (d > 12) 24 - d else d
+    }
+
+    /** [hour] 가 [windowStart] 에서 시작하는 [window]시간 창 안인지 */
+    fun inWindow(hour: Int, windowStart: Int, window: Int = WINDOW_HOURS): Boolean {
+        val h = ((hour % 24) + 24) % 24
+        val start = ((windowStart % 24) + 24) % 24
+        for (k in 0 until window) if ((start + k) % 24 == h) return true
+        return false
+    }
+
+    /** [nowHour] 기준 ±[radius]시간(기본 ±1시간) 안에 모인 제보 수 */
+    fun activeCount(hours: List<Int>, nowHour: Int, radius: Int = NOW_RADIUS): Int =
+        hours.count { hourDistance(it, nowHour) <= radius }
 
     /**
-     * 콜밭 화면의 시간대 칩 — 대리운전 야간 흐름에 맞춘 네 구간.
-     *  - `20~22시` 저녁 첫 콜, `22~01시` 심야 피크, `01~04시` 막차 뒤, `04시~` 새벽·오전
+     * 한 자리의 **지금 상태** — 시간대 필터 칩 대신 앱이 스스로 판단해 카드·지도 핀을 강조한다 (v1.0.29).
+     *  - [activeCount]: 지금 시각(±[NOW_RADIUS]시간)에 모인 제보 수
+     *  - [total]: 이 자리에 모인 제보 수(시간대를 아는 것)
+     *  - [peakStart]: 가장 많이 모인 3시간 창의 시작 시각 (모자라면 null)
      */
-    val NIGHT_SLOTS: List<NightSlot> = listOf(
-        NightSlot("20~22시", setOf(20, 21)),
-        NightSlot("22~01시", setOf(22, 23, 0)),
-        NightSlot("01~04시", setOf(1, 2, 3)),
-        NightSlot("04시~", (4..11).toSet())
-    )
+    data class NowFit(
+        val activeCount: Int,
+        val total: Int,
+        val peakStart: Int?
+    ) {
+        /** 지금 근처에서 콜이 있었는지 */
+        val active: Boolean get() = activeCount > 0
 
-    /** 제보 시간대 목록 [hours] 가 이 칸의 시간대에 하나라도 걸리는지 */
-    fun inSlot(hours: List<Int>, slot: NightSlot): Boolean =
-        hours.any { ((it % 24) + 24) % 24 in slot.hours }
+        /** 목록·지도 정렬 점수 — 지금 활발할수록 크다 (같으면 제보가 많은 쪽) */
+        val score: Int get() = activeCount * 100 + total
 
-    /** 이 칸에서 볼 콜밭인지 — [slot] 이 null(전체)이면 시간대와 상관없이 모두 */
-    fun matchesSlot(hours: List<Int>, slot: NightSlot?): Boolean =
-        slot == null || inSlot(hours, slot)
+        /** 카드·핀 카드에 붙는 한 줄 — 예) `🟢 지금 활발 · 주로 22시~01시 · 3건` */
+        val label: String get() {
+            if (total <= 0) return ""
+            val parts = ArrayList<String>()
+            parts.add(if (active) "🟢 지금 활발" else "지금은 한산")
+            peakStart?.let { parts.add("주로 " + SpotTimeBands.label(it)) }
+            parts.add("${total}건")
+            return parts.joinToString(" · ")
+        }
+
+        /** 배지·핀 카드에 쓰는 짧은 표기 — `🟢 지금 활발` / `지금은 한산` */
+        val badge: String get() = when {
+            total <= 0 -> ""
+            active -> "🟢 지금 활발"
+            else -> "지금은 한산"
+        }
+    }
+
+    /** 제보 시간대 목록 [hours] 로 지금 상태를 계산한다 — 시간대를 모르는 자리는 total 0(빈 표기) */
+    fun nowFit(hours: List<Int>, nowHour: Int, radius: Int = NOW_RADIUS): NowFit =
+        NowFit(
+            activeCount = activeCount(hours, nowHour, radius),
+            total = hours.size,
+            peakStart = peakWindow(hours)
+        )
+
+    /** 시간대를 훑는 순서 — 저녁 18시부터 자정, 그다음 새벽·낮 */
+    private val EVENING_FIRST: List<Int> = (18..23).toList() + (0..17).toList()
 }

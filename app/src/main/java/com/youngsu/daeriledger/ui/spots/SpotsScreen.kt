@@ -30,7 +30,6 @@ import com.youngsu.daeriledger.data.SpotCloud
 import com.youngsu.daeriledger.data.SpotPublicState
 import com.youngsu.daeriledger.data.SpotStat
 import com.youngsu.daeriledger.data.SpotTimeBands
-import com.youngsu.daeriledger.data.NightSlot
 import com.youngsu.daeriledger.databinding.ItemEmptyBinding
 import com.youngsu.daeriledger.databinding.ItemHotspotBinding
 import com.youngsu.daeriledger.databinding.ScreenSpotsBinding
@@ -60,7 +59,9 @@ import kotlin.math.roundToInt
  *  - 기사님들이 **2명 이상** 제보한 공용 콜밭은 `기사 제보` 배지로 목록에 함께 보인다 (5분 캐시, 실패하면 로컬 목록만)
  *  - **🔥 핫스팟 (v1.0.26)**: 운행 기록을 저장할 때 모인 익명 GPS 집계로 만든 자리는 코랄 레드 핀·`🔥 핫스팟` 배지로 구분하고,
  *    카드·지도 핀 정보에 잘 뜨는 시간대(`🔥 22시~01시 활발`)를 함께 보여 준다
- *  - **시간대 칩 (v1.0.26)**: `전체` / `20~22시` / `22~01시` / `01~04시` / `04시~` — 고른 시간대에 집계가 있는 콜밭만 목록·지도에 남긴다
+ *  - **🟢 지금 활발한 핫스팟 (v1.0.29)**: 화면 위 시간대 필터 칩 줄은 없애고, 앱이 **지금 시각(±1시간)** 에
+ *    제보가 모인 핫스팟을 스스로 찾아 카드 줄(`🟢 지금 활발 · 주로 22시~01시 · 4건`)과 지도 핀(테두리 빛)으로
+ *    강조하고 목록·지도에서 앞당긴다. 시간대 집계가 없는 기본 콜밭은 거리순 그대로다
  *  - **👑 운영자 모드 (v1.0.23)**: 설정에서 5번 탭 + 암호로 켜면 `+ 콜밭 추가` 가 2명 대기 없이 바로 전체 공개되고,
  *    카드를 길게 눌러 `운영자: 전체에서 바로 삭제` 로 기본·기사 추천·공용 제보 콜밭을 모두 지울 수 있다
  */
@@ -71,8 +72,9 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
 
     private var cityFilter: String? = null
     private var searchQuery: String = ""
-    /** 시간대 칩 — null 이면 `전체` (시간대 집계가 없는 기본 콜밭도 보인다) */
-    private var timeSlot: NightSlot? = null
+
+    /** 지금 시(hour) — 카드·지도 핀의 `지금 활발` 판단은 그릴 때마다 새로 잡는다 */
+    private val nowHour: Int get() = SpotTimeBands.hourOf(System.currentTimeMillis())
 
     private companion object {
         /** 한 번에 그리는 카드 수 — 1,500곳 넘는 목록을 한꺼번에 inflate 하지 않기 위한 값 */
@@ -128,14 +130,6 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
             }
         }
         binding.spotSearchClear.setOnClickListener { binding.spotSearch.setText("") }
-        binding.timeChips.setChips(
-            listOf("" to "전체") + SpotTimeBands.NIGHT_SLOTS.map { it.label to it.label },
-            timeSlot?.label ?: ""
-        ) { label ->
-            timeSlot = SpotTimeBands.NIGHT_SLOTS.firstOrNull { it.label == label }
-            renderNearby()
-            centerMapOnFilter()
-        }
         binding.hiddenInfo.setOnClickListener { confirmRestoreHidden() }
         binding.moreSpotsButton.setOnClickListener {
             val list = renderedList
@@ -286,26 +280,43 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
                 (cityFilter == null || it.city == cityFilter) &&
                     it.id !in hiddenIds &&
                     !isCloudRemoved(it) &&
-                    SpotTimeBands.matchesSlot(it.hours, timeSlot) &&
                     it.matches(query)
             }
             val loc = userLocation
             return if (loc != null) {
-                // 좌표를 저장하지 않은 콜밭은 거리 계산에서 빠지므로 목록 맨 뒤로 보낸다
-                list.map { it to (distanceOf(it) ?: Double.MAX_VALUE) }
+                // 좌표를 저장하지 않은 콜밭은 거리 계산에서 빠지므로 목록 맨 뒤로 보낸다.
+                // 🟢 지금 활발한 핫스팟은 거리를 절반으로 쳐서 가까운 곳 바로 뒤로 올린다 (v1.0.29)
+                val now = nowHour
+                list.map { it to sortDistance(it, now) }
                     .sortedBy { it.second }
                     .map { it.first }
             } else {
-                // 위치를 모를 때: 내 콜밭 → 시·도 순 → 이름 순
+                // 위치를 모를 때: 내 콜밭 → 🟢 지금 활발 → 시·도 순 → 이름 순
+                val now = nowHour
                 list.sortedWith(
                     compareBy(
                         { !it.mine },
+                        { !it.nowFit(now).active },
                         { Hotspots.CITIES.indexOf(it.city).let { i -> if (i < 0) Hotspots.CITIES.size else i } },
                         { it.name }
                     )
                 )
             }
         }
+
+    /**
+     * 목록 정렬용 거리 — 지금 활발한 핫스팟은 **절반**으로 쳐서 앞당긴다.
+     * (아주 먼 곳이 가까운 콜밭을 밀어내지 않도록 거리 순서를 흔들지 않는 선에서만 올린다)
+     */
+    private fun sortDistance(spot: Hotspot, nowHour: Int): Double {
+        val d = distanceOf(spot) ?: Double.MAX_VALUE
+        if (d == Double.MAX_VALUE) return d
+        return if (spot.nowFit(nowHour).active) d * 0.5 else d
+    }
+
+    /** 지금 시간대(±1시간)에 제보가 모인 핫스팟 수 — 목록 부제에 쓴다 */
+    private fun activeHotspotCount(list: List<Hotspot>, nowHour: Int): Int =
+        list.count { it.hotspot && it.nowFit(nowHour).active }
 
     private fun distanceOf(spot: Hotspot): Double? {
         if (!spot.hasLocation) return null
@@ -691,6 +702,7 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         val spots = mapPinsFor(filteredHotspots)
         mapSpots = spots
         binding.mapCountLabel.text = "${spots.size}곳"
+        val now = nowHour
         val array = JSONArray()
         spots.forEachIndexed { index, spot ->
             array.put(
@@ -700,6 +712,8 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
                     .put("lng", spot.lng)
                     .put("mine", spot.mine)
                     .put("hot", spot.hotspot)
+                    // 🟢 지금 활발한 핫스팟 — 지도 핀 테두리가 빛난다 (v1.0.29)
+                    .put("now", spot.hotspot && spot.nowFit(now).active)
             )
         }
         // 배열을 그대로 넣으면 JS 쪽에 배열 객체로 가고, 문자열로 넣으면 JSON.parse 가 받는다.
@@ -719,20 +733,33 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
     private fun mapPinsFor(list: List<Hotspot>): List<Hotspot> {
         val withCoords = list.filter { it.hasLocation }
         if (withCoords.size <= MAP_MAX_PINS) return withCoords
-        val mine = withCoords.filter { it.mine }
-        val others = withCoords.filterNot { it.mine }
-        return mine + others.take((MAP_MAX_PINS - mine.size).coerceAtLeast(0))
+        // 지금 활발한 핫스팟·내 콜밭은 200곳 제한에 먼저 넣는다 (원래 순서는 그대로 지킨다 — stable sort)
+        val now = nowHour
+        return withCoords
+            .sortedWith(compareByDescending<Hotspot> { it.mine || it.nowFit(now).active })
+            .take(MAP_MAX_PINS)
     }
 
-    /** 핀을 눌렀을 때 — 지도 아래쪽에 이름·피크·메모·길찾기 카드를 띄운다 */
+    /** 핀을 눌렀을 때 — 지도 아래쪽에 이름·지금 활발·피크·메모·길찾기 카드를 띄운다 */
     private fun onMapPinTapped(index: Int) {
         val spot = mapSpots.getOrNull(index) ?: return
         mapPinTarget = spot
         binding.mapPinName.text = spot.name
+        val fit = spot.nowFit(nowHour)
+        if (fit.total > 0) {
+            binding.mapPinNow.visibility = View.VISIBLE
+            binding.mapPinNow.text = fit.label
+            binding.mapPinNow.setTextColor(
+                activity.color(if (fit.active) R.color.spot_mint else R.color.text_secondary)
+            )
+        } else {
+            binding.mapPinNow.visibility = View.GONE
+        }
         val meta = listOfNotNull(
             spot.area.takeIf { it.isNotBlank() },
             if (spot.mine) "내 콜밭" else spot.source.takeIf { it.isNotBlank() },
-            spot.peakLabel.takeIf { it.isNotBlank() },
+            // 시간대 집계가 있으면 `지금` 줄이 피크를 대신한다
+            spot.peakLabel.takeIf { it.isNotBlank() && fit.total <= 0 },
             distanceOf(spot)?.let { Hotspots.formatDistance(it) }
         ).joinToString(" · ")
         if (meta.isBlank()) {
@@ -825,10 +852,10 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
 
         binding.nearbyCountText.text = "${list.size}곳"
         scheduleMapPush()
-        val slot = timeSlot
         binding.spotsSubtitle.text = when {
             query.isNotEmpty() -> "‘$query’ 검색 결과 · 콜밭 참고 정보"
-            slot != null -> "🔥 ${slot.label} 집계 콜밭 ${list.size}곳"
+            activeHotspotCount(list, nowHour) > 0 ->
+                "🟢 지금 활발한 핫스팟 ${activeHotspotCount(list, nowHour)}곳 · 콜밭 ${list.size}곳"
             userLocation != null -> "내 위치에서 가까운 순 · 콜밭 ${spotList.size}곳"
             cloudState.added.isNotEmpty() ->
                 "콜밭 ${list.size}곳 · 기사님 제보 ${cloudState.added.size}곳" +
@@ -839,14 +866,8 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         if (list.isEmpty()) {
             binding.moreSpotsButton.visibility = View.GONE
             val empty = ItemEmptyBinding.inflate(LayoutInflater.from(activity), binding.nearbyColumn, false)
-            if (slot != null && query.isEmpty()) {
-                empty.emptyTitle.text = "${slot.label} 집계 콜밭이 아직 없어요"
-                empty.emptyMessage.text =
-                    "‘전체’ 칩을 눌러 모든 콜밭을 보세요. 운행 기록을 저장하면 시간대가 함께 쌓여요"
-            } else {
-                empty.emptyTitle.text = "검색 결과가 없어요"
-                empty.emptyMessage.text = "다른 지역·역 이름으로 찾아보거나 ‘전체’ 칩을 눌러보세요"
-            }
+            empty.emptyTitle.text = "검색 결과가 없어요"
+            empty.emptyMessage.text = "다른 지역·역 이름으로 찾아보거나 지역 칩에서 ‘전체’를 눌러보세요"
             binding.nearbyColumn.addView(empty.root)
             return
         }
@@ -925,11 +946,21 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
                 )
             }
 
-            if (hotspot.hasPeak) {
+            // 시간대 줄 — 제보 시간대 집계가 있으면 `🟢 지금 활발 · 주로 22시~01시 · 4건` (v1.0.29)
+            val now = nowHour
+            val timeLine = hotspot.timeLine(now)
+            if (timeLine.isNotBlank()) {
                 b.spotPeak.visibility = View.VISIBLE
-                b.spotPeak.text = hotspot.peakLabel
+                b.spotPeak.text = timeLine
+                val fit = hotspot.nowFit(now)
                 b.spotPeak.setTextColor(
-                    activity.color(if (hotspot.hotspot) R.color.coral else R.color.accent)
+                    activity.color(
+                        when {
+                            fit.active -> R.color.spot_mint
+                            hotspot.hotspot -> R.color.coral
+                            else -> R.color.accent
+                        }
+                    )
                 )
             } else {
                 b.spotPeak.visibility = View.GONE

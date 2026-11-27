@@ -848,7 +848,7 @@ fun main() {
             lat0 + 0.00054, lng0, adminHash
         ), false)
 
-    // ============================================================ 잘 뜨는 시간대 · 시간대 칩 (v1.0.26)
+    // ============================================================ 잘 뜨는 시간대 · 지금 활발 (v1.0.26 · v1.0.29)
     // 서버 8칸 규칙을 바꾸지 않으려고 note 첫머리에 `#t:22` 표식을 싣는다
     expect("시간대 표식", SpotTimeBands.encodeNote("", 22), "#t:22")
     expect("시간대 표식 + 메모", SpotTimeBands.encodeNote("강남역 앞", 1), "#t:01 강남역 앞")
@@ -866,17 +866,36 @@ fun main() {
     expect("한 건은 시간대 없음", SpotTimeBands.peakLabel(listOf(22)), "")
     expect("떨어진 두 시간은 시간대 없음", SpotTimeBands.peakLabel(listOf(3, 20)), "")
     expect("3시간 창 라벨", SpotTimeBands.label(1), "01시~04시")
-    val slot2201 = SpotTimeBands.NIGHT_SLOTS.first { it.label == "22~01시" }
-    val slotDawn = SpotTimeBands.NIGHT_SLOTS.first { it.label == "01~04시" }
-    expect("시간대 칩 4개 + 전체", SpotTimeBands.NIGHT_SLOTS.map { it.label },
-        listOf("20~22시", "22~01시", "01~04시", "04시~"))
-    expect("22시 칩에 걸림", SpotTimeBands.inSlot(listOf(22), slot2201), true)
-    expect("0시도 22~01시 칩", SpotTimeBands.inSlot(listOf(0), slot2201), true)
-    expect("21시는 22~01시 칩 밖", SpotTimeBands.inSlot(listOf(21), slot2201), false)
-    expect("1시는 01~04시 칩", SpotTimeBands.inSlot(listOf(1), slotDawn), true)
-    expect("04시~ 칩", SpotTimeBands.matchesSlot(listOf(5), SpotTimeBands.NIGHT_SLOTS[3]), true)
-    expect("전체 칩은 모두", SpotTimeBands.matchesSlot(emptyList(), null), true)
-    expect("시간대 없는 콜밭은 칩에서 빠짐", SpotTimeBands.matchesSlot(emptyList(), slot2201), false)
+
+    // ============================================================ 지금 활발한 핫스팟 (v1.0.29)
+    // 화면 위 시간대 필터 칩을 없애고, 앱이 지금 시각(±1시간)으로 스스로 찾아 강조한다
+    expect("시 거리 22→0", SpotTimeBands.hourDistance(22, 0), 2)
+    expect("시 거리 23→1", SpotTimeBands.hourDistance(23, 1), 2)
+    expect("시 거리 5→5", SpotTimeBands.hourDistance(5, 5), 0)
+    expect("시 거리 3→21", SpotTimeBands.hourDistance(3, 21), 6)
+    expect("22시 창에 22시", SpotTimeBands.inWindow(22, 22), true)
+    expect("22시 창에 0시", SpotTimeBands.inWindow(0, 22), true)
+    expect("22시 창에 1시 밖", SpotTimeBands.inWindow(1, 22), false)
+    expect("지금(22시) 근처 2건", SpotTimeBands.activeCount(listOf(22, 23, 4), 22), 2)
+    expect("지금(0시) 근처 23시 1건", SpotTimeBands.activeCount(listOf(22, 23, 4), 0), 1)
+    expect("지금(14시) 근처 없음", SpotTimeBands.activeCount(listOf(22, 23, 4), 14), 0)
+    val nowFit = SpotTimeBands.nowFit(listOf(22, 23), 22)
+    expect("지금 활발", nowFit.active, true)
+    expect("지금 상태 전체 건수", nowFit.total, 2)
+    expect("지금 상태 피크", nowFit.peakStart, 22)
+    expect("지금 활발 줄", nowFit.label, "🟢 지금 활발 · 주로 22시~01시 · 2건")
+    expect("지금 짧은 표기", nowFit.badge, "🟢 지금 활발")
+    val nowIdle = SpotTimeBands.nowFit(listOf(22, 23), 14)
+    expect("지금 한산", nowIdle.active, false)
+    expect("지금 한산 줄", nowIdle.label, "지금은 한산 · 주로 22시~01시 · 2건")
+    expect("시간대 모르면 빈 줄", SpotTimeBands.nowFit(emptyList(), 22).label, "")
+    expect("시간대 모르면 활발 아님", SpotTimeBands.nowFit(emptyList(), 22).active, false)
+    expect("지금 활발 점수가 높다",
+        SpotTimeBands.nowFit(listOf(22, 23), 22).score > SpotTimeBands.nowFit(listOf(4, 5), 22).score,
+        true)
+    expect("같은 지금이면 제보 많은 쪽",
+        SpotTimeBands.nowFit(listOf(22, 22, 22), 22).score > SpotTimeBands.nowFit(listOf(22), 22).score,
+        true)
 
     // (12) 운행 GPS 집계 — 2명이 같은 자리(22·23시)에서 모이면 핫스팟 + 시간대
     val rideReports = listOf(
@@ -922,8 +941,10 @@ fun main() {
     expect("핫스팟 카드 피크", cloudItem.peakLabel, "🔥 22시~01시 활발")
     expect("메모에서 시간대 표식 제거", cloudItem.tip, "강남역 앞")
     expect("목록의 시간대 목록", cloudItem.hours, listOf(22, 23))
-    expect("시간대 칩 통과", SpotTimeBands.matchesSlot(cloudItem.hours, slot2201), true)
-    expect("다른 시간대 칩은 걸러짐", SpotTimeBands.matchesSlot(cloudItem.hours, slotDawn), false)
+    expect("제보 콜밭도 지금 활발", cloudItem.nowFit(22).active, true)
+    expect("제보 콜밭 지금 줄", cloudItem.timeLine(22), "🟢 지금 활발 · 주로 22시~01시 · 2건")
+    expect("낮에는 한산", cloudItem.nowFit(14).active, false)
+    expect("시간대 없는 기본 콜밭은 피크 줄", Hotspots.CURATED.first().timeLine(22), "피크 " + Hotspots.CURATED.first().peak)
     // 운영자·직접 제보는 핫스팟 아님 — 피크 줄은 `피크`
     val manualItem = Hotspots.fromPublicSpot(
         publicSpot.copy(admin = true, hotspot = false, peak = "20시~23시 활발", note = "")

@@ -34,7 +34,7 @@ data class Hotspot(
     val admin: Boolean = false,
     /** 운행 기록 GPS로 만든 익명 제보가 섞인 자리(🔥 핫스팟)면 true (v1.0.26) */
     val hotspot: Boolean = false,
-    /** 제보가 모인 시간대(0~23) — 시간대 칩 필터에 쓴다. 없으면 빈 목록 */
+    /** 제보가 모인 시간대(0~23) — 잘 뜨는 시간대(피크) 줄과 지도 핀 정보에 쓴다. 없으면 빈 목록 */
     val hours: List<Int> = emptyList()
 ) {
     /** 피크 시간대 정보가 있는 곳(직접 정리한 콜밭·집계된 콜밭)만 true */
@@ -45,6 +45,18 @@ data class Hotspot(
         peak.isBlank() -> ""
         hotspot -> "🔥 $peak"
         else -> "피크 $peak"
+    }
+
+    /** 지금 시각(0~23) 기준 이 자리의 상태 — 카드·지도 핀 강조에 쓴다 (v1.0.29) */
+    fun nowFit(nowHour: Int): SpotTimeBands.NowFit = SpotTimeBands.nowFit(hours, nowHour)
+
+    /**
+     * 카드의 시간대 줄 — 제보 시간대 집계가 있으면 `🟢 지금 활발 · 주로 22시~01시 · 3건` 처럼
+     * 지금 상태를 먼저 보여 주고, 집계가 없는 기본 콜밭은 기존 피크 줄을 그대로 쓴다 (v1.0.29)
+     */
+    fun timeLine(nowHour: Int): String {
+        val fit = nowFit(nowHour)
+        return if (fit.total > 0) fit.label else peakLabel
     }
 
     /** 좌표를 저장하지 않고 이름만 저장한 콜밭 — 거리 계산·거리순 정렬에서 빠진다 */

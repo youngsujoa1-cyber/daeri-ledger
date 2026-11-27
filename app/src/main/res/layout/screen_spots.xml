@@ -162,23 +162,7 @@
                     app:singleSelection="true" />
             </HorizontalScrollView>
 
-            <!-- 시간대 필터 (v1.0.26) — 전체 / 20~22시 / 22~01시 / 01~04시 / 04시~ -->
-            <HorizontalScrollView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:clipToPadding="false"
-                android:paddingHorizontal="18dp"
-                android:scrollbars="none">
-
-                <com.google.android.material.chip.ChipGroup
-                    android:id="@+id/timeChips"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    app:chipSpacingHorizontal="8dp"
-                    app:singleLine="true"
-                    app:singleSelection="true" />
-            </HorizontalScrollView>
+            <!-- 시간대 필터 칩 줄은 v1.0.29 에서 없앴다 — 지도가 위로 더 올라온다 -->
 
             <!-- 숨긴 콜밭이 있을 때만 보인다 -->
             <TextView
@@ -342,6 +326,17 @@
                             android:textColor="@color/text_secondary"
                             android:textSize="12sp" />
 
+                        <!-- 🟢 지금 활발 · 주로 22시~01시 · 4건 (v1.0.29) -->
+                        <TextView
+                            android:id="@+id/mapPinNow"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="3dp"
+                            android:textColor="@color/spot_mint"
+                            android:textSize="12sp"
+                            android:textStyle="bold"
+                            android:visibility="gone" />
+
                         <TextView
                             android:id="@+id/mapPinMemo"
                             android:layout_width="match_parent"
@@ -430,7 +425,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
                     android:paddingHorizontal="4dp"
-                    android:text="지도 © Kakao Corp. · 핀을 누르면 이름·시간대·메모가 떠요"
+                    android:text="지도 © Kakao Corp. · 🟢 테두리가 빛나는 핀 = 지금 활발 · 핀을 누르면 이름·시간대·메모가 떠요"
                     android:textSize="10sp" />
             </LinearLayout>
 

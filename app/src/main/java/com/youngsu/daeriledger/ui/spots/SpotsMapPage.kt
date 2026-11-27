@@ -59,6 +59,12 @@ internal object SpotsMapPage {
   .pin.basic { background:#2FBFB0; }
   /* 🔥 운행 기록 GPS로 모인 핫스팟 — 코랄 레드 (v1.0.26) */
   .pin.hot { background:#FF4D4F; }
+  /* 🟢 지금 시간대(±1시간)에 콜이 모인 핫스팟 — 민트 테두리가 빛난다 (v1.0.29) */
+  .pin.now {
+    width:22px; height:22px; border-width:3px;
+    box-shadow:0 0 0 5px rgba(47,191,176,0.45), 0 1px 6px rgba(0,0,0,0.5);
+  }
+  .pin.now::after { width:7px; height:7px; margin:-3.5px 0 0 -3.5px; }
 
   /* 내 위치 — 파란 점 + 옅은 원 */
   .me {
@@ -102,8 +108,9 @@ internal object SpotsMapPage {
   }
 
   /**
-   * 앱이 넘긴 콜밭 좌표를 핀으로 찍는다. json = [{i, lat, lng, mine, hot}]
-   *  - 앱에서 이미 걸러 둔 목록(지역 칩 · 검색 · 숨김)만 넘어온다 — 지도는 그리기만 한다.
+   * 앱이 넘긴 콜밭 좌표를 핀으로 찍는다. json = [{i, lat, lng, mine, hot, now}]
+   *  - 앱에서 이미 걸러 둔 목록(지역·검색·숨김)만 넘어온다 — 지도는 그리기만 한다.
+   *  - `now`(지금 활발한 핫스팟)는 핀을 조금 크게 하고 민트 테두리를 빛나게 해 한눈에 띄게 한다.
    *  - 갱신할 때마다 이전 핀은 지도에서 떼어 낸다(쌓이지 않는다).
    *  - 넘어오는 모양은 **배열 그대로**와 **JSON 문자열** 둘 다 받는다.
    *    (`evaluateJavascript("setSpots([...])")` 는 배열 객체, `setSpots("[...]")` 는 문자열.
@@ -128,7 +135,7 @@ internal object SpotsMapPage {
         var lat = Number(s.lat), lng = Number(s.lng);
         if (!isFinite(lat) || !isFinite(lng) || (lat === 0 && lng === 0)) return;
         var el = document.createElement('div');
-        el.className = 'pin ' + (s.mine ? 'mine' : (s.hot ? 'hot' : 'basic'));
+        el.className = 'pin ' + (s.mine ? 'mine' : (s.hot ? 'hot' : 'basic')) + (s.now ? ' now' : '');
         el.setAttribute('data-i', String(s.i));
         el.addEventListener('click', function (ev) {
           if (ev && ev.stopPropagation) ev.stopPropagation();
@@ -139,7 +146,7 @@ internal object SpotsMapPage {
           content: el,
           xAnchor: 0.5,
           yAnchor: 1,
-          zIndex: s.mine ? 4 : (s.hot ? 3 : 2)
+          zIndex: s.now ? 6 : (s.mine ? 4 : (s.hot ? 3 : 2))
         });
         ov.setMap(map);
         pins.push(ov);
