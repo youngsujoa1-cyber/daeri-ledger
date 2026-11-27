@@ -29,6 +29,8 @@ import com.youngsu.daeriledger.data.SpotAggregator
 import com.youngsu.daeriledger.data.SpotCloud
 import com.youngsu.daeriledger.data.SpotPublicState
 import com.youngsu.daeriledger.data.SpotStat
+import com.youngsu.daeriledger.data.SpotTimeBands
+import com.youngsu.daeriledger.data.NightSlot
 import com.youngsu.daeriledger.databinding.ItemEmptyBinding
 import com.youngsu.daeriledger.databinding.ItemHotspotBinding
 import com.youngsu.daeriledger.databinding.ScreenSpotsBinding
@@ -53,10 +55,13 @@ import kotlin.math.roundToInt
  *  - 위치가 있으면 가까운 순으로 정렬한 콜밭 목록 + 길찾기
  *  - 출처 칩 없이 **하나의 콜밭 목록** — 시·도 칩으로 걸러 보고, 이름·주소로 검색
  *  - 현장에 가 보니 없어진 곳은 카드를 길게 눌러 내 화면에서 숨기거나 **없어진 곳으로 신고**한다
- *    (신고는 서버로 가고, 같은 자리에서 5명 이상 모이면 모든 기사님 화면에서 숨겨진다 — 내 화면은 바로 숨김)
+ *    (신고는 서버로 가고, 같은 자리에서 2명 이상 모이면 모든 기사님 화면에서 숨겨진다 — 내 화면은 바로 숨김)
  *  - `+ 콜밭 추가` 로 내가 다니는 콜밭을 직접 넣는다 (구분·지역·피크·메모, GPS/지도로 좌표). 좌표가 있으면 서버에도 제보한다
- *  - 기사님들이 **5명 이상** 제보한 공용 콜밭은 `기사 제보` 배지로 목록에 함께 보인다 (5분 캐시, 실패하면 로컬 목록만)
- *  - **👑 운영자 모드 (v1.0.23)**: 설정에서 5번 탭 + 암호로 켜면 `+ 콜밭 추가` 가 5명 대기 없이 바로 전체 공개되고,
+ *  - 기사님들이 **2명 이상** 제보한 공용 콜밭은 `기사 제보` 배지로 목록에 함께 보인다 (5분 캐시, 실패하면 로컬 목록만)
+ *  - **🔥 핫스팟 (v1.0.26)**: 운행 기록을 저장할 때 모인 익명 GPS 집계로 만든 자리는 코랄 레드 핀·`🔥 핫스팟` 배지로 구분하고,
+ *    카드·지도 핀 정보에 잘 뜨는 시간대(`🔥 22시~01시 활발`)를 함께 보여 준다
+ *  - **시간대 칩 (v1.0.26)**: `전체` / `20~22시` / `22~01시` / `01~04시` / `04시~` — 고른 시간대에 집계가 있는 콜밭만 목록·지도에 남긴다
+ *  - **👑 운영자 모드 (v1.0.23)**: 설정에서 5번 탭 + 암호로 켜면 `+ 콜밭 추가` 가 2명 대기 없이 바로 전체 공개되고,
  *    카드를 길게 눌러 `운영자: 전체에서 바로 삭제` 로 기본·기사 추천·공용 제보 콜밭을 모두 지울 수 있다
  */
 class SpotsScreen(private val activity: MainActivity) : Screen {
@@ -66,6 +71,8 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
 
     private var cityFilter: String? = null
     private var searchQuery: String = ""
+    /** 시간대 칩 — null 이면 `전체` (시간대 집계가 없는 기본 콜밭도 보인다) */
+    private var timeSlot: NightSlot? = null
 
     private companion object {
         /** 한 번에 그리는 카드 수 — 1,500곳 넘는 목록을 한꺼번에 inflate 하지 않기 위한 값 */
@@ -100,7 +107,7 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
     private var spotList: List<Hotspot> = emptyList()
     private var hiddenIds: Set<String> = emptySet()
 
-    /** 서버에서 받은 공용 제보 상태 (5명 이상 등록 / 5명 이상 삭제) */
+    /** 서버에서 받은 공용 제보 상태 (2명 이상 등록 / 2명 이상 삭제) */
     private var cloudState: SpotPublicState = SpotPublicState()
     private var cloudLoading = false
 
@@ -121,6 +128,14 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
             }
         }
         binding.spotSearchClear.setOnClickListener { binding.spotSearch.setText("") }
+        binding.timeChips.setChips(
+            listOf("" to "전체") + SpotTimeBands.NIGHT_SLOTS.map { it.label to it.label },
+            timeSlot?.label ?: ""
+        ) { label ->
+            timeSlot = SpotTimeBands.NIGHT_SLOTS.firstOrNull { it.label == label }
+            renderNearby()
+            centerMapOnFilter()
+        }
         binding.hiddenInfo.setOnClickListener { confirmRestoreHidden() }
         binding.moreSpotsButton.setOnClickListener {
             val list = renderedList
@@ -170,7 +185,7 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         spotList = local + cloud
     }
 
-    /** 공용 제보 상태(5명 이상 등록·5명 이상 삭제)를 받아 목록에 반영한다 */
+    /** 공용 제보 상태(2명 이상 등록·2명 이상 삭제)를 받아 목록에 반영한다 */
     private fun loadCloud(force: Boolean = false) {
         if (cloudLoading) return
         cloudLoading = true
@@ -184,7 +199,7 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         }
     }
 
-    /** 기사님들이 5명 이상 '없어졌다'고 신고한 자리(반경 20m)에 있는 콜밭인지 */
+    /** 기사님들이 2명 이상 '없어졌다'고 신고한 자리(반경 50m)에 있는 콜밭인지 */
     private fun isCloudRemoved(spot: Hotspot): Boolean =
         spot.hasLocation && SpotAggregator.isRemoved(spot.lat, spot.lng, cloudState.removed)
 
@@ -271,6 +286,7 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
                 (cityFilter == null || it.city == cityFilter) &&
                     it.id !in hiddenIds &&
                     !isCloudRemoved(it) &&
+                    SpotTimeBands.matchesSlot(it.hours, timeSlot) &&
                     it.matches(query)
             }
             val loc = userLocation
@@ -406,7 +422,7 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
 
     /**
      * 없어진 곳 신고 — 서버에 `kind = "삭제"` 로 보내고 내 화면은 바로 숨긴다.
-     * 같은 자리에서 서로 다른 기기 5명 이상이 신고하면 모든 기사님 화면에서도 숨겨진다.
+     * 같은 자리에서 서로 다른 기기 2명 이상이 신고하면 모든 기사님 화면에서도 숨겨진다.
      */
     private fun confirmReportRemoved(spot: Hotspot) {
         if (!spot.hasLocation) {
@@ -426,7 +442,7 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
             activity,
             "없어진 곳 신고",
             "‘${spot.name}’이(가) 없어졌나요?\n\n" +
-                "같은 자리에서 5명 이상 신고하면 모든 기사님 화면에서 이 콜밭이 숨겨져요.\n" +
+                "같은 자리에서 2명 이상 신고하면 모든 기사님 화면에서 이 콜밭이 숨겨져요.\n" +
                 "신고하면 내 화면에서는 바로 사라집니다.",
             positive = "신고하고 숨기기",
             destructive = true
@@ -441,8 +457,8 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
     /**
      * 👑 운영자: 전체에서 바로 삭제 — 운영자 모드에서만 보이는 카드 버튼.
      *
-     * 위치가 있는 콜밭이면 서버에 운영자 해시를 단 `삭제` 제보를 한 건 올려, 같은 자리(반경 20m)의
-     * 기본·기사 추천·공용 제보 콜밭이 모든 기사님 앱에서 5명 대기 없이 바로 사라진다.
+     * 위치가 있는 콜밭이면 서버에 운영자 해시를 단 `삭제` 제보를 한 건 올려, 같은 자리(반경 50m)의
+     * 기본·기사 추천·공용 제보 콜밭이 모든 기사님 앱에서 2명 대기 없이 바로 사라진다.
      * 위치가 없어 다른 기기로 알릴 수 없으면 이 화면에서만 숨긴다.
      */
     private fun confirmAdminDelete(spot: Hotspot) {
@@ -463,7 +479,7 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
             activity,
             "👑 운영자: 전체에서 바로 삭제",
             "‘${spot.name}’을(를) 모든 기사님 앱에서 지금 바로 지울까요?\n\n" +
-                "이 자리 반경 20m 안의 기본·기사 추천·공용 제보 콜밭이 5명 신고를 기다리지 않고 바로 사라집니다.",
+                "이 자리 반경 50m 안의 기본·기사 추천·공용 제보 콜밭이 2명 신고를 기다리지 않고 바로 사라집니다.",
             positive = "전체에서 삭제",
             destructive = true
         ) {
@@ -510,8 +526,8 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
             binding.spotSearch.setText("")
             cityFilter = null
             // 좌표가 있으면 서버에도 제보해 다른 기사님과 나눈다
-            //  - 일반: 같은 자리 5명 이상이면 공용 콜밭
-            //  - 👑 운영자 모드: 5명을 기다리지 않고 바로 전체 공개 (v1.0.23)
+            //  - 일반: 같은 자리 서로 다른 기기 2명 이상이면 공용 콜밭
+            //  - 👑 운영자 모드: 2명을 기다리지 않고 바로 전체 공개 (v1.0.23)
             val lat = spot.lat
             val lng = spot.lng
             val admin = activity.settings.isAdminMode
@@ -683,6 +699,7 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
                     .put("lat", spot.lat)
                     .put("lng", spot.lng)
                     .put("mine", spot.mine)
+                    .put("hot", spot.hotspot)
             )
         }
         // 배열을 그대로 넣으면 JS 쪽에 배열 객체로 가고, 문자열로 넣으면 JSON.parse 가 받는다.
@@ -715,7 +732,7 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         val meta = listOfNotNull(
             spot.area.takeIf { it.isNotBlank() },
             if (spot.mine) "내 콜밭" else spot.source.takeIf { it.isNotBlank() },
-            if (spot.hasPeak) "피크 ${spot.peak}" else null,
+            spot.peakLabel.takeIf { it.isNotBlank() },
             distanceOf(spot)?.let { Hotspots.formatDistance(it) }
         ).joinToString(" · ")
         if (meta.isBlank()) {
@@ -808,18 +825,28 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
 
         binding.nearbyCountText.text = "${list.size}곳"
         scheduleMapPush()
+        val slot = timeSlot
         binding.spotsSubtitle.text = when {
             query.isNotEmpty() -> "‘$query’ 검색 결과 · 콜밭 참고 정보"
+            slot != null -> "🔥 ${slot.label} 집계 콜밭 ${list.size}곳"
             userLocation != null -> "내 위치에서 가까운 순 · 콜밭 ${spotList.size}곳"
-            cloudState.added.isNotEmpty() -> "콜밭 ${list.size}곳 · 기사님 제보 ${cloudState.added.size}곳"
+            cloudState.added.isNotEmpty() ->
+                "콜밭 ${list.size}곳 · 기사님 제보 ${cloudState.added.size}곳" +
+                    hotspotCount().let { if (it > 0) " (🔥 핫스팟 $it)" else "" }
             else -> "콜밭 ${list.size}곳 · 지역으로 골라 보기"
         }
 
         if (list.isEmpty()) {
             binding.moreSpotsButton.visibility = View.GONE
             val empty = ItemEmptyBinding.inflate(LayoutInflater.from(activity), binding.nearbyColumn, false)
-            empty.emptyTitle.text = "검색 결과가 없어요"
-            empty.emptyMessage.text = "다른 지역·역 이름으로 찾아보거나 ‘전체’ 칩을 눌러보세요"
+            if (slot != null && query.isEmpty()) {
+                empty.emptyTitle.text = "${slot.label} 집계 콜밭이 아직 없어요"
+                empty.emptyMessage.text =
+                    "‘전체’ 칩을 눌러 모든 콜밭을 보세요. 운행 기록을 저장하면 시간대가 함께 쌓여요"
+            } else {
+                empty.emptyTitle.text = "검색 결과가 없어요"
+                empty.emptyMessage.text = "다른 지역·역 이름으로 찾아보거나 ‘전체’ 칩을 눌러보세요"
+            }
             binding.nearbyColumn.addView(empty.root)
             return
         }
@@ -856,15 +883,24 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
                 }
                 hotspot.source == Hotspots.SOURCE_CLOUD -> {
                     b.spotBadge.visibility = View.VISIBLE
-                    if (hotspot.admin) {
-                        // 👑 운영자가 5명 대기 없이 바로 올린 콜밭
-                        b.spotBadge.text = "👑 운영자"
-                        b.spotBadge.setBackgroundResource(R.drawable.bg_pill_accent)
-                        b.spotBadge.setTextColor(activity.color(R.color.accent))
-                    } else {
-                        b.spotBadge.text = Hotspots.SOURCE_CLOUD
-                        b.spotBadge.setBackgroundResource(R.drawable.bg_tag_blue)
-                        b.spotBadge.setTextColor(activity.color(R.color.chart_bar))
+                    when {
+                        hotspot.admin -> {
+                            // 👑 운영자가 기준 인원을 기다리지 않고 바로 올린 콜밭
+                            b.spotBadge.text = "👑 운영자"
+                            b.spotBadge.setBackgroundResource(R.drawable.bg_pill_accent)
+                            b.spotBadge.setTextColor(activity.color(R.color.accent))
+                        }
+                        hotspot.hotspot -> {
+                            // 🔥 운행 기록 GPS 집계로 모인 핫스팟 — 코랄 레드 (v1.0.26)
+                            b.spotBadge.text = "🔥 핫스팟"
+                            b.spotBadge.setBackgroundResource(R.drawable.bg_tag_coral)
+                            b.spotBadge.setTextColor(activity.color(R.color.coral))
+                        }
+                        else -> {
+                            b.spotBadge.text = Hotspots.SOURCE_CLOUD
+                            b.spotBadge.setBackgroundResource(R.drawable.bg_tag_blue)
+                            b.spotBadge.setTextColor(activity.color(R.color.chart_bar))
+                        }
                     }
                 }
                 hotspot.source.isBlank() -> b.spotBadge.visibility = View.GONE
@@ -884,11 +920,17 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
             } else {
                 b.spotReportMeta.visibility = View.VISIBLE
                 b.spotReportMeta.text = reportMeta
+                b.spotReportMeta.setTextColor(
+                    activity.color(if (hotspot.hotspot) R.color.coral else R.color.chart_bar)
+                )
             }
 
             if (hotspot.hasPeak) {
                 b.spotPeak.visibility = View.VISIBLE
-                b.spotPeak.text = "피크 ${hotspot.peak}"
+                b.spotPeak.text = hotspot.peakLabel
+                b.spotPeak.setTextColor(
+                    activity.color(if (hotspot.hotspot) R.color.coral else R.color.accent)
+                )
             } else {
                 b.spotPeak.visibility = View.GONE
             }
@@ -937,7 +979,7 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         }
     }
 
-    /** 기사님 제보 콜밭 카드의 한 줄 — `기사 5명 제보 · 10분 전` (제보 콜밭이 아니면 빈 문자열) */
+    /** 기사님 제보 콜밭 카드의 한 줄 — `기사 2명 제보 · 10분 전` / 핫스팟은 `운행 GPS 2명 집계 · 10분 전` */
     private fun cloudMeta(hotspot: Hotspot): String {
         if (hotspot.admin) {
             val time = timeAgo(hotspot.lastAt)
@@ -946,9 +988,12 @@ class SpotsScreen(private val activity: MainActivity) : Screen {
         }
         if (hotspot.reporters <= 0) return ""
         val time = timeAgo(hotspot.lastAt)
-        return if (time.isBlank()) "기사 ${hotspot.reporters}명 제보"
-        else "기사 ${hotspot.reporters}명 제보 · $time"
+        val who = if (hotspot.hotspot) "🔥 운행 GPS ${hotspot.reporters}명 집계" else "기사 ${hotspot.reporters}명 제보"
+        return if (time.isBlank()) who else "$who · $time"
     }
+
+    /** 지금 목록의 🔥 핫스팟 수 — 부제에 표시 */
+    private fun hotspotCount(): Int = spotList.count { it.hotspot }
 
     /** 마지막 제보 시각 -> `방금`·`N분 전`·`N시간 전`·`N일 전` */
     private fun timeAgo(millis: Long): String {

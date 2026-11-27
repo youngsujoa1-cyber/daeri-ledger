@@ -29,6 +29,11 @@ class AppSettings private constructor(context: Context) {
         private const val KEY_TIP_PCT = "fee_pct_tip"
         private const val KEY_HIDDEN_SPOTS = "hidden_spot_ids"
         private const val KEY_ADMIN_MODE = "admin_mode"
+        private const val KEY_SHARE_RIDE_STATS = "share_ride_stats"
+        private const val KEY_PING_ATTEMPT = "spot_ping_attempt_at"
+        private const val KEY_PING_AT = "spot_ping_at"
+        private const val KEY_PING_LAT = "spot_ping_lat"
+        private const val KEY_PING_LNG = "spot_ping_lng"
 
         @Volatile private var instance: AppSettings? = null
         fun get(context: Context): AppSettings =
@@ -125,11 +130,43 @@ class AppSettings private constructor(context: Context) {
     /**
      * 운영자(관리자) 모드 — 설정 화면 맨 아래 버전을 5번 누르고 암호를 맞히면 켜진다(v1.0.23).
      *
-     * 켜져 있으면 `+ 콜밭 추가` 로 올린 콜밭이 5명 대기 없이 모든 기사님 앱에 바로 공개되고,
+     * 켜져 있으면 `+ 콜밭 추가` 로 올린 콜밭이 2명 대기 없이 모든 기사님 앱에 바로 공개되고,
      * 콜밭 카드를 길게 눌러 `전체에서 바로 삭제` 를 할 수 있다. 다시 5번 누르거나 설정의
      * `운영자 모드` 줄에서 끕니다. 암호(`BuildConfig.ADMIN_PASS`)는 local.properties 에만 있다.
      */
     var isAdminMode: Boolean
         get() = prefs.getBoolean(KEY_ADMIN_MODE, false)
         set(value) = prefs.edit().putBoolean(KEY_ADMIN_MODE, value).apply()
+
+    /**
+     * **운행 기록 저장 시 현재 위치를 익명 콜밭 통계에 보태는 토글 (v1.0.26)** — 기본 켜짐.
+     *
+     * 켜져 있으면 새 운행을 저장할 때 현재 GPS 좌표·출발지 요약명·운행 시간대만 공용 집계로 보낸다.
+     * 도착지·요금·플랫폼·메모는 보내지 않는다. 위치 권한이 없으면 아무것도 보내지 않는다.
+     */
+    var shareRideStats: Boolean
+        get() = prefs.getBoolean(KEY_SHARE_RIDE_STATS, true)
+        set(value) = prefs.edit().putBoolean(KEY_SHARE_RIDE_STATS, value).apply()
+
+    /** 마지막으로 익명 GPS 집계를 **시도**한 시각 — 몰아 올리기(연속 입력) 판정에 쓴다 */
+    var spotPingLastAttemptAt: Long
+        get() = prefs.getLong(KEY_PING_ATTEMPT, 0L)
+        set(value) = prefs.edit().putLong(KEY_PING_ATTEMPT, value).apply()
+
+    /** 마지막으로 익명 GPS 집계를 **보낸** 자리 — 같은 자리 반복 입력 판정에 쓴다 */
+    var spotPingLastPing: com.youngsu.daeriledger.data.RideSpotGate.LastPing?
+        get() {
+            val at = prefs.getLong(KEY_PING_AT, 0L)
+            if (at <= 0L) return null
+            return com.youngsu.daeriledger.data.RideSpotGate.LastPing(
+                at = at,
+                lat = prefs.getFloat(KEY_PING_LAT, 0f).toDouble(),
+                lng = prefs.getFloat(KEY_PING_LNG, 0f).toDouble()
+            )
+        }
+        set(value) = prefs.edit().apply {
+            putLong(KEY_PING_AT, value?.at ?: 0L)
+            putFloat(KEY_PING_LAT, (value?.lat ?: 0.0).toFloat())
+            putFloat(KEY_PING_LNG, (value?.lng ?: 0.0).toFloat())
+        }.apply()
 }

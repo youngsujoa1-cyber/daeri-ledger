@@ -34,7 +34,7 @@
         android:background="@drawable/bg_pill_accent"
         android:paddingHorizontal="12dp"
         android:paddingVertical="8dp"
-        android:text="👑 운영자 모드: 등록 시 5명 대기 없이 바로 전체 공개"
+        android:text="👑 운영자 모드: 등록 시 2명 대기 없이 바로 전체 공개"
         android:textColor="@color/accent"
         android:textSize="11.5sp"
         android:visibility="gone" />

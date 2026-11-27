@@ -162,6 +162,24 @@
                     app:singleSelection="true" />
             </HorizontalScrollView>
 
+            <!-- 시간대 필터 (v1.0.26) — 전체 / 20~22시 / 22~01시 / 01~04시 / 04시~ -->
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:clipToPadding="false"
+                android:paddingHorizontal="18dp"
+                android:scrollbars="none">
+
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/timeChips"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:chipSpacingHorizontal="8dp"
+                    app:singleLine="true"
+                    app:singleSelection="true" />
+            </HorizontalScrollView>
+
             <!-- 숨긴 콜밭이 있을 때만 보인다 -->
             <TextView
                 android:id="@+id/hiddenInfo"
@@ -369,6 +387,42 @@
                     </LinearLayout>
                 </FrameLayout>
 
+                <!-- 지도 범례 (v1.0.26) — 핀 색깔 안내 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="4dp"
+                    android:paddingTop="6dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="● 내 콜밭"
+                        android:textColor="@color/accent"
+                        android:textSize="10sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:text="● 일반 콜밭"
+                        android:textColor="@color/spot_mint"
+                        android:textSize="10sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:text="● 🔥 핫스팟 (운행 GPS)"
+                        android:textColor="@color/coral"
+                        android:textSize="10sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
                 <TextView
                     android:id="@+id/mapAttribution"
                     style="@style/Text.Daeri.Label"
@@ -376,7 +430,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
                     android:paddingHorizontal="4dp"
-                    android:text="지도 © Kakao Corp. · 핀을 누르면 이름·피크·메모가 떠요"
+                    android:text="지도 © Kakao Corp. · 핀을 누르면 이름·시간대·메모가 떠요"
                     android:textSize="10sp" />
             </LinearLayout>
 
@@ -431,7 +485,7 @@
                 android:layout_marginHorizontal="18dp"
                 android:layout_marginTop="18dp"
                 android:lineSpacingExtra="3dp"
-                android:text="* 콜밭 정보는 지역 특성과 기사님들이 모아 둔 지도 즐겨찾기를 정리한 참고 자료이며, 카카오T·로지 등 플랫폼의 실시간 콜 수량이 아닙니다.&#10;* 없어진 곳은 카드를 길게 눌러 ‘내 화면에서만 숨기기’ 또는 ‘없어진 곳 신고’를 할 수 있어요. 신고는 같은 자리에서 5명 이상 모이면 모든 기사님 화면에서 숨겨지고, 내 화면에서는 바로 숨겨집니다.&#10;* 기사님들이 5명 이상 제보한 곳은 ‘기사 제보’ 로 목록에 함께 보입니다.&#10;* 내가 추가한 콜밭(‘내 콜밭’ 배지)은 카드를 길게 눌러 삭제할 수 있어요."
+                android:text="* 콜밭 정보는 지역 특성과 기사님들이 모아 둔 지도 즐겨찾기를 정리한 참고 자료이며, 카카오T·로지 등 플랫폼의 실시간 콜 수량이 아닙니다.&#10;* 없어진 곳은 카드를 길게 눌러 ‘내 화면에서만 숨기기’ 또는 ‘없어진 곳 신고’를 할 수 있어요. 신고는 같은 자리에서 2명 이상 모이면 모든 기사님 화면에서 숨겨지고, 내 화면에서는 바로 숨겨집니다.&#10;* 기사님들이 2명 이상 제보한 곳은 ‘기사 제보’, 운행 기록 GPS로 모인 곳은 🔥 ‘핫스팟’ 으로 목록·지도에 함께 보입니다.&#10;* 내가 추가한 콜밭(‘내 콜밭’ 배지)은 카드를 길게 눌러 삭제할 수 있어요."
                 android:textColor="@color/text_tertiary"
                 android:textSize="11sp" />
 

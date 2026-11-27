@@ -50,8 +50,8 @@ android {
         applicationId = "com.youngsu.daeriledger"
         minSdk = 26
         targetSdk = 36
-        versionCode = 26
-        versionName = "1.0.25"
+        versionCode = 27
+        versionName = "1.0.26"
 
         // AdMob 앱 ID — 기본(debug)은 Google 공식 테스트 ID, release 는 buildTypes 에서 실제 ID 로 바꾼다.
         manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"

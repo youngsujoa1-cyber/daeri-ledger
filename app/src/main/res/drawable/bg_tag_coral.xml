@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 🔥 운행 기록 GPS로 모인 핫스팟 배지 (코랄 레드) -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="@color/coral_dim" />
+    <corners android:radius="100dp" />
+</shape>

@@ -19,6 +19,7 @@ import com.youngsu.daeriledger.data.PaymentType
 import com.youngsu.daeriledger.data.Payout
 import com.youngsu.daeriledger.data.Platforms
 import com.youngsu.daeriledger.data.Ride
+import com.youngsu.daeriledger.data.RideSpotPing
 import com.youngsu.daeriledger.data.ServiceType
 import com.youngsu.daeriledger.databinding.ActivityAddRideBinding
 import com.youngsu.daeriledger.settings.AppSettings
@@ -470,6 +471,12 @@ class AddRideActivity : AppCompatActivity() {
             createdAt = current?.createdAt ?: 0L
         )
         repo.saveRide(ride)
+
+        // 새 기록만 — 운행 시각의 현재 GPS 좌표를 익명 콜밭 집계에 보탈다 (v1.0.26).
+        // 수정 저장에서는 보내지 않고, 몰아 올리기(밀린 기록·연속 입력)는 RideSpotGate 가 걸러 낸다.
+        if (current == null) {
+            RideSpotPing.onRideSaved(applicationContext, settings, ride.timeMillis, ride.fromPlace)
+        }
 
         settings.lastPlatformId = platformId
         settings.lastServiceType = service.id

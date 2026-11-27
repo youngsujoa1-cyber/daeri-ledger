@@ -27,6 +27,11 @@
     <color name="off_day_dim">#26313E</color>
     <!-- 특이사항(메모) 줄 — 어두운 배경에서 은은하게 읽히는 앰버 -->
     <color name="note">#E0B557</color>
+    <!-- 🔥 운행 GPS 핫스팟 — 코랄 레드 (지도 핀·배지) -->
+    <color name="coral">#FF5A5A</color>
+    <color name="coral_dim">#3A1618</color>
+    <!-- 일반 콜밭 핀/범례 민트 -->
+    <color name="spot_mint">#35C7B7</color>
     <color name="divider">#222C38</color>
     <color name="scrim">#99000000</color>
     <!-- 지도(밝은 OSM 타일) 위 버튼 테두리 — 밝은 지도에 묻히지 않게 밝은 반투명 -->

@@ -184,6 +184,19 @@ def main():
     expect("mine 앰버", "#FFB020" in html, True)
     expect("basic 민트", "#2FBFB0" in html, True)
 
+    # 🔥 핫스팟 핀 (v1.0.26) — 운행 GPS로 모인 자리는 코랄 레드 클래스로 찍힌다
+    ctx.eval("_overlays = []; _bridgeCalls = [];")
+    ctx.eval(
+        "setSpots([{i:0,lat:37.5,lng:127.0,mine:false,hot:true},"
+        "{i:1,lat:37.6,lng:127.1,mine:false,hot:false},"
+        "{i:2,lat:37.7,lng:127.2,mine:true,hot:true}])"
+    )
+    expect("핫스팟 핀 클래스", ctx.eval("_overlays[0].content.className"), "pin hot")
+    expect("일반 핀 클래스", ctx.eval("_overlays[1].content.className"), "pin basic")
+    expect("내 콜밭 핀이 핫스팟보다 우선", ctx.eval("_overlays[2].content.className"), "pin mine")
+    expect("핫스팟 zIndex", ctx.eval("_overlays[0].opts.zIndex"), 3)
+    expect("hot 코랄 CSS", ".pin.hot" in html and "#FF4D4F" in html, True)
+
     if failures:
         print(f"\n{failures} FAILED")
         sys.exit(1)

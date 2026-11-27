@@ -69,14 +69,14 @@
             android:textColor="@color/text_tertiary"
             android:textSize="11sp" />
 
-        <!-- 기사님 제보 콜밭만 — `기사 5명 제보 · 10분 전` -->
+        <!-- 기사님 제보 콜밭만 — `기사 2명 제보 · 10분 전` -->
         <TextView
             android:id="@+id/spotReportMeta"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="3dp"
             android:fontFeatureSettings="tnum"
-            android:text="기사 5명 제보 · 10분 전"
+            android:text="기사 2명 제보 · 10분 전"
             android:textColor="@color/chart_bar"
             android:textSize="11sp"
             android:textStyle="bold"

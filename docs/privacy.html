@@ -99,7 +99,7 @@
       </div>
       <h1>개인정보처리방침</h1>
     </div>
-    <p class="sub">대리장부 (Daeri Ledger) · 개발자 Topster · 시행일 2026년 11월 25일</p>
+    <p class="sub">대리장부 (Daeri Ledger) · 개발자 Topster · 시행일 2026년 11월 27일</p>
 
     <div class="card">
       <div class="meta">
@@ -107,7 +107,7 @@
         <span><b>패키지</b> <code>com.youngsu.daeriledger</code> (Android)</span>
         <span><b>개발자</b> Topster</span>
         <span><b>문의</b> <a href="mailto:youngsujoa1@gmail.com">youngsujoa1@gmail.com</a></span>
-        <span><b>시행일</b> 2026년 11월 25일</span>
+        <span><b>시행일</b> 2026년 11월 27일</span>
       </div>
     </div>
 
@@ -115,7 +115,7 @@
       <h2>1. 총칙</h2>
       <p>대리장부(이하 “앱”)는 대리운전·탁송 기사를 위한 수입·지출 장부 앱입니다. 개발자 Topster(이하 “개발자”)는 이용자의 개인정보를 소중히 여기며, 관련 법령과 Google Play 정책을 준수합니다. 본 방침은 앱이 어떤 정보를 다루고, 그 정보가 어디에 저장되며, 이용자가 무엇을 선택할 수 있는지 설명합니다.</p>
       <div class="note">
-        <p><b>핵심 요약:</b> 앱에 입력한 운행 기록·수입·지출·휴무일·메모·콜밭·설정은 <b>이용자의 기기 안에만</b> 저장됩니다. <span class="ok">개발자는 이러한 기록을 받아 보관하는 서버를 운영하지 않으며, 해당 내용을 열람·수집하지 않습니다.</span> 앱은 회원가입이나 로그인을 요구하지 않습니다. 기기 밖으로 나가는 통신은 ① 광고(Google AdMob)를 불러오는 통신과 ② <b>기사님들이 함께 쓰는 공용 콜밭 제보</b>, ③ <b>🗺️ 지도에서 위치 고르기</b> 화면의 지도 표시(<b>카카오맵</b>, 카카오맵을 불러오지 못할 때만 OpenStreetMap 지도 타일)뿐입니다. 공용 콜밭 제보는 이용자가 직접 남긴 콜밭 이름·좌표·메모와 기기를 구분하는 익명 해시만 보내며, 장부 기록(운행·수입·지출·미수금·메모)은 보내지 않습니다. 지도 표시 요청에는 지도 타일 번호와 화면에 보이는 위치 좌표만 실리며, 장부 내용은 전송되지 않습니다.</p>
+        <p><b>핵심 요약:</b> 앱에 입력한 운행 기록·수입·지출·휴무일·메모·콜밭·설정은 <b>이용자의 기기 안에만</b> 저장됩니다. <span class="ok">개발자는 이러한 기록을 받아 보관하는 서버를 운영하지 않으며, 해당 내용을 열람·수집하지 않습니다.</span> 앱은 회원가입이나 로그인을 요구하지 않습니다. 기기 밖으로 나가는 통신은 ① 광고(Google AdMob)를 불러오는 통신과 ② <b>기사님들이 함께 쓰는 공용 콜밭 제보</b>, ③ <b>🗺️ 지도에서 위치 고르기</b> 화면의 지도 표시(<b>카카오맵</b>, 카카오맵을 불러오지 못할 때만 OpenStreetMap 지도 타일)뿐입니다. 공용 콜밭 제보는 이용자가 직접 남긴 콜밭 이름·좌표·메모와 기기를 구분하는 익명 해시만 보냅니다. 설정의 <b>운행 기록 위치 통계</b>가 켜져 있으면(기본 켜짐) <b>새 운행을 저장할 때 그 순간의 현재 위치 좌표·출발지 이름·시간대만</b> 익명으로 보태며, 도착지·요금·플랫폼·결제 방식·메모 같은 장부 내용은 보내지 않습니다. 지도 표시 요청에는 지도 타일 번호와 화면에 보이는 위치 좌표만 실리며, 장부 내용은 전송되지 않습니다.</p>
       </div>
 
       <h2>2. 앱이 저장하는 정보 (기기 내부)</h2>
@@ -145,12 +145,14 @@
       <p>저장 위치는 기기의 앱 전용 영역입니다: 장부 데이터베이스 <code>daeri_ledger.db</code>(운행·지출·휴무일·저장한 콜밭 테이블)와 설정 파일 <code>daeri_settings.xml</code>. 다른 앱이 임의로 접근하기 어려운 앱 전용 공간이며, 개발자는 이 파일에 접근할 수 없습니다.</p>
 
       <h3>기사님 공용 콜밭 제보 (선택)</h3>
-      <p>콜밭 화면의 <b>+ 콜밭 추가</b>나 카드 길게 누르기의 <b>없어진 곳 신고</b>를 사용할 때만, 아래 값이 Google Firebase(Firestore)의 <code>daeri-ledger-spots</code> 프로젝트로 전송됩니다.</p>
+      <p>콜밭 화면의 <b>+ 콜밭 추가</b>나 카드 길게 누르기의 <b>없어진 곳 신고</b>를 사용할 때, 그리고 설정의 <b>운행 기록 위치 통계</b>가 켜진 상태에서 <b>새 운행을 저장</b>할 때 아래 값이 Google Firebase(Firestore)의 <code>daeri-ledger-spots</code> 프로젝트로 전송됩니다.</p>
       <ul>
         <li>콜밭 이름, 종류(<code>콜밭</code> / <code>삭제</code>), 콜밭 좌표(위도·경도), 주소, 메모(있을 때), 신고 시각</li>
+        <li><b>운행 기록 위치 통계</b>를 켜 둔 경우에는 새 운행을 저장할 때 <b>그 순간의 현재 위치 좌표, 출발지 요약 이름(출발지를 적었을 때), 운행 시간대(예: 22시)</b>만 보냅니다. 도착지·요금·플랫폼·결제 방식·메모·특이사항은 보내지 않습니다.</li>
         <li><b>기기 해시:</b> <code>ANDROID_ID</code>를 SHA-256으로 변환한 32자 값입니다. 같은 사람이 여러 번 눌러도 1명으로 세기 위한 값이며 이름·전화번호 등과 연결되지 않고, 앱을 지우면 값이 바뀝니다.</li>
         <li><b>+ 콜밭 추가</b>에서 <b>현재 GPS 위치</b>를 선택한 경우, 그 위치가 콜밭 좌표로 함께 전송됩니다. 주소로 찾기나 이름만 저장을 고르면 현재 위치는 전송되지 않습니다.</li>
-        <li>서버는 누구나 읽을 수 있고, 앱이 최근 30일 제보를 모아 <b>서로 다른 기기 5명 이상</b>이 제보한 곳만 공용 콜밭으로 보여 줍니다. 같은 자리에 <b>5명 이상</b>이 없어진 곳으로 신고하면 그 반경 20m 안의 콜밭이 모든 이용자 화면에서 숨겨집니다. 4명까지는 아무 변화도 없습니다.</li>
+        <li>서버는 누구나 읽을 수 있고, 앱이 최근 30일 제보를 모아 <b>서로 다른 기기 2명 이상</b>이 제보한 곳(반경 50m)만 공용 콜밭으로 보여 줍니다. 같은 자리에 <b>2명 이상</b>이 없어진 곳으로 신고하면 그 반경 50m 안의 콜밭이 모든 이용자 화면에서 숨겨집니다. 1명의 제보로는 아무 변화도 없습니다.</li>
+        <li>한 자리에서 밀린 운행 기록을 한꺼번에 올리는 경우가 있어, 운행 시각과 저장 시각이 20분 넘게 차이 나거나, 15분 안에 다시 저장하거나, 한 시간 안에 같은 자리(반경 50m)에서 다시 저장하면 그 기록의 위치는 집계에 넣지 않습니다.</li>
         <li>전송된 제보는 수정·삭제 권한이 없는 로그로 남습니다(서버 규칙). 개발자는 이를 다른 목적으로 사용하지 않습니다.</li>
       </ul>
 
@@ -162,7 +164,7 @@
         <tr>
           <th>위치<br>(선택)</th>
           <td><code>ACCESS_FINE_LOCATION</code> / <code>ACCESS_COARSE_LOCATION</code><br>
-          <b>콜밭</b> 탭에서 내 위치를 기준으로 가까운 콜밭을 가까운 순서로 정렬하고, 지도 앱으로 길찾기를 열 때만 사용합니다. 거리 계산은 기기 안에서 이루어지며, 앱은 별도의 위치 기록을 저장하지 않습니다. 위치 좌표는 이용자가 <b>+ 콜밭 추가</b>에서 <b>현재 GPS 위치 쓰기</b>를 직접 켠 경우에만 그 콜밭의 좌표로 공용 콜밭 제보에 포함되어 전송되고, 그 밖에는 개발자 서버로 보내지 않습니다. 위치 권한을 허용하지 않아도 앱은 지역 필터 기준으로 정상 동작합니다.<br>
+          <b>콜밭</b> 탭에서 내 위치를 기준으로 가까운 콜밭을 가까운 순서로 정렬하고, 지도 앱으로 길찾기를 열 때만 사용합니다. 거리 계산은 기기 안에서 이루어지며, 앱은 별도의 위치 기록을 저장하지 않습니다. 위치 좌표는 이용자가 <b>+ 콜밭 추가</b>에서 <b>현재 GPS 위치 쓰기</b>를 직접 켠 경우, 또는 설정의 <b>운행 기록 위치 통계</b>가 켜진 상태에서 새 운행을 저장한 경우에만 그 좌표가 익명 통계에 포함되어 전송되고, 그 밖에는 개발자 서버로 보내지 않습니다. 운행 기록 위치 통계는 설정에서 언제든 끌 수 있습니다. 위치 권한을 허용하지 않아도 앱은 지역 필터 기준으로 정상 동작합니다.<br>
           길찾기를 누르면 선택한 콜밭의 좌표가 기기에 설치된 지도 앱으로 전달되며, 그 이후의 처리는 해당 지도 앱의 개인정보처리방침을 따릅니다.</td>
         </tr>
         <tr>
@@ -172,7 +174,7 @@
         <tr>
           <th>인터넷<br>(필수)</th>
           <td><code>INTERNET</code><br>
-          공용 콜밭 제보를 보내고, 다른 기사님이 5명 이상 모아 올린 콜밭·없어진 곳 신고를 받아 오는 데 사용합니다. 광고(Google Mobile Ads SDK)를 불러오고 광고를 측정하는 데도 함께 쓰입니다. <b>🗺️ 지도에서 위치 고르기</b> 화면에서 카카오맵(카카오 지도 SDK·지도 타일)을 불러오고, 카카오맵을 불러오지 못할 때만 OpenStreetMap 지도 타일을 받아 오는 데도 쓰입니다.</td>
+          공용 콜밭 제보(새 운행 저장 시의 익명 위치 통계 포함)를 보내고, 다른 기사님이 2명 이상 모아 올린 콜밭·없어진 곳 신고를 받아 오는 데 사용합니다. 광고(Google Mobile Ads SDK)를 불러오고 광고를 측정하는 데도 함께 쓰입니다. <b>🗺️ 지도에서 위치 고르기</b> 화면에서 카카오맵(카카오 지도 SDK·지도 타일)을 불러오고, 카카오맵을 불러오지 못할 때만 OpenStreetMap 지도 타일을 받아 오는 데도 쓰입니다.</td>
         </tr>
       </table>
       <p>이 밖에 카메라·마이크·연락처·문자·통화 기록·사진첩·알림 등 다른 권한은 요청하지 않습니다.</p>
@@ -201,7 +203,7 @@
         <li>운행·지출·휴무일·콜밭·설정은 모두 <b>이용자의 기기</b>에 저장되며, 개발자는 이를 보관하지 않습니다.</li>
         <li>기록은 앱 안에서 삭제할 수 있고, <b>앱을 삭제(제거)하면 기기에 저장된 장부 데이터와 설정도 함께 삭제</b>됩니다. 내보낸 CSV·JSON 파일은 이용자가 저장한 위치에 남으므로 필요하면 직접 삭제해 주세요.</li>
         <li>Android 자동 백업 사본이 만들어졌다면 Google 계정의 백업 설정에서 삭제할 수 있습니다.</li>
-        <li>개발자는 장부 데이터를 보관하지 않습니다. 공용 콜밭 제보로 전송된 콜밭 이름·좌표·메모·기기 해시는 Google Firebase에 저장되며, 앱은 최근 30일 제보만 사용합니다. 이 제보는 이용자 화면에서 숨길 수 있지만 서버 기록 자체의 삭제는 개발자에게 문의해 주세요.</li>
+        <li>개발자는 장부 데이터를 보관하지 않습니다. 공용 콜밭 제보로 전송된 콜밭 이름·좌표·메모·출발지 이름·시간대·기기 해시는 Google Firebase에 저장되며, 앱은 최근 30일 제보만 사용합니다. 이 제보는 이용자 화면에서 숨길 수 있지만 서버 기록 자체의 삭제는 개발자에게 문의해 주세요.</li>
         <li>문의 과정에서 이메일로 받은 내용은 문의 처리 목적으로만 사용하고 처리 완료 후 지체 없이 삭제합니다.</li>
       </ul>
 
@@ -222,6 +224,7 @@
       <h2>10. 방침의 변경</h2>
       <p>본 방침이 변경되는 경우 이 페이지에 변경 내용과 시행일을 게시합니다. 앱이 다루는 정보나 권한이 달라지는 중요한 변경이 있는 경우 앱 업데이트 또는 본 페이지를 통해 안내합니다.</p>
       <ul>
+        <li>2026년 11월 27일 — 공용 콜밭 기준을 <b>서로 다른 기기 2명·반경 50m</b>로 완화하고, <b>운행 기록 저장 시 익명 위치 통계</b>(설정에서 끌 수 있음)와 잘 뜨는 시간대 표시를 안내에 추가</li>
         <li>2026년 11월 25일 — 🗺️ 지도에서 위치 고르기 지도를 카카오맵으로 교체(카카오 지도 SDK·지도 타일 안내 추가)</li>
         <li>2026년 11월 25일 — 🗺️ 지도에서 위치 고르기(OpenStreetMap 지도 타일) 통신 안내 추가</li>
         <li>2026년 11월 25일 — 공용 콜밭 제보(5명 기준)와 인터넷 권한 안내 추가</li>
@@ -234,7 +237,7 @@
         <li>이메일: <a href="mailto:youngsujoa1@gmail.com">youngsujoa1@gmail.com</a></li>
       </ul>
 
-      <p class="sub" style="margin-top:22px">본 방침은 2026년 11월 25일부터 적용됩니다.</p>
+      <p class="sub" style="margin-top:22px">본 방침은 2026년 11월 27일부터 적용됩니다.</p>
     </div>
   </section>
 
@@ -251,7 +254,7 @@
       </div>
       <h1>Privacy Policy</h1>
     </div>
-    <p class="sub">대리장부 (Daeri Ledger) · Developer Topster · Effective November 25, 2026</p>
+    <p class="sub">대리장부 (Daeri Ledger) · Developer Topster · Effective November 27, 2026</p>
 
     <div class="card">
       <div class="meta">
@@ -259,7 +262,7 @@
         <span><b>Package</b> <code>com.youngsu.daeriledger</code> (Android)</span>
         <span><b>Developer</b> Topster</span>
         <span><b>Contact</b> <a href="mailto:youngsujoa1@gmail.com">youngsujoa1@gmail.com</a></span>
-        <span><b>Effective date</b> November 25, 2026</span>
+        <span><b>Effective date</b> November 27, 2026</span>
       </div>
     </div>
 
@@ -267,7 +270,7 @@
       <h2>1. Overview</h2>
       <p>대리장부 (“the App”) is an income and expense ledger for designated-driver and delivery-errand drivers in Korea. The developer, Topster (“the Developer”), respects your privacy and follows applicable law and Google Play policies. This policy explains what information the App handles, where it is stored, and what choices you have.</p>
       <div class="note">
-        <p><b>In short:</b> The trip records, income, expenses, days off, memos, hotspot list and settings you enter are stored <b>only on your own device</b>. <span class="ok">The Developer runs no server that receives or keeps this data and cannot read it.</span> The App has no sign-up or login. The only traffic that leaves your device is ① the request that loads ads (Google AdMob), ② anonymous <b>shared hotspot reports</b>, and ③ <b>map display (Kakao Maps)</b>, with OpenStreetMap tiles only when Kakao Maps cannot load, for the <b>🗺️ Pick a location on the map</b> screen. A shared hotspot report sends only the hotspot name, coordinates and memo you entered, plus a device hash; ledger records (trips, income, expenses, unpaid amounts, memos) are never sent. Map display requests carry only the tile numbers and the map position shown on screen — no ledger content.</p>
+        <p><b>In short:</b> The trip records, income, expenses, days off, memos, hotspot list and settings you enter are stored <b>only on your own device</b>. <span class="ok">The Developer runs no server that receives or keeps this data and cannot read it.</span> The App has no sign-up or login. The only traffic that leaves your device is ① the request that loads ads (Google AdMob), ② anonymous <b>shared hotspot reports</b>, and ③ <b>map display (Kakao Maps)</b>, with OpenStreetMap tiles only when Kakao Maps cannot load, for the <b>🗺️ Pick a location on the map</b> screen. A shared hotspot report sends only the hotspot name, coordinates and memo you entered, plus a device hash. While <b>Ride location statistics</b> is on in Settings (on by default), saving a new trip also sends <b>only the current coordinates, the origin name and the hour of the trip</b>; destination, fare, platform, payment method and memos are never sent. Map display requests carry only the tile numbers and the map position shown on screen — no ledger content.</p>
       </div>
 
       <h2>2. Information the App stores (on your device)</h2>
@@ -297,12 +300,14 @@
       <p>Storage location: the App’s private area — the ledger database <code>daeri_ledger.db</code> (trip, expense, day-off and saved-hotspot tables) and the settings file <code>daeri_settings.xml</code>. Other apps cannot readily access this area, and the Developer cannot access these files.</p>
 
       <h3>Shared hotspot reports (optional)</h3>
-      <p>Only when you use <b>+ Add hotspot</b> or long-press a card → <b>Report as gone</b>, the following is sent to Google Firebase Firestore (project <code>daeri-ledger-spots</code>):</p>
+      <p>Only when you use <b>+ Add hotspot</b>, long-press a card → <b>Report as gone</b>, or <b>save a new trip</b> while <b>Ride location statistics</b> is on, the following is sent to Google Firebase Firestore (project <code>daeri-ledger-spots</code>):</p>
       <ul>
         <li>Hotspot name, kind (<code>hotspot</code> / <code>gone</code>), hotspot coordinates (latitude and longitude), address, optional memo, and report time.</li>
+        <li>With <b>Ride location statistics</b> on, saving a new trip sends only the <b>current coordinates, a short origin name (when you entered an origin) and the trip hour (e.g. 22)</b>. Destination, fare, platform, payment method, memos and notes are not sent.</li>
         <li><b>Device hash:</b> a 32-character SHA-256 value of <code>ANDROID_ID</code>. It is used only to count distinct reporters, is not linked to your name, phone number or any other detail, and changes if you reinstall the App.</li>
         <li>If you turn on <b>use current GPS location</b> while adding a hotspot, that location is sent as the hotspot coordinates. If you search by address or save a name only, your current location is not sent.</li>
-        <li>Reports are public to read. The App uses only the last 30 days of reports and shows a shared hotspot only when <b>5 or more distinct devices</b> report the same place (within 20 m); it hides hotspots within 20 m when <b>5 or more distinct devices</b> report it as gone. Up to 4 reports change nothing.</li>
+        <li>Reports are public to read. The App uses only the last 30 days of reports and shows a shared hotspot only when <b>2 or more distinct devices</b> report the same place (within 50 m); it hides hotspots within 50 m when <b>2 or more distinct devices</b> report it as gone. A single report changes nothing.</li>
+        <li>Because some drivers enter several backlogged trips at once, a trip's location is not counted when the trip time and the save time differ by more than 20 minutes, when you save again within 15 minutes, or when you save again at the same place (within 50 m) within an hour.</li>
         <li>Submitted reports are kept as a log the App cannot edit or delete (server rules). The Developer does not use them for any other purpose.</li>
       </ul>
 
@@ -314,7 +319,7 @@
         <tr>
           <th>Location<br>(optional)</th>
           <td><code>ACCESS_FINE_LOCATION</code> / <code>ACCESS_COARSE_LOCATION</code><br>
-          Used only in the <b>Hotspots</b> tab to sort nearby call hotspots by distance from where you are and to open directions in a map app. Distance is calculated on the device, and the App keeps no separate location log. Your coordinates are sent to a Developer server only when you yourself turn on <b>use current GPS location</b> while adding a hotspot, in which case they are included in that shared hotspot report; otherwise they are never sent to a Developer server. If you do not grant location, the App still works with the region filter.<br>
+          Used only in the <b>Hotspots</b> tab to sort nearby call hotspots by distance from where you are and to open directions in a map app. Distance is calculated on the device, and the App keeps no separate location log. Your coordinates are sent to a Developer server only when you yourself turn on <b>use current GPS location</b> while adding a hotspot, or when you save a new trip while <b>Ride location statistics</b> is on, in which case they are included in anonymous statistics; otherwise they are never sent to a Developer server. Ride location statistics can be turned off at any time in Settings. If you do not grant location, the App still works with the region filter.<br>
           When you tap directions, the coordinates of the hotspot you picked are passed to the map app installed on your device; further handling is governed by that app’s privacy policy.</td>
         </tr>
         <tr>
@@ -324,7 +329,7 @@
         <tr>
           <th>Internet<br>(required)</th>
           <td><code>INTERNET</code><br>
-          Used to send shared hotspot reports, to fetch hotspots and “gone” reports collected from other drivers, and to load and measure ads (Google Mobile Ads). Also used to load the in-app map (Kakao Maps SDK and tiles) for the <b>🗺️ Pick a location on the map</b> screen, and OpenStreetMap tiles only when Kakao Maps cannot be loaded.</td>
+          Used to send shared hotspot reports (including anonymous ride-location statistics when they are on), to fetch hotspots and “gone” reports collected from other drivers, and to load and measure ads (Google Mobile Ads). Also used to load the in-app map (Kakao Maps SDK and tiles) for the <b>🗺️ Pick a location on the map</b> screen, and OpenStreetMap tiles only when Kakao Maps cannot be loaded.</td>
         </tr>
       </table>
       <p>The App requests no other permissions such as camera, microphone, contacts, SMS, call log, photo library or notifications.</p>
@@ -353,7 +358,7 @@
         <li>Trip records, expenses, days off, hotspots and settings are stored <b>on your device</b>. The Developer keeps none of them.</li>
         <li>Records can be deleted inside the App, and <b>uninstalling the App removes the ledger data and settings stored on the device</b>. Exported CSV/JSON files remain wherever you saved them, so delete them yourself if needed.</li>
         <li>Any Android auto-backup copy can be removed in your Google account’s backup settings.</li>
-        <li>The Developer keeps no ledger data. Hotspot names, coordinates, memos and device hashes sent as shared hotspot reports are stored in Google Firebase, and the App uses only the last 30 days of reports. You can hide those reports from your screen, but to have the server record itself deleted, please contact the Developer.</li>
+        <li>The Developer keeps no ledger data. Hotspot names, coordinates, memos, origin names, trip hours and device hashes sent as shared hotspot reports are stored in Google Firebase, and the App uses only the last 30 days of reports. You can hide those reports from your screen, but to have the server record itself deleted, please contact the Developer.</li>
         <li>Support emails you send are used only to answer your inquiry and are deleted promptly afterwards.</li>
       </ul>
 
@@ -374,6 +379,7 @@
       <h2>10. Changes to this policy</h2>
       <p>If this policy changes, the change and its effective date will be posted on this page. Significant changes to the information or permissions the App handles will also be noted in an App update or on this page.</p>
       <ul>
+        <li>November 27, 2026 — shared hotspot threshold relaxed to <b>2 distinct devices within 50 m</b>, and notice added for <b>anonymous ride-location statistics</b> (can be turned off in Settings) and best-time display</li>
         <li>November 25, 2026 — map on “Pick a location on the map” switched to Kakao Maps (Kakao Maps SDK and tile notice added)</li>
         <li>November 25, 2026 — map tiles (OpenStreetMap) used by “Pick a location on the map” added</li>
         <li>November 25, 2026 — shared hotspot reports (5-driver threshold) and the Internet permission added</li>
@@ -386,7 +392,7 @@
         <li>Email: <a href="mailto:youngsujoa1@gmail.com">youngsujoa1@gmail.com</a></li>
       </ul>
 
-      <p class="sub" style="margin-top:22px">This policy is effective from November 25, 2026.</p>
+      <p class="sub" style="margin-top:22px">This policy is effective from November 27, 2026.</p>
     </div>
   </section>
 

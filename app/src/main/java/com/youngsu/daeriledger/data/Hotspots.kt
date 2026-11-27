@@ -30,11 +30,22 @@ data class Hotspot(
     val reporters: Int = 0,
     /** 공용 제보 마지막 시각(ms) — 0이면 없음 */
     val lastAt: Long = 0L,
-    /** 운영자(관리자)가 5명 대기 없이 바로 올린 콜밭이면 true (v1.0.23) */
-    val admin: Boolean = false
+    /** 운영자(관리자)가 기준 인원을 기다리지 않고 바로 올린 콜밭이면 true (v1.0.23) */
+    val admin: Boolean = false,
+    /** 운행 기록 GPS로 만든 익명 제보가 섞인 자리(🔥 핫스팟)면 true (v1.0.26) */
+    val hotspot: Boolean = false,
+    /** 제보가 모인 시간대(0~23) — 시간대 칩 필터에 쓴다. 없으면 빈 목록 */
+    val hours: List<Int> = emptyList()
 ) {
-    /** 피크 시간대 정보가 있는 곳(직접 정리한 콜밭)만 true */
+    /** 피크 시간대 정보가 있는 곳(직접 정리한 콜밭·집계된 콜밭)만 true */
     val hasPeak: Boolean get() = peak.isNotBlank()
+
+    /** 카드에 보일 피크 줄 — 핫스팟은 🔥, 기본 콜밭은 `피크` */
+    val peakLabel: String get() = when {
+        peak.isBlank() -> ""
+        hotspot -> "🔥 $peak"
+        else -> "피크 $peak"
+    }
 
     /** 좌표를 저장하지 않고 이름만 저장한 콜밭 — 거리 계산·거리순 정렬에서 빠진다 */
     val hasLocation: Boolean get() = lat != 0.0 || lng != 0.0
@@ -3276,7 +3287,7 @@ object Hotspots {
     /** 콜밭 출처 — 화면에는 구분 칩 없이 하나의 콜밭 목록으로 보이고, 카드 배지만 다르다 */
     const val SOURCE_DRIVER = "기사 추천"
     const val SOURCE_TAKSONG = "탁송"
-    /** 기사님들이 5명 이상 제보해 올라온 공용 콜밭 */
+    /** 기사님들이 제보해 올라온 공용 콜밭 — v1.0.26 부터 서로 다른 기기 2명 이상 */
     const val SOURCE_CLOUD = "기사 제보"
 
     /**
@@ -3347,6 +3358,8 @@ object Hotspots {
     /**
      * 서버에서 받은 공용 콜밭([PublicSpot])을 콜밭 목록 항목으로.
      *  - `기사 제보` 배지 + `기사 N명 제보 · N시간 전` 줄로 표시된다
+     *  - 운행 기록 GPS에서 모인 자리는 [hotspot] = true → 화면이 🔥 핫스팟(코랄)으로 구분한다
+     *  - 잘 뜨는 시간대는 [peak] 에 들어 있어 카드에 `🔥 22시~01시 활발` 로 보인다
      *  - 좌표는 서버 제보 묶음의 평균이라 그대로 길찾기에 쓴다
      */
     fun fromPublicSpot(spot: PublicSpot): Hotspot {
@@ -3359,12 +3372,14 @@ object Hotspots {
             city = city,
             lat = spot.lat,
             lng = spot.lng,
-            peak = "",
-            tip = spot.note,
+            peak = spot.peak,
+            tip = SpotTimeBands.decodeNote(spot.note).first,
             source = SOURCE_CLOUD,
             reporters = spot.reporters,
             lastAt = spot.lastAt,
-            admin = spot.admin
+            admin = spot.admin,
+            hotspot = spot.hotspot,
+            hours = spot.hours
         )
     }
 

@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.FrameLayout
+import android.widget.LinearLayout
 import android.widget.NumberPicker
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
@@ -173,6 +174,24 @@ class SettingsScreen(private val activity: MainActivity) : Screen {
             }
         ) { showThemeDialog() }
 
+        // -------------------------------------------------------------- 콜밭
+        section("콜밭 통계")
+        switchRow(
+            icon = R.drawable.ic_map_pin,
+            title = "운행 기록 위치 통계",
+            subtitle = "새 운행을 저장할 때 지금 위치·출발지 이름·시간대만 익명으로 보태요",
+            checked = settings.shareRideStats
+        ) { on ->
+            settings.shareRideStats = on
+            if (on && !activity.hasLocationPermission()) {
+                activity.toast("위치 권한을 허용해야 이 통계가 함께 쌓여요")
+            }
+        }
+        note(
+            "운행 기록의 도착지·요금·플랫폼·메모는 보내지 않아요. 같은 자리에서 밀린 기록을 한꺼번에 올리면 " +
+                "첫 건만 반영되고, 같은 자리에서 서로 다른 기기 2명 이상이 모이면 콜밭 목록에 보여요."
+        )
+
         // -------------------------------------------------------------- 데이터
         section("데이터")
         val (rideCount, expenseCount) = activity.repo.counts()
@@ -209,7 +228,7 @@ class SettingsScreen(private val activity: MainActivity) : Screen {
             row(
                 icon = R.drawable.ic_check,
                 title = "👑 운영자 모드",
-                subtitle = "콜밭 등록·삭제가 5명 대기 없이 모든 기사님 앱에 바로 반영돼요",
+                subtitle = "콜밭 등록·삭제가 2명 대기 없이 모든 기사님 앱에 바로 반영돼요",
                 value = "켜짐"
             ) { confirmAdminOff() }
         }
@@ -337,7 +356,7 @@ class SettingsScreen(private val activity: MainActivity) : Screen {
 
         val dialog = MaterialAlertDialogBuilder(activity)
             .setTitle("👑 운영자 모드 잠금 해제")
-            .setMessage("콜밭을 5명 대기 없이 바로 공개·삭제할 수 있는 모드입니다. 운영자 암호를 입력해 주세요.")
+            .setMessage("콜밭을 2명 대기 없이 바로 공개·삭제할 수 있는 모드입니다. 운영자 암호를 입력해 주세요.")
             .setView(box)
             .setNegativeButton("취소", null)
             .setPositiveButton("확인", null)
@@ -360,18 +379,46 @@ class SettingsScreen(private val activity: MainActivity) : Screen {
         dialog.show()
     }
 
-    /** 운영자 모드 끄기 — 다시 일반 5명 기준으로 돌아간다 */
+    /** 운영자 모드 끄기 — 다시 일반 2명 기준으로 돌아간다 */
     private fun confirmAdminOff() {
         Dialogs.confirm(
             activity,
             "운영자 모드 끄기",
-            "콜밭 등록은 다시 5명 이상 모여야 공개되고, 삭제도 5명 기준으로 돌아갑니다.",
+            "콜밭 등록은 다시 2명 이상 모여야 공개되고, 삭제도 2명 기준으로 돌아갑니다.",
             positive = "끄기"
         ) {
             settings.isAdminMode = false
             refresh()
             activity.toast("운영자 모드를 껐어요")
         }
+    }
+
+    /** 스위치가 달린 설정 줄 — 토글 값은 [onToggle] 에서 저장한다 (v1.0.26) */
+    private fun switchRow(
+        icon: Int,
+        title: String,
+        subtitle: String,
+        checked: Boolean,
+        onToggle: (Boolean) -> Unit
+    ) {
+        val b = ItemSettingRowBinding.inflate(LayoutInflater.from(activity), binding.settingsColumn, false)
+        b.rowIcon.setImageResource(icon)
+        b.rowTitle.text = title
+        if (subtitle.isBlank()) b.rowSubtitle.visibility = View.GONE else b.rowSubtitle.text = subtitle
+        b.rowValue.visibility = View.GONE
+        b.rowChevron.visibility = View.GONE
+        val sw = MaterialSwitch(activity).apply {
+            isChecked = checked
+            setOnCheckedChangeListener { _, value -> onToggle(value) }
+        }
+        val lp = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply { marginStart = activity.dp(8f) }
+        b.rowRoot.addView(sw, lp)
+        // 줄을 눌러도 토글된다
+        b.rowRoot.setOnClickListener { sw.isChecked = !sw.isChecked }
+        binding.settingsColumn.addView(b.root)
     }
 
     private fun platformRow(platform: PlatformDef) {
